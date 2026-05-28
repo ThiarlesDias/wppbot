@@ -9,7 +9,7 @@ const client = new Client({
 
     puppeteer: {
 
-        headless: false,
+        headless: 'new',
 
         executablePath:
         process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -17,9 +17,15 @@ const client = new Client({
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage'
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process'
         ]
-    }
+    },
+
+    authTimeoutMs: 0
 });
 
 client.on('qr', qr => {

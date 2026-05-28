@@ -2,33 +2,32 @@ FROM node:20-bullseye
 
 WORKDIR /app
 
+COPY package*.json ./
+
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     ca-certificates \
     fonts-liberation \
-    libasound2 \
     libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libgbm1 \
     libgtk-3-0 \
-    libnspr4 \
+    libgbm-dev \
+    libnotify-dev \
     libnss3 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    libu2f-udev \
-    libvulkan1 \
-    --no-install-recommends
+    libxss1 \
+    libasound2 \
+    xdg-utils
 
-COPY package*.json ./
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+
+RUN sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list'
+
+RUN apt-get update && apt-get install -y google-chrome-stable
 
 RUN npm install
 
 COPY . .
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
 
 CMD ["node", "bot.js"]
