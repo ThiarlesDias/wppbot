@@ -4,41 +4,56 @@ const qrcode = require('qrcode-terminal');
 console.log('INICIANDO BOT...');
 
 const client = new Client({
+
     authStrategy: new LocalAuth(),
+
     puppeteer: {
+
         headless: true,
-        executablePath: '/snap/bin/chromium',
+
+        executablePath:
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
+            '--disable-dev-shm-usage'
         ]
     }
 });
 
 client.on('qr', qr => {
+
     console.log('QR RECEBIDO');
-    qrcode.generate(qr, { small: true });
+
+    qrcode.generate(qr, {
+        small: true
+    });
+
 });
 
 client.on('authenticated', () => {
+
     console.log('AUTENTICADO');
+
 });
 
 client.on('ready', () => {
-    console.log('BOT PRONTO!');
+
+    console.log('BOT PRONTO');
+
 });
 
-client.on('message', async message => {
-    console.log('Mensagem:', message.body);
+client.on('message', async msg => {
 
-    if (message.body.toLowerCase() === 'oi') {
-        await message.reply('Olá! Bot funcionando.');
+    console.log('MENSAGEM:', msg.body);
+
+    if (msg.body.toLowerCase().includes('oi')) {
+
+        await msg.reply('Olá 😎');
+
     }
+
 });
 
 client.initialize();
