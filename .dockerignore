@@ -1,4 +1,4 @@
 node_modules
-tokens
-venv
+session
+.wwebjs_auth
 .git
