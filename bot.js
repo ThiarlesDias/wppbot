@@ -1,23 +1,9 @@
-const venom = require('venom-bot');
+const wppconnect = require('@wppconnect-team/wppconnect');
 
-vvenom.create({
-  session: 'bot',
-
-  headless: 'new',
-
-  puppeteerOptions: {
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process'
-    ]
-  }
-
-})
+venom.create({
+    session: 'bot',
+    headless: true
+  })
   .then((client) => start(client))
   .catch((erro) => console.log(erro));
 
