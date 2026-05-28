@@ -1,21 +1,36 @@
+
 const wppconnect = require('@wppconnect-team/wppconnect');
 
+console.log('INICIANDO BOT...');
+
 wppconnect.create({
+
   session: 'bot',
+
   headless: true,
+
   autoClose: 0,
 
   puppeteerOptions: {
+
     headless: true,
+
     args: [
       '--no-sandbox',
-      '--disable-setuid-sandbox'
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage'
     ]
+
   }
 
 })
+
 .then((client) => start(client))
-.catch((erro) => console.log(erro));
+
+.catch((erro) => {
+  console.log('ERRO AO INICIAR');
+  console.log(erro);
+});
 
 function start(client) {
 
@@ -23,116 +38,131 @@ function start(client) {
 
   client.onMessage(async (message) => {
 
-    // Ignora grupos
-    if (message.isGroupMsg) return;
+    try {
 
-    // Ignora mídia
-    if (message.type !== 'chat') return;
+      // IGNORA GRUPOS
+      if (message.isGroupMsg) return;
 
-    const texto = message.body.toLowerCase();
+      // IGNORA MIDIA
+      if (message.type !== 'chat') return;
 
-    console.log(`${message.from} -> ${texto}`);
+      // IGNORA MSG DO BOT
+      if (message.fromMe) return;
 
-    // MENU
-    if (
-      texto === 'oi' ||
-      texto === 'menu' ||
-      texto === 'olá'
-    ) {
+      const texto = message.body.toLowerCase().trim();
 
+      console.log(`${message.from} -> ${texto}`);
+
+      // MENU AUTOMATICO
       await client.sendText(
+
         message.from,
+
 `🤖 *TopTec Digital*
+
+Bem-vindo ao nosso atendimento.
 
 Escolha uma opção:
 
-1 - Suporte Técnico
-2 - Vendas
-3 - Financeiro
-4 - Falar com atendente`
+1️⃣ Suporte Técnico
+2️⃣ Comercial / Vendas
+3️⃣ Financeiro
+4️⃣ Atendimento Humano`
+
       );
 
-      return;
-    }
+      // SUPORTE
+      if (texto === '1') {
 
-    // SUPORTE
-    if (texto === '1') {
+        await client.sendText(
 
-      await client.sendText(
-        message.from,
-`🛠️ *Suporte Técnico*
+          message.from,
+
+`🛠️ *SUPORTE TÉCNICO*
 
 Descreva seu problema.
 
 Exemplos:
-- Internet lenta
-- Antena sem sinal
-- Erro no equipamento`
-      );
+• Sem sinal
+• Equipamento offline
+• Internet lenta
+• Erro no sistema`
 
-      return;
-    }
+        );
 
-    // VENDAS
-    if (texto === '2') {
+        return;
+      }
 
-      await client.sendText(
-        message.from,
-`💰 *Setor de Vendas*
+      // VENDAS
+      if (texto === '2') {
+
+        await client.sendText(
+
+          message.from,
+
+`💰 *COMERCIAL*
 
 Trabalhamos com:
 
 ✅ Internet Satelital
 ✅ Rastreamento
-✅ Telefonia via Satélite
+✅ Telefonia Satelital
 ✅ Automação
+✅ Monitoramento
 
-Informe o produto desejado.`
-      );
+Informe qual produto deseja.`
 
-      return;
+        );
+
+        return;
+      }
+
+      // FINANCEIRO
+      if (texto === '3') {
+
+        await client.sendText(
+
+          message.from,
+
+`💳 *FINANCEIRO*
+
+Informe sua solicitação:
+
+• 2ª via
+• Boleto
+• Nota fiscal
+• Pagamento
+• Contrato`
+
+        );
+
+        return;
+      }
+
+      // HUMANO
+      if (texto === '4') {
+
+        await client.sendText(
+
+          message.from,
+
+`👨‍💼 Encaminhando para um atendente.
+
+Aguarde nosso retorno.`
+
+        );
+
+        return;
+      }
+
+    } catch (erro) {
+
+      console.log('ERRO NA MENSAGEM');
+      console.log(erro);
+
     }
-
-    // FINANCEIRO
-    if (texto === '3') {
-
-      await client.sendText(
-        message.from,
-`💳 *Financeiro*
-
-Informe sua dúvida:
-
-- 2ª via
-- boleto
-- pagamento
-- nota fiscal`
-      );
-
-      return;
-    }
-
-    // HUMANO
-    if (texto === '4') {
-
-      await client.sendText(
-        message.from,
-`👨‍💼 Encaminhando para um atendente humano.
-
-Aguarde nosso contato.`
-      );
-
-      return;
-    }
-
-    // PADRÃO
-    await client.sendText(
-      message.from,
-`Não entendi sua mensagem.
-
-Digite:
-- oi
-- menu`
-    );
 
   });
+
 }
+
