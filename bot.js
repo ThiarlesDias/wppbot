@@ -1,13 +1,21 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 
-
 wppconnect.create({
-    session: 'bot',
-    headless: true
+  session: 'bot',
+  headless: true,
+  autoClose: 0,
+
+  puppeteerOptions: {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox'
+    ]
+  }
+
 })
 .then((client) => start(client))
 .catch((erro) => console.log(erro));
-
 
 function start(client) {
 
