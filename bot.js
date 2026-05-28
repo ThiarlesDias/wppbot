@@ -1,10 +1,23 @@
 const venom = require('venom-bot');
 
-venom
-  .create({
-    session: 'bot',
-    headless: true
-  })
+vvenom.create({
+  session: 'bot',
+
+  headless: 'new',
+
+  puppeteerOptions: {
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process'
+    ]
+  }
+
+})
   .then((client) => start(client))
   .catch((erro) => console.log(erro));
 
