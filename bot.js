@@ -1,31 +1,22 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const wppconnect = require('@wppconnect-team/wppconnect');
 
 console.log('INICIANDO BOT...');
 
-process.on('unhandledRejection', error => {
-    console.log('ERRO PROMISE:');
-    console.log(error);
-});
+wppconnect.create({
 
-const client = new Client({
+    session: 'bot',
 
-    authStrategy: new LocalAuth(),
+    autoClose: 0,
 
-    authTimeoutMs: 0,
+    headless: 'new',
 
-    takeoverOnConflict: true,
-
-    takeoverTimeoutMs: 0,
-
-    puppeteer: {
-
-        headless: 'new',
+    puppeteerOptions: {
 
         executablePath:
         process.env.PUPPETEER_EXECUTABLE_PATH,
 
         args: [
+
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
@@ -35,56 +26,44 @@ const client = new Client({
             '--single-process'
         ]
     }
-});
 
-client.on('qr', qr => {
+})
 
-    console.log('QR RECEBIDO');
+.then((client) => {
 
-    qrcode.generate(qr, {
-        small: true
+    console.log('BOT ONLINE');
+
+    client.onMessage(async (message) => {
+
+        console.log('MENSAGEM:', message.body);
+
+        if (
+            message.body &&
+            message.body.toLowerCase().includes('oi')
+        ) {
+
+            try {
+
+                await client.sendText(
+                    message.from,
+                    'Olá 😎'
+                );
+
+                console.log('RESPONDEU');
+
+            } catch (e) {
+
+                console.log('ERRO');
+                console.log(e);
+
+            }
+        }
     });
 
-});
+})
 
-client.on('authenticated', () => {
+.catch((error) => {
 
-    console.log('AUTENTICADO');
-
-});
-
-client.on('ready', () => {
-
-    console.log('BOT PRONTO');
+    console.log(error);
 
 });
-
-client.on('loading_screen', (percent, message) => {
-
-    console.log('CARREGANDO:', percent, message);
-
-});
-
-client.on('message', async msg => {
-
-    console.log('MENSAGEM:', msg.body);
-
-    if (msg.body.toLowerCase().includes('oi')) {
-
-        try {
-
-            await msg.reply('Olá 😎');
-
-            console.log('RESPONDEU');
-
-        } catch (e) {
-
-            console.log('ERRO AO RESPONDER');
-            console.log(e);
-
-        }
-    }
-
-});
-
-client.initialize();
