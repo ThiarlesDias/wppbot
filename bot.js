@@ -1,6 +1,8 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 
-console.log('INICIANDO BOT...');
+const sessions = {};
+
+console.log('INICIANDO BOT TOPTEC...');
 
 wppconnect.create({
 
@@ -35,29 +37,84 @@ wppconnect.create({
 
     client.onMessage(async (message) => {
 
-        console.log('MENSAGEM:', message.body);
+        if (!message.body) return;
 
-        if (
-            message.body &&
-            message.body.toLowerCase().includes('oi')
-        ) {
+        const numero = message.from;
+        const texto = message.body.toLowerCase().trim();
 
-            try {
+        console.log(numero);
+        console.log(texto);
 
-                await client.sendText(
-                    message.from,
-                    'Olá 😎'
-                );
+        if (!sessions[numero]) {
 
-                console.log('RESPONDEU');
+            sessions[numero] = {
+                etapa: 'menu'
+            };
 
-            } catch (e) {
+            await client.sendText(
+                numero,
+`Olá, seja bem-vindo à TopTec Digital 🚀
 
-                console.log('ERRO');
-                console.log(e);
+Digite uma opção:
 
+1 - Suporte Técnico
+2 - Comercial
+3 - Financeiro
+4 - Falar com atendente`
+            );
+
+            return;
+        }
+
+        if (sessions[numero].etapa === 'menu') {
+
+            switch (texto) {
+
+                case '1':
+
+                    await client.sendText(
+                        numero,
+                        'Você entrou no suporte técnico.'
+                    );
+
+                    break;
+
+                case '2':
+
+                    await client.sendText(
+                        numero,
+                        'Você entrou no comercial.'
+                    );
+
+                    break;
+
+                case '3':
+
+                    await client.sendText(
+                        numero,
+                        'Você entrou no financeiro.'
+                    );
+
+                    break;
+
+                case '4':
+
+                    await client.sendText(
+                        numero,
+                        'Um atendente irá falar com você.'
+                    );
+
+                    break;
+
+                default:
+
+                    await client.sendText(
+                        numero,
+                        'Digite uma opção válida.'
+                    );
             }
         }
+
     });
 
 })
