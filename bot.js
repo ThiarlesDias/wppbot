@@ -64,7 +64,7 @@ Bem-vindo ao nosso atendimento.
 
 Escolha uma opção:
 
-1️⃣ Suporte Técnico
+1️⃣ sistema de TV
 2️⃣ Comercial / Vendas
 3️⃣ Financeiro
 4️⃣ Atendimento Humano`
@@ -78,15 +78,15 @@ Escolha uma opção:
 
           message.from,
 
-`🛠️ *SUPORTE TÉCNICO*
+`🛠️ *Sistema de TV*
 
 Descreva seu problema.
 
 Exemplos:
 • Sem sinal
-• Equipamento offline
-• Internet lenta
-• Erro no sistema`
+• Renovação
+• Adquirir pacote
+• falar com atendente`
 
         );
 
@@ -104,11 +104,13 @@ Exemplos:
 
 Trabalhamos com:
 
-✅ Internet Satelital
-✅ Rastreamento
-✅ Telefonia Satelital
-✅ Automação
-✅ Monitoramento
+✅ Sistema de TV
+✅ Desenvolvimento de sites
+✅ Desenvolvimento de aplicativos
+✅ Automação de Whatsapp
+✅ infraestrutura de TI
+✅ serviços de marketing digital
+✅ srviços de TI Geral
 
 Informe qual produto deseja.`
 
@@ -128,9 +130,9 @@ Informe qual produto deseja.`
 
 Informe sua solicitação:
 
-• 2ª via
-• Boleto
-• Nota fiscal
+• Informações de pagamento
+• Fatura
+• Informações de pagamento
 • Pagamento
 • Contrato`
 
