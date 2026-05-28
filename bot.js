@@ -1,8 +1,17 @@
-const wppconnect = require('@wppconnect-team/wppconnect');
+require('dotenv').config();
+
+const wppconnect =
+require('@wppconnect-team/wppconnect');
+
+const logger =
+require('./services/logger');
+
+const perguntarIA =
+require('./services/openai');
 
 const sessions = {};
 
-console.log('INICIANDO BOT TOPTEC...');
+logger.info('INICIANDO BOT TOPTEC...');
 
 wppconnect.create({
 
@@ -33,94 +42,59 @@ wppconnect.create({
 
 .then((client) => {
 
-    console.log('BOT ONLINE');
+    logger.info('BOT ONLINE');
 
     client.onMessage(async (message) => {
 
-        if (!message.body) return;
+        try {
 
-        const numero = message.from;
-        const texto = message.body.toLowerCase().trim();
+            if (!message.body) return;
 
-        console.log(numero);
-        console.log(texto);
+            const numero = message.from;
 
-        if (!sessions[numero]) {
+            const texto =
+            message.body.trim();
 
-            sessions[numero] = {
-                etapa: 'menu'
-            };
-
-            await client.sendText(
-                numero,
-`Olá, seja bem-vindo à TopTec Digital 🚀
-
-Digite uma opção:
-
-1 - Suporte Técnico
-2 - Comercial
-3 - Financeiro
-4 - Falar com atendente`
+            logger.info(
+                `${numero} -> ${texto}`
             );
 
-            return;
-        }
+            if (!sessions[numero]) {
 
-        if (sessions[numero].etapa === 'menu') {
+                sessions[numero] = {
 
-            switch (texto) {
+                    etapa: 'ia'
+                };
 
-                case '1':
+                await client.sendText(
 
-                    await client.sendText(
-                        numero,
-                        'Você entrou no suporte técnico.'
-                    );
+                    numero,
 
-                    break;
-
-                case '2':
-
-                    await client.sendText(
-                        numero,
-                        'Você entrou no comercial.'
-                    );
-
-                    break;
-
-                case '3':
-
-                    await client.sendText(
-                        numero,
-                        'Você entrou no financeiro.'
-                    );
-
-                    break;
-
-                case '4':
-
-                    await client.sendText(
-                        numero,
-                        'Um atendente irá falar com você.'
-                    );
-
-                    break;
-
-                default:
-
-                    await client.sendText(
-                        numero,
-                        'Digite uma opção válida.'
-                    );
+                    `Olá, eu sou a assistente da ${process.env.BOT_NAME} 🚀`
+                );
             }
-        }
 
+            const resposta =
+            await perguntarIA(texto);
+
+            await client.sendText(
+
+                numero,
+                resposta
+            );
+
+        } catch (erro) {
+
+            logger.error(
+                erro.toString()
+            );
+        }
     });
 
 })
 
 .catch((error) => {
 
-    console.log(error);
+    logger.error(error.toString());
 
 });
