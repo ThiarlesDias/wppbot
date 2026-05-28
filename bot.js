@@ -9,7 +9,7 @@ const client = new Client({
 
     puppeteer: {
 
-        headless: true,
+        headless: false,
 
         executablePath:
         process.env.PUPPETEER_EXECUTABLE_PATH,
