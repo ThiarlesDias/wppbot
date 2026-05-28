@@ -3,9 +3,20 @@ const qrcode = require('qrcode-terminal');
 
 console.log('INICIANDO BOT...');
 
+process.on('unhandledRejection', error => {
+    console.log('ERRO PROMISE:');
+    console.log(error);
+});
+
 const client = new Client({
 
     authStrategy: new LocalAuth(),
+
+    authTimeoutMs: 0,
+
+    takeoverOnConflict: true,
+
+    takeoverTimeoutMs: 0,
 
     puppeteer: {
 
@@ -23,9 +34,7 @@ const client = new Client({
             '--no-zygote',
             '--single-process'
         ]
-    },
-
-    authTimeoutMs: 0
+    }
 });
 
 client.on('qr', qr => {
@@ -50,14 +59,30 @@ client.on('ready', () => {
 
 });
 
+client.on('loading_screen', (percent, message) => {
+
+    console.log('CARREGANDO:', percent, message);
+
+});
+
 client.on('message', async msg => {
 
     console.log('MENSAGEM:', msg.body);
 
     if (msg.body.toLowerCase().includes('oi')) {
 
-        await msg.reply('Olá 😎');
+        try {
 
+            await msg.reply('Olá 😎');
+
+            console.log('RESPONDEU');
+
+        } catch (e) {
+
+            console.log('ERRO AO RESPONDER');
+            console.log(e);
+
+        }
     }
 
 });
