@@ -4,69 +4,41 @@ const qrcode = require('qrcode-terminal');
 console.log('INICIANDO BOT...');
 
 const client = new Client({
-
     authStrategy: new LocalAuth(),
-
-    webVersionCache: {
-        type: 'none'
-    },
-
     puppeteer: {
-
         headless: true,
-
+        executablePath: '/usr/bin/chromium-browser',
         args: [
             '--no-sandbox',
-            '--disable-setuid-sandbox'
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
         ]
     }
 });
 
 client.on('qr', qr => {
-
     console.log('QR RECEBIDO');
-
-    qrcode.generate(qr, {
-        small: true
-    });
-
+    qrcode.generate(qr, { small: true });
 });
 
 client.on('authenticated', () => {
-
     console.log('AUTENTICADO');
-
 });
 
 client.on('ready', () => {
-
-    console.log('BOT PRONTO');
-
+    console.log('BOT PRONTO!');
 });
 
-client.on('message', async msg => {
+client.on('message', async message => {
+    console.log('Mensagem:', message.body);
 
-    console.log('MENSAGEM RECEBIDA:', msg.body);
-
-    if (msg.body.toLowerCase().includes('oi')) {
-
-        console.log('ENTROU NO IF');
-
-        try {
-
-            await msg.reply('Olá 😎');
-
-            console.log('RESPOSTA ENVIADA');
-
-        } catch (erro) {
-
-            console.log('ERRO AO RESPONDER');
-            console.log(erro);
-
-        }
-
+    if (message.body.toLowerCase() === 'oi') {
+        await message.reply('Olá! Bot funcionando.');
     }
-
 });
 
 client.initialize();
