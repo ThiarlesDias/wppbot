@@ -1,101 +1,129 @@
-const wppconnect = require('@wppconnect-team/wppconnect');
+const venom = require('venom-bot');
 
-const atendimento = require('./flows/atendimento');
-const suporte = require('./flows/suporte');
-const vendas = require('./flows/vendas');
-const financeiro = require('./flows/financeiro');
-
-console.log('INICIANDO BOT TOPTEC...');
-
-wppconnect.create({
-
+venom
+  .create({
     session: 'bot',
+    headless: true
+  })
+  .then((client) => start(client))
+  .catch((erro) => console.log(erro));
 
-    autoClose: 0,
+function start(client) {
 
-    headless: true,
+  console.log('BOT ONLINE');
 
-    logQR: true,
+  client.onMessage(async (message) => {
 
-    puppeteerOptions: {
+    // Ignora grupos
+    if (message.isGroupMsg) return;
 
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox'
-        ]
+    // Ignora mídia
+    if (message.type !== 'chat') return;
 
+    const texto = message.body.toLowerCase();
+
+    console.log(`${message.from} -> ${texto}`);
+
+    // MENU
+    if (
+      texto === 'oi' ||
+      texto === 'menu' ||
+      texto === 'olá'
+    ) {
+
+      await client.sendText(
+        message.from,
+`🤖 *TopTec Digital*
+
+Escolha uma opção:
+
+1 - Suporte Técnico
+2 - Vendas
+3 - Financeiro
+4 - Falar com atendente`
+      );
+
+      return;
     }
 
-})
+    // SUPORTE
+    if (texto === '1') {
 
-.then((client) => {
+      await client.sendText(
+        message.from,
+`🛠️ *Suporte Técnico*
 
-    console.log('BOT ONLINE');
+Descreva seu problema.
 
-    client.onMessage(async (message) => {
+Exemplos:
+- Internet lenta
+- Antena sem sinal
+- Erro no equipamento`
+      );
 
-        try {
+      return;
+    }
 
-            if (!message.body) {
-                return;
-            }
+    // VENDAS
+    if (texto === '2') {
 
-            const texto = message.body.toLowerCase().trim();
+      await client.sendText(
+        message.from,
+`💰 *Setor de Vendas*
 
-            console.log('=================================');
-            console.log('MENSAGEM RECEBIDA');
-            console.log(texto);
+Trabalhamos com:
 
-            if (
-                texto === '1' ||
-                texto.includes('suporte')
-            ) {
+✅ Internet Satelital
+✅ Rastreamento
+✅ Telefonia via Satélite
+✅ Automação
 
-                return suporte(client, message);
+Informe o produto desejado.`
+      );
 
-            }
+      return;
+    }
 
-            if (
-                texto === '2' ||
-                texto.includes('vendas') ||
-                texto.includes('comprar') ||
-                texto.includes('comercial')
-            ) {
+    // FINANCEIRO
+    if (texto === '3') {
 
-                return vendas(client, message);
+      await client.sendText(
+        message.from,
+`💳 *Financeiro*
 
-            }
+Informe sua dúvida:
 
-            if (
-                texto === '3' ||
-                texto.includes('financeiro')
-            ) {
+- 2ª via
+- boleto
+- pagamento
+- nota fiscal`
+      );
 
-                return financeiro(client, message);
+      return;
+    }
 
-            }
+    // HUMANO
+    if (texto === '4') {
 
-            return atendimento(client, message);
+      await client.sendText(
+        message.from,
+`👨‍💼 Encaminhando para um atendente humano.
 
-        } catch (erro) {
+Aguarde nosso contato.`
+      );
 
-            console.log('ERRO GERAL');
-            console.log(erro);
+      return;
+    }
 
-            await client.sendText(
-                message.from,
-                '⚠️ Ocorreu um erro no atendimento.'
-            );
+    // PADRÃO
+    await client.sendText(
+      message.from,
+`Não entendi sua mensagem.
 
-        }
+Digite:
+- oi
+- menu`
+    );
 
-    });
-
-})
-
-.catch((error) => {
-
-    console.log('ERRO AO INICIAR BOT');
-    console.log(error);
-
-});
+  });
+}
