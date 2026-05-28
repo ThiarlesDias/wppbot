@@ -1,11 +1,13 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 
-venom.create({
+
+wppconnect.create({
     session: 'bot',
     headless: true
-  })
-  .then((client) => start(client))
-  .catch((erro) => console.log(erro));
+})
+.then((client) => start(client))
+.catch((erro) => console.log(erro));
+
 
 function start(client) {
 
