@@ -13,10 +13,7 @@ const client = new Client({
 
     puppeteer: {
 
-        headless: false,
-
-        executablePath:
-        'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        headless: true,
 
         args: [
             '--no-sandbox',

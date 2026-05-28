@@ -11,7 +11,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+<<<<<<< HEAD
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.23.0"
+=======
+    "@wppconnect-team/wppconnect": "^2.2.1"
+>>>>>>> b2f218454ca07d8bcfbb0e9a143d4b5a5cc3e68f
   }
 }
