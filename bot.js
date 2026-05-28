@@ -1,11 +1,8 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 
 wppconnect.create({
-
   session: 'bot',
-
   autoClose: 0,
-
   headless: true,
 
   puppeteerOptions: {
@@ -13,19 +10,25 @@ wppconnect.create({
   }
 
 })
-.then((client) => {
+.then(async (client) => {
 
   console.log('BOT ONLINE');
 
-  client.onMessage(async (message) => {
+  await client.startAllPresence();
+
+  client.onAnyMessage(async (message) => {
 
     console.log('NOVA MENSAGEM');
     console.log(message.body);
 
-    await client.sendText(
-      message.from,
-      'Recebi: ' + message.body
-    );
+    if (!message.isGroupMsg) {
+
+      await client.sendText(
+        message.from,
+        'Recebi: ' + message.body
+      );
+
+    }
 
   });
 
