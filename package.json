@@ -1,14 +1,11 @@
 {
-  "name": "wpp-bot",
+  "name": "wppbot",
   "version": "1.0.0",
   "main": "bot.js",
-  "license": "ISC",
+  "scripts": {
+    "start": "node bot.js"
+  },
   "dependencies": {
-    "@wppconnect-team/wppconnect": "^2.2.1",
-    "axios": "^1.16.1",
-    "dotenv": "^17.4.2",
-    "mysql2": "^3.22.4",
-    "qrcode-terminal": "^0.12.0",
-    "winston": "^3.19.0"
+    "@wppconnect-team/wppconnect": "^1.37.5"
   }
 }

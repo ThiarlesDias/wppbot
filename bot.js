@@ -1,17 +1,11 @@
-require('dotenv').config();
+const wppconnect = require('@wppconnect-team/wppconnect');
 
-const wppconnect =
-require('@wppconnect-team/wppconnect');
+const atendimento = require('./flows/atendimento');
+const suporte = require('./flows/suporte');
+const vendas = require('./flows/vendas');
+const financeiro = require('./flows/financeiro');
 
-const logger =
-require('./services/logger');
-
-const perguntarIA =
-require('./services/openai');
-
-const sessions = {};
-
-logger.info('INICIANDO BOT TOPTEC...');
+console.log('INICIANDO BOT TOPTEC...');
 
 wppconnect.create({
 
@@ -19,82 +13,89 @@ wppconnect.create({
 
     autoClose: 0,
 
-    headless: 'new',
+    headless: true,
+
+    logQR: true,
 
     puppeteerOptions: {
 
-        executablePath:
-        process.env.PUPPETEER_EXECUTABLE_PATH,
-
         args: [
-
             '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process'
+            '--disable-setuid-sandbox'
         ]
+
     }
 
 })
 
 .then((client) => {
 
-    logger.info('BOT ONLINE');
+    console.log('BOT ONLINE');
 
     client.onMessage(async (message) => {
 
         try {
 
-            if (!message.body) return;
-
-            const numero = message.from;
-
-            const texto =
-            message.body.trim();
-
-            logger.info(
-                `${numero} -> ${texto}`
-            );
-
-            if (!sessions[numero]) {
-
-                sessions[numero] = {
-
-                    etapa: 'ia'
-                };
-
-                await client.sendText(
-
-                    numero,
-
-                    `Olá, eu sou a assistente da ${process.env.BOT_NAME} 🚀`
-                );
+            if (!message.body) {
+                return;
             }
 
-            const resposta =
-            await perguntarIA(texto);
+            const texto = message.body.toLowerCase().trim();
 
-            await client.sendText(
+            console.log('=================================');
+            console.log('MENSAGEM RECEBIDA');
+            console.log(texto);
 
-                numero,
-                resposta
-            );
+            if (
+                texto === '1' ||
+                texto.includes('suporte')
+            ) {
+
+                return suporte(client, message);
+
+            }
+
+            if (
+                texto === '2' ||
+                texto.includes('vendas') ||
+                texto.includes('comprar') ||
+                texto.includes('comercial')
+            ) {
+
+                return vendas(client, message);
+
+            }
+
+            if (
+                texto === '3' ||
+                texto.includes('financeiro')
+            ) {
+
+                return financeiro(client, message);
+
+            }
+
+            return atendimento(client, message);
 
         } catch (erro) {
 
-            logger.error(
-                erro.toString()
+            console.log('ERRO GERAL');
+            console.log(erro);
+
+            await client.sendText(
+                message.from,
+                '⚠️ Ocorreu um erro no atendimento.'
             );
+
         }
+
     });
 
 })
 
 .catch((error) => {
 
-    logger.error(error.toString());
+    console.log('ERRO AO INICIAR BOT');
+    console.log(error);
 
 });
