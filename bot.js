@@ -14,8 +14,6 @@ wppconnect.create({
 
   console.log('BOT ONLINE');
 
-  await client.startAllPresence();
-
   client.onAnyMessage(async (message) => {
 
     console.log('NOVA MENSAGEM');
