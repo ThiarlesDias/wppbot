@@ -4,29 +4,30 @@ wppconnect.create({
   session: 'bot',
   autoClose: 0,
   headless: true,
+  logQR: true,
 
   puppeteerOptions: {
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox'
+    ]
   }
 
 })
-.then(async (client) => {
+.then((client) => {
 
   console.log('BOT ONLINE');
 
-  client.onAnyMessage(async (message) => {
+  client.onAnyMessage((message) => {
 
-    console.log('NOVA MENSAGEM');
-    console.log(message.body);
+    console.log('=================================');
+    console.log('MENSAGEM RECEBIDA');
+    console.log(message);
 
-    if (!message.isGroupMsg) {
-
-      await client.sendText(
-        message.from,
-        'Recebi: ' + message.body
-      );
-
-    }
+    client.sendText(
+      message.from,
+      'TESTE OK'
+    );
 
   });
 
