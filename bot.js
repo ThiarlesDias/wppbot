@@ -19,43 +19,13 @@ wppconnect.create({
 
   client.onMessage(async (message) => {
 
-    console.log('Mensagem recebida:', message.body);
+    console.log('NOVA MENSAGEM');
+    console.log(message.body);
 
-    try {
-
-      const response = await fetch(
-        'http://host.docker.internal:5000/webhook',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            numero: message.from,
-            mensagem: message.body
-          })
-        }
-      );
-
-      const data = await response.json();
-
-      console.log(data);
-
-      if (data.resposta) {
-
-        await client.sendText(
-          message.from,
-          data.resposta
-        );
-
-      }
-
-    } catch (err) {
-
-      console.log('ERRO API:');
-      console.log(err);
-
-    }
+    await client.sendText(
+      message.from,
+      'Recebi: ' + message.body
+    );
 
   });
 
