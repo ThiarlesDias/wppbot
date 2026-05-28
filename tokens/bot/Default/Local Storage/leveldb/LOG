@@ -1,3 +1,6 @@
-2026/05/27-19:52:50.907 11a4 Reusing MANIFEST C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/MANIFEST-000001
-2026/05/27-19:52:50.911 11a4 Recovering log #3
-2026/05/27-19:52:50.915 11a4 Reusing old log C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/000003.log 
+2026/05/28-00:00:48.046 107c Reusing MANIFEST C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/MANIFEST-000001
+2026/05/28-00:00:48.054 107c Recovering log #3
+2026/05/28-00:00:48.059 107c Reusing old log C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/000003.log 
+2026/05/28-00:01:48.066 41a8 Level-0 table #5: started
+2026/05/28-00:01:48.070 41a8 Level-0 table #5: 17429 bytes OK
+2026/05/28-00:01:48.071 41a8 Delete type=0 #3
