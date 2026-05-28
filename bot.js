@@ -18,15 +18,15 @@ wppconnect.create({
 
   console.log('BOT ONLINE');
 
-  client.onAnyMessage((message) => {
+    client.onMessage(async (message) => {
 
     console.log('=================================');
     console.log('MENSAGEM RECEBIDA');
-    console.log(message);
+    console.log(message.body);
 
-    client.sendText(
+    await client.sendText(
       message.from,
-      'TESTE OK'
+      'FUNCIONANDO'
     );
 
   });
