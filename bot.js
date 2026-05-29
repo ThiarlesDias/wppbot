@@ -4,166 +4,149 @@ const wppconnect = require('@wppconnect-team/wppconnect');
 console.log('INICIANDO BOT...');
 
 wppconnect.create({
-
-  session: 'bot',
-
-  headless: true,
-
-  autoClose: 0,
-
-  puppeteerOptions: {
+    session: 'bot',
 
     headless: true,
 
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ]
+    autoClose: 0,
 
-  }
+    puppeteerOptions: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+        ]
+    }
 
 })
 
-.then((client) => start(client))
+.then((client) => {
 
-.catch((erro) => {
-  console.log('ERRO AO INICIAR');
-  console.log(erro);
-});
+    console.log('BOT ONLINE');
 
-function start(client) {
+    client.onMessage(async (message) => {
 
-  console.log('BOT ONLINE');
+        try {
 
-  client.onMessage(async (message) => {
+            // Ignora grupos
+            if (message.isGroupMsg) return;
 
-    try {
+            // Ignora mídias
+            if (message.type !== 'chat') return;
 
-      // IGNORA GRUPOS
-      if (message.isGroupMsg) return;
+            // Ignora mensagens do próprio bot
+            if (message.fromMe) return;
 
-      // IGNORA MIDIA
-      if (message.type !== 'chat') return;
+            const texto = message.body.toLowerCase().trim();
 
-      // IGNORA MSG DO BOT
-      if (message.fromMe) return;
+            console.log(`${message.from} -> ${texto}`);
 
-      const texto = message.body.toLowerCase().trim();
+            // OPÇÃO 1
+            if (texto === '1') {
 
-      console.log(`${message.from} -> ${texto}`);
+                await client.sendText(
+                    message.from,
 
-      // MENU AUTOMATICO
-      await client.sendText(
+`🛠️ *SISTEMA DE TV*
 
-        message.from,
+1️⃣ Renovação
 
-`🤖 *TopTec Digital*
+2️⃣ Sem sinal
 
-Bem-vindo ao nosso atendimento.
+3️⃣ Adquirir pacote
 
-Escolha uma opção:
+4️⃣ Falar com atendente`
+                );
 
-1️⃣ sistema de TV
-2️⃣ Comercial / Vendas
-3️⃣ Financeiro
-4️⃣ Atendimento Humano`
+                return;
+            }
 
-      );
+            // OPÇÃO 2
+            if (texto === '2') {
 
-      // SUPORTE
-      if (texto === '1') {
-
-        await client.sendText(
-
-          message.from,
-
-`🛠️ *Sistema de TV*
-
-Descreva seu problema.
-
-Exemplos:
-• Sem sinal
-• Renovação
-• Adquirir pacote
-• falar com atendente`
-
-        );
-
-        return;
-      }
-
-      // VENDAS
-      if (texto === '2') {
-
-        await client.sendText(
-
-          message.from,
+                await client.sendText(
+                    message.from,
 
 `💰 *COMERCIAL*
 
-Trabalhamos com:
+1️⃣ Desenvolvimento de Sites
 
-✅ Sistema de TV
-✅ Desenvolvimento de sites
-✅ Desenvolvimento de aplicativos
-✅ Automação de Whatsapp
-✅ infraestrutura de TI
-✅ serviços de marketing digital
-✅ srviços de TI Geral
+2️⃣ Desenvolvimento de Aplicativos
 
-Informe qual produto deseja.`
+3️⃣ Automação WhatsApp
 
-        );
+4️⃣ Marketing Digital
 
-        return;
-      }
+5️⃣ Infraestrutura de TI`
+                );
 
-      // FINANCEIRO
-      if (texto === '3') {
+                return;
+            }
 
-        await client.sendText(
+            // OPÇÃO 3
+            if (texto === '3') {
 
-          message.from,
+                await client.sendText(
+                    message.from,
 
 `💳 *FINANCEIRO*
 
-Informe sua solicitação:
+1️⃣ Informações de Pagamento
 
-• Informações de pagamento
-• Fatura
-• Informações de pagamento
-• Pagamento
-• Contrato`
+2️⃣ Segunda Via
 
-        );
+3️⃣ Contratos
 
-        return;
-      }
+4️⃣ Falar com Financeiro`
+                );
 
-      // HUMANO
-      if (texto === '4') {
+                return;
+            }
 
-        await client.sendText(
+            // OPÇÃO 4
+            if (texto === '4') {
 
-          message.from,
+                await client.sendText(
+                    message.from,
 
-`👨‍💼 Encaminhando para um atendente.
+`👨‍💼 Seu atendimento foi encaminhado.
 
 Aguarde nosso retorno.`
+                );
 
-        );
+                return;
+            }
 
-        return;
-      }
+            // QUALQUER OUTRA MENSAGEM
+            await client.sendText(
+                message.from,
 
-    } catch (erro) {
+`🤖 *TopTec Digital*
 
-      console.log('ERRO NA MENSAGEM');
-      console.log(erro);
+Escolha uma opção:
 
-    }
+1️⃣ Sistema de TV
+2️⃣ Comercial / Vendas
+3️⃣ Financeiro
+4️⃣ Atendimento Humano`
+            );
 
-  });
+        } catch (erro) {
 
-}
+            console.log('ERRO');
+            console.log(erro);
+
+        }
+
+    });
+
+})
+
+.catch((erro) => {
+
+    console.log('ERRO AO INICIAR');
+    console.log(erro);
+
+});
+```
