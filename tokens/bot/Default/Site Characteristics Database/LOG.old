@@ -1,3 +1,5 @@
-2026/05/28-02:14:36.137 224c Reusing MANIFEST C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Site Characteristics Database/MANIFEST-000001
-2026/05/28-02:14:36.138 224c Recovering log #3
-2026/05/28-02:14:36.139 224c Reusing old log C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Site Characteristics Database/000003.log 
+2026/05/29-16:24:04.291 468c Log #3: 2 ops saved to Table #4 OK
+2026/05/29-16:24:04.298 468c Archiving C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Site Characteristics Database/000003.log: OK
+2026/05/29-16:24:04.298 468c Table #4: 2 entries OK
+2026/05/29-16:24:04.302 468c Archiving C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Site Characteristics Database/MANIFEST-000001: OK
+2026/05/29-16:24:04.311 468c **** Repaired leveldb C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Site Characteristics Database; recovered 1 files; 191 bytes. Some data may have been lost. ****

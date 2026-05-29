@@ -1,3 +1,2 @@
-2026/05/28-02:15:08.155 4468 Reusing MANIFEST C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/MANIFEST-000001
-2026/05/28-02:15:08.159 4468 Recovering log #4
-2026/05/28-02:15:08.162 4468 Reusing old log C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/000004.log 
+2026/05/29-16:24:04.344 59c0 Creating DB C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb since it was missing.
+2026/05/29-16:24:04.385 59c0 Reusing MANIFEST C:\Users\TDias\OneDrive\softs\wpp-bot\tokens\bot\Default\Local Storage\leveldb/MANIFEST-000001
