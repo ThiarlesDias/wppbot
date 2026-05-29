@@ -4,10 +4,11 @@ const sessoes = require('./services/sessions');
 
 const menuPrincipal = require('./menus/menuPrincipal');
 
-const menuSuporte = require('./menus/suporte');
-const semSinal = require('./menus/suporte/semSinal');
-const renovacao = require('./menus/suporte/renovacao');
-const pacote = require('./menus/suporte/pacote');
+const menuHandler = require('./handlers/menuHandler');
+const suporteHandler = require('./handlers/suporteHandler');
+const financeiroHandler = require('./handlers/financeiroHandler');
+const comercialHandler = require('./handlers/comercialHandler');
+const humanoHandler = require('./handlers/humanoHandler');
 
 console.log('INICIANDO BOT...');
 
@@ -44,69 +45,101 @@ wppconnect.create({
             const texto = message.body.trim().toLowerCase();
 
             if (!sessoes[numero]) {
+
                 sessoes[numero] = 'menu';
+
             }
 
             const etapa = sessoes[numero];
 
-            console.log(numero, etapa, texto);
+            console.log(
+                numero,
+                etapa,
+                texto
+            );
 
-            // MENU PRINCIPAL
-            if (etapa === 'menu') {
+            // MENU GLOBAL
 
-                if (texto === '1') {
+            if (
+                texto === 'oi' ||
+                texto === 'ola' ||
+                texto === 'olá' ||
+                texto === 'menu'
+            ) {
 
-                    sessoes[numero] = 'suporte';
+                sessoes[numero] = 'menu';
 
-                    await menuSuporte(client, numero);
-
-                    return;
-                }
-
-                await menuPrincipal(client, numero);
+                await menuPrincipal(
+                    client,
+                    numero
+                );
 
                 return;
             }
 
-            // MENU SUPORTE
-            if (etapa === 'suporte') {
+            switch (etapa) {
 
-                if (texto === '1') {
+                case 'menu':
 
-                    await renovacao(client, numero);
+                    return await menuHandler(
+                        client,
+                        numero,
+                        texto
+                    );
 
-                    return;
-                }
+                case 'suporte':
+                case 'renovacao':
+                case 'sem_sinal':
+                case 'em_analise':
+                case 'pacote':
+                case 'pacote_1':
+                case 'pacote_3':
+                case 'pacote_6':
 
-                if (texto === '2') {
+                    return await suporteHandler(
+                        client,
+                        numero,
+                        texto
+                    );
 
-                    await semSinal(client, numero);
+                case 'comercial':
 
-                    return;
-                }
+                    return await comercialHandler(
+                        client,
+                        numero,
+                        texto
+                    );
 
-                if (texto === '3') {
+                case 'financeiro':
 
-                    await pacote(client, numero);
+                    return await financeiroHandler(
+                        client,
+                        numero,
+                        texto
+                    );
 
-                    return;
-                }
+                case 'humano':
 
-                if (texto === '4') {
+                    return await humanoHandler(
+                        client,
+                        numero,
+                        texto
+                    );
+
+                default:
 
                     sessoes[numero] = 'menu';
 
-                    await menuPrincipal(client, numero);
+                    return await menuPrincipal(
+                        client,
+                        numero
+                    );
 
-                    return;
-                }
-
-                await menuSuporte(client, numero);
-
-                return;
             }
 
         } catch (erro) {
+
+            console.log('ERRO BOT');
 
             console.log(erro);
 
@@ -114,4 +147,6 @@ wppconnect.create({
 
     });
 
-});
+})
+
+.catch(console.error);
