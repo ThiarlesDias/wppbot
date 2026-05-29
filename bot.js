@@ -1,24 +1,20 @@
-
 const wppconnect = require('@wppconnect-team/wppconnect');
+
+const sessoes = require('./services/sessions');
+
+const menuPrincipal = require('./menus/menuPrincipal');
+
+const menuSuporte = require('./menus/suporte');
+const semSinal = require('./menus/suporte/semSinal');
+const renovacao = require('./menus/suporte/renovacao');
+const pacote = require('./menus/suporte/pacote');
 
 console.log('INICIANDO BOT...');
 
 wppconnect.create({
     session: 'bot',
-
     headless: true,
-
-    autoClose: 0,
-
-    puppeteerOptions: {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage'
-        ]
-    }
-
+    autoClose: 0
 })
 
 .then((client) => {
@@ -29,124 +25,82 @@ wppconnect.create({
 
         try {
 
-            // Ignora grupos
             if (message.isGroupMsg) return;
-
-            // Ignora mídias
+            if (message.fromMe) return;
             if (message.type !== 'chat') return;
 
-            // Ignora mensagens do próprio bot
-            if (message.fromMe) return;
+            const numero = message.from;
+            const texto = message.body.trim().toLowerCase();
 
-            const texto = message.body.toLowerCase().trim();
+            if (!sessoes[numero]) {
+                sessoes[numero] = 'menu';
+            }
 
-            console.log(`${message.from} -> ${texto}`);
+            const etapa = sessoes[numero];
 
-            // OPÇÃO 1
-            if (texto === '1') {
+            console.log(numero, etapa, texto);
 
-                await client.sendText(
-                    message.from,
+            // MENU PRINCIPAL
+            if (etapa === 'menu') {
 
-`🛠️ *SISTEMA DE TV*
+                if (texto === '1') {
 
-1️⃣ Renovação
+                    sessoes[numero] = 'suporte';
 
-2️⃣ Sem sinal
+                    await menuSuporte(client, numero);
 
-3️⃣ Adquirir pacote
+                    return;
+                }
 
-4️⃣ Falar com atendente`
-                );
+                await menuPrincipal(client, numero);
 
                 return;
             }
 
-            // OPÇÃO 2
-            if (texto === '2') {
+            // MENU SUPORTE
+            if (etapa === 'suporte') {
 
-                await client.sendText(
-                    message.from,
+                if (texto === '1') {
 
-`💰 *COMERCIAL*
+                    await renovacao(client, numero);
 
-1️⃣ Desenvolvimento de Sites
+                    return;
+                }
 
-2️⃣ Desenvolvimento de Aplicativos
+                if (texto === '2') {
 
-3️⃣ Automação WhatsApp
+                    await semSinal(client, numero);
 
-4️⃣ Marketing Digital
+                    return;
+                }
 
-5️⃣ Infraestrutura de TI`
-                );
+                if (texto === '3') {
 
-                return;
-            }
+                    await pacote(client, numero);
 
-            // OPÇÃO 3
-            if (texto === '3') {
+                    return;
+                }
 
-                await client.sendText(
-                    message.from,
+                if (texto === '4') {
 
-`💳 *FINANCEIRO*
+                    sessoes[numero] = 'menu';
 
-1️⃣ Informações de Pagamento
+                    await menuPrincipal(client, numero);
 
-2️⃣ Segunda Via
+                    return;
+                }
 
-3️⃣ Contratos
-
-4️⃣ Falar com Financeiro`
-                );
+                await menuSuporte(client, numero);
 
                 return;
             }
-
-            // OPÇÃO 4
-            if (texto === '4') {
-
-                await client.sendText(
-                    message.from,
-
-`👨‍💼 Seu atendimento foi encaminhado.
-
-Aguarde nosso retorno.`
-                );
-
-                return;
-            }
-
-            // QUALQUER OUTRA MENSAGEM
-            await client.sendText(
-                message.from,
-
-`🤖 *TopTec Digital*
-
-Escolha uma opção:
-
-1️⃣ Sistema de TV
-2️⃣ Comercial / Vendas
-3️⃣ Financeiro
-4️⃣ Atendimento Humano`
-            );
 
         } catch (erro) {
 
-            console.log('ERRO');
             console.log(erro);
 
         }
 
     });
 
-})
-
-.catch((erro) => {
-
-    console.log('ERRO AO INICIAR');
-    console.log(erro);
-
 });
-
