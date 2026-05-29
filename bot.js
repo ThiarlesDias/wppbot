@@ -13,8 +13,19 @@ console.log('INICIANDO BOT...');
 
 wppconnect.create({
     session: 'bot',
+
     headless: true,
-    autoClose: 0
+
+    autoClose: 0,
+
+    puppeteerOptions: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+        ]
+    }
 })
 
 .then((client) => {
