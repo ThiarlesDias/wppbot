@@ -1,6 +1,6 @@
 
 const wppconnect = require('@wppconnect-team/wppconnect');
-
+const registrar = require('./services/logger');
 const sessoes = require('./services/sessions');
 
 const menuPrincipal = require('./menus/menuPrincipal');
@@ -78,6 +78,11 @@ wppconnect.create({
 
             const etapa = sessoes[numero];
 
+            registrar(
+                numero,
+                etapa,
+                texto
+            );
             console.log(
                 `[${numero}]`,
                 `[${etapa}]`,
