@@ -1,34 +1,60 @@
 const sessoes = require('../services/sessions');
 
+const menuPrincipal = require('../menus/menuPrincipal');
+
+const pagamentos = require('../menus/financeiro/pagamentos');
+const segundaVia = require('../menus/financeiro/segundaVia');
+const contratos = require('../menus/financeiro/contratos');
+
 module.exports = async function financeiroHandler(
-    client,
-    numero,
-    texto
+client,
+numero,
+texto
 ) {
 
-    if (texto === '0') {
 
-        sessoes[numero] = 'menu';
+if (texto === '1') {
+    return await pagamentos(client, numero);
+}
 
-        return;
-    }
+if (texto === '2') {
+    return await segundaVia(client, numero);
+}
 
-    await client.sendText(
+if (texto === '3') {
+    return await contratos(client, numero);
+}
+
+if (texto === '4') {
+
+    sessoes[numero] = 'humano';
+
+    return await client.sendText(
         numero,
 
-`💰 FINANCEIRO
 
-1️⃣ Informações de Pagamento
+`👨‍💼 Seu atendimento foi encaminhado ao setor financeiro.
 
-2️⃣ Segunda Via
+Aguarde nosso retorno.
 
-3️⃣ Comprovante de Pagamento
+Digite:
 
-4️⃣ Negociar Débito
+0️⃣ Voltar ao menu`
+);
 
-5️⃣ Falar com Financeiro
 
-0️⃣ Voltar`
+}
+
+if (texto === '0') {
+
+    sessoes[numero] = 'menu';
+
+    return await menuPrincipal(
+        client,
+        numero
     );
+
+}
+
 
 };

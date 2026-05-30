@@ -1,34 +1,55 @@
 const sessoes = require('../services/sessions');
 
+const menuPrincipal = require('../menus/menuPrincipal');
+
+const sites = require('../menus/comercial/sites');
+const aplicativos = require('../menus/comercial/aplicativos');
+const whatsapp = require('../menus/comercial/whatsapp');
+const marketing = require('../menus/comercial/marketing');
+const infraestrutura = require('../menus/comercial/infraestrutura');
+const consultoria = require('../menus/comercial/consultoria');
+
 module.exports = async function comercialHandler(
-    client,
-    numero,
-    texto
+client,
+numero,
+texto
 ) {
 
-    if (texto === '0') {
 
-        sessoes[numero] = 'menu';
+if (texto === '1') {
+    return await sites(client, numero);
+}
 
-        return;
-    }
+if (texto === '2') {
+    return await aplicativos(client, numero);
+}
 
-    await client.sendText(
-        numero,
+if (texto === '3') {
+    return await whatsapp(client, numero);
+}
 
-`💼 COMERCIAL
+if (texto === '4') {
+    return await marketing(client, numero);
+}
 
-1️⃣ Desenvolvimento de Sites
+if (texto === '5') {
+    return await infraestrutura(client, numero);
+}
 
-2️⃣ Desenvolvimento de Aplicativos
+if (texto === '6') {
+    return await consultoria(client, numero);
+}
 
-3️⃣ Automação WhatsApp
+if (texto === '0') {
 
-4️⃣ Marketing Digital
+    sessoes[numero] = 'menu';
 
-5️⃣ Infraestrutura de TI
-
-0️⃣ Voltar`
+    return await menuPrincipal(
+        client,
+        numero
     );
+
+}
+
 
 };

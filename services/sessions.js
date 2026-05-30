@@ -1,9 +1,5 @@
-const sessoes = {
 
-         "5511999999999@c.us": {
-        etapa: "em_analise",
-        ultimaInteracao: 1748540000
-    }   
-};
+const sessoes = {};
 
 module.exports = sessoes;
+
