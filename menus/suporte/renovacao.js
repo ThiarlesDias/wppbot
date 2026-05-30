@@ -1,18 +1,24 @@
-async function renovacao(client, numero) {
+
+module.exports = async function renovacao(
+    client,
+    numero
+) {
 
     await client.sendText(
         numero,
 
-`🔄 RENOVAÇÃO
+`🔄 RENOVAÇÃO IPTV
 
-Escolha a forma de pagamento:
+Planos disponíveis:
 
-1️⃣ PIX
-2️⃣ Cartão
-3️⃣ Boleto
+1️⃣ 1 Mês - R$ 25,00
+2️⃣ 3 Meses - R$ 60,00
+3️⃣ 6 Meses - R$ 110,00
+
 0️⃣ Voltar`
     );
 
-}
+};
 
-module.exports = renovacao;
+
+

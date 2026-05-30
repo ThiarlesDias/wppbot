@@ -4,28 +4,38 @@ const path = require('path');
 
 function registrar(numero, etapa, texto) {
 
-    const data = new Date();
+    try {
 
-    const linha =
-        `[${data.toLocaleString('pt-BR')}] ` +
-        `[${numero}] ` +
-        `[${etapa}] ` +
-        `${texto}\n`;
+        const data = new Date();
 
-    const arquivo = path.join(
-        __dirname,
-        '..',
-        'logs',
-        'atendimentos.log'
-    );
+        const linha =
+            `[${data.toLocaleString('pt-BR')}] ` +
+            `[${numero}] ` +
+            `[${etapa}] ` +
+            `${texto}\n`;
 
-    fs.appendFileSync(
-        arquivo,
-        linha,
-        'utf8'
-    );
+        const arquivo = path.join(
+            __dirname,
+            '..',
+            'logs',
+            'atendimentos.log'
+        );
+
+        fs.appendFileSync(
+            arquivo,
+            linha,
+            'utf8'
+        );
+
+    } catch (erro) {
+
+        console.log(
+            'ERRO LOGGER',
+            erro
+        );
+
+    }
 
 }
 
 module.exports = registrar;
-

@@ -33,17 +33,15 @@ function verificarTimeout(numero) {
     const tempoParado =
         agora - sessao.ultimaInteracao;
 
-    const trintaMinutos =
+    const timeoutPadrao =
         30 * 60 * 1000;
 
-    const duasHoras =
+    const timeoutAnalise =
         2 * 60 * 60 * 1000;
 
-    if (
-        sessao.etapa === 'em_analise'
-    ) {
+    if (sessao.etapa === 'em_analise') {
 
-        if (tempoParado > duasHoras) {
+        if (tempoParado > timeoutAnalise) {
 
             sessao.etapa = 'menu';
 
@@ -51,13 +49,15 @@ function verificarTimeout(numero) {
 
     } else {
 
-        if (tempoParado > trintaMinutos) {
+        if (tempoParado > timeoutPadrao) {
 
             sessao.etapa = 'menu';
 
         }
 
     }
+
+    return sessao;
 
 }
 
@@ -66,4 +66,3 @@ module.exports = {
     atualizarInteracao,
     verificarTimeout
 };
-
