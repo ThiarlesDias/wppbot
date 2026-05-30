@@ -1,13 +1,11 @@
 const sessoes = require('../services/sessions');
-
+const menuPrincipal = require('../menus/menuPrincipal');
 const menuSuporte = require('../menus/suporte');
-
 const renovacao = require('../menus/suporte/renovacao');
 const semSinal = require('../menus/suporte/semSinal');
 const pacote = require('../menus/suporte/pacote');
 const pacotePagamento = require('../menus/suporte/pacotePagamento');
 const emAnalise = require('../menus/suporte/emAnalise');
-
 const pix = require('../menus/suporte/pagamento/pix');
 const cartao = require('../menus/suporte/pagamento/cartao');
 const boleto = require('../menus/suporte/pagamento/boleto');
@@ -52,7 +50,10 @@ module.exports = async function suporteHandler(
 
             sessoes[numero] = 'menu';
 
-            return;
+            return await menuPrincipal(
+                client,
+                numero
+            );
 
         }
 
