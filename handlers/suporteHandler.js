@@ -9,6 +9,8 @@ const pix = require('../menus/suporte/pagamento/pix');
 const cartao = require('../menus/suporte/pagamento/cartao');
 const boleto = require('../menus/suporte/pagamento/boleto');
 const menuPrincipal = require('../menus/menuPrincipal');
+const notificar =
+require('../services/notificador');
 
 module.exports = async function suporteHandler(
     client,
@@ -101,14 +103,30 @@ module.exports = async function suporteHandler(
 
     if (etapa === 'sem_sinal') {
 
+  
         await client.sendText(
             numero,
             '📡 Vamos verificar seu problema.'
         );
 
+        await notificar(
+
+            client,
+
+            'NOVO CHAMADO SEM SINAL',
+
+        `Cliente:
+        ${numero}
+
+        Informado:
+        ${texto}`
+        );
+
         sessoes[numero] = 'em_analise';
 
         return;
+
+
 
     }
 

@@ -11,6 +11,11 @@ const financeiroHandler = require('./handlers/financeiroHandler');
 const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
 
+const {
+    atualizarInteracao,
+    verificarTimeout
+} = require('./services/sessionManager');
+
 console.log('INICIANDO BOT...');
 
 wppconnect.create({
@@ -37,6 +42,11 @@ wppconnect.create({
 
     client.onMessage(async (message) => {
 
+        console.log(
+            'NUMERO:',
+            message.from
+        );
+
         try {
 
             // Ignora grupos
@@ -50,6 +60,10 @@ wppconnect.create({
 
             const numero = message.from;
             const texto = message.body.trim().toLowerCase();
+
+            verificarTimeout(
+                numero
+            );
 
             // PRIMEIRA INTERAÇÃO
 
@@ -77,6 +91,10 @@ wppconnect.create({
             }
 
             const etapa = sessoes[numero];
+
+            atualizarInteracao(
+                numero
+            );
 
             registrar(
                 numero,
