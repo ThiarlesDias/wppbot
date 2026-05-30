@@ -46,6 +46,7 @@ module.exports = async function suporteHandler(
 
         }
 
+        
         if (texto === '4' || texto === '0') {
 
             sessoes[numero] = 'menu';
@@ -55,7 +56,8 @@ module.exports = async function suporteHandler(
                 numero
             );
 
-        }
+}
+
 
         return await menuSuporte(client, numero);
 
