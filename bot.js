@@ -1,3 +1,4 @@
+
 const wppconnect = require('@wppconnect-team/wppconnect');
 
 const sessoes = require('./services/sessions');
@@ -27,6 +28,7 @@ wppconnect.create({
             '--disable-dev-shm-usage'
         ]
     }
+
 })
 
 .then((client) => {
@@ -37,12 +39,36 @@ wppconnect.create({
 
         try {
 
+            // Ignora grupos
             if (message.isGroupMsg) return;
+
+            // Ignora mensagens do próprio bot
             if (message.fromMe) return;
+
+            // Apenas texto
             if (message.type !== 'chat') return;
 
             const numero = message.from;
             const texto = message.body.trim().toLowerCase();
+
+            // PRIMEIRA INTERAÇÃO
+
+            if (!sessoes[numero + '_iniciado']) {
+
+                sessoes[numero + '_iniciado'] = true;
+
+                sessoes[numero] = 'menu';
+
+                await menuPrincipal(
+                    client,
+                    numero
+                );
+
+                return;
+
+            }
+
+            // GARANTE ETAPA
 
             if (!sessoes[numero]) {
 
@@ -53,29 +79,12 @@ wppconnect.create({
             const etapa = sessoes[numero];
 
             console.log(
-                numero,
-                etapa,
+                `[${numero}]`,
+                `[${etapa}]`,
                 texto
             );
 
-            // MENU GLOBAL
-
-            if (
-                texto === 'oi' ||
-                texto === 'ola' ||
-                texto === 'olá' ||
-                texto === 'menu'
-            ) {
-
-                sessoes[numero] = 'menu';
-
-                await menuPrincipal(
-                    client,
-                    numero
-                );
-
-                return;
-            }
+            // ROTEAMENTO
 
             switch (etapa) {
 
@@ -102,17 +111,17 @@ wppconnect.create({
                         texto
                     );
 
-                case 'comercial':
+                case 'financeiro':
 
-                    return await comercialHandler(
+                    return await financeiroHandler(
                         client,
                         numero,
                         texto
                     );
 
-                case 'financeiro':
+                case 'comercial':
 
-                    return await financeiroHandler(
+                    return await comercialHandler(
                         client,
                         numero,
                         texto
@@ -127,6 +136,11 @@ wppconnect.create({
                     );
 
                 default:
+
+                    console.log(
+                        'ETAPA DESCONHECIDA:',
+                        etapa
+                    );
 
                     sessoes[numero] = 'menu';
 
@@ -149,4 +163,10 @@ wppconnect.create({
 
 })
 
-.catch(console.error);
+.catch((erro) => {
+
+    console.log('ERRO INICIALIZAÇÃO');
+
+    console.log(erro);
+
+});
