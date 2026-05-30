@@ -1,5 +1,4 @@
 const sessoes = require('../services/sessions');
-const menuPrincipal = require('../menus/menuPrincipal');
 const menuSuporte = require('../menus/suporte');
 const renovacao = require('../menus/suporte/renovacao');
 const semSinal = require('../menus/suporte/semSinal');
