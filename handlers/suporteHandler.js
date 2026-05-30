@@ -9,6 +9,7 @@ const emAnalise = require('../menus/suporte/emAnalise');
 const pix = require('../menus/suporte/pagamento/pix');
 const cartao = require('../menus/suporte/pagamento/cartao');
 const boleto = require('../menus/suporte/pagamento/boleto');
+const menuPrincipal = require('../menus/menuPrincipal');
 
 module.exports = async function suporteHandler(
     client,
