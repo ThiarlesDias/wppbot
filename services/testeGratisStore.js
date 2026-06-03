@@ -7,6 +7,23 @@ const {
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const STORE_PATH = path.join(DATA_DIR, 'testes-gratis.json');
 
+function numerosBypass() {
+
+    return String(process.env.TESTE_GRATIS_BYPASS_NUMEROS || '')
+        .split(',')
+        .map(numero => limparNumero(numero))
+        .filter(Boolean);
+
+}
+
+function ehBypass(numero) {
+
+    const telefone = limparNumero(numero);
+
+    return numerosBypass().includes(telefone);
+
+}
+
 function garantirStore() {
 
     if (!fs.existsSync(DATA_DIR)) {
@@ -73,6 +90,21 @@ function obterTeste(numero) {
 function iniciarTeste(numero) {
 
     const telefone = limparNumero(numero);
+
+    if (ehBypass(telefone)) {
+
+        return {
+            permitido: true,
+            telefone,
+            teste: {
+                telefone,
+                status: 'bypass'
+            },
+            bypass: true
+        };
+
+    }
+
     const store = lerStore();
     const existente = store.telefones[telefone];
 
@@ -106,6 +138,20 @@ function iniciarTeste(numero) {
 function concluirTeste(numero, dados = {}) {
 
     const telefone = limparNumero(numero);
+
+    if (ehBypass(telefone)) {
+
+        return {
+            telefone,
+            status: 'criado',
+            customer_id: dados.customer_id,
+            username: dados.username,
+            bypass: true,
+            concluido_em: new Date().toISOString()
+        };
+
+    }
+
     const store = lerStore();
 
     store.telefones[telefone] = {
@@ -127,6 +173,18 @@ function concluirTeste(numero, dados = {}) {
 function registrarSolicitacaoManual(numero) {
 
     const telefone = limparNumero(numero);
+
+    if (ehBypass(telefone)) {
+
+        return {
+            telefone,
+            status: 'solicitado',
+            bypass: true,
+            atualizado_em: new Date().toISOString()
+        };
+
+    }
+
     const store = lerStore();
 
     store.telefones[telefone] = {
