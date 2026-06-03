@@ -2,6 +2,9 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 const registrar = require('./services/logger');
 const sessoes = require('./services/sessions');
+const {
+    resolverNumeroMensagem
+} = require('./services/whatsappNumero');
 
 const menuPrincipal = require('./menus/menuPrincipal');
 
@@ -59,6 +62,10 @@ wppconnect.create({
             if (message.type !== 'chat') return;
 
             const numero = message.from;
+            const numeroWhatsapp = await resolverNumeroMensagem(
+                client,
+                message
+            );
             const texto = message.body.trim().toLowerCase();
 
             verificarTimeout(
@@ -116,7 +123,8 @@ wppconnect.create({
                     return await menuHandler(
                         client,
                         numero,
-                        texto
+                        texto,
+                        numeroWhatsapp
                     );
 
                 case 'suporte':

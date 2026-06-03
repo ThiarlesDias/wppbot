@@ -14,6 +14,9 @@ const {
     criarTesteGratis
 } = require('../services/sigma');
 const {
+    montarWidTelefone
+} = require('../services/whatsappNumero');
+const {
     iniciarTeste,
     concluirTeste,
     registrarSolicitacaoManual,
@@ -25,10 +28,121 @@ require('../services/notificador');
 module.exports = async function suporteHandler(
     client,
     numero,
-    texto
+    texto,
+    numeroWhatsapp
 ) {
 
     const etapa = sessoes[numero];
+    const chaveTelefoneTeste = `${numero}_telefone_teste`;
+    const chaveAguardandoTelefone = `${numero}_aguardando_telefone_teste`;
+
+    async function criarTeste(numeroParaTeste) {
+
+        const controle = iniciarTeste(numeroParaTeste);
+
+        if (!controle.permitido) {
+
+            const testeExistente = controle.teste;
+
+            if (testeExistente.status === 'processando') {
+
+                return await client.sendText(
+                    numero,
+                    'Ja existe uma solicitacao de teste em andamento para este numero. Aguarde os dados de acesso aqui.'
+                );
+
+            }
+
+            return await client.sendText(
+                numero,
+                'Este numero ja recebeu um teste gratis. Para continuar, escolha um pacote ou fale com um atendente.'
+            );
+
+        }
+
+        try {
+
+            const teste = await criarTesteGratis(numeroParaTeste);
+
+            if (teste.automatico === false) {
+
+                registrarSolicitacaoManual(numeroParaTeste);
+
+                await notificar(
+                    client,
+                    'NOVO TESTE GRATIS',
+
+`Cliente:
+${numero}
+
+Numero teste:
+${teste.telefone}
+
+Status:
+Credenciais do Sigma ainda nao configuradas.`
+                );
+
+                sessoes[numero] = 'em_analise';
+
+                return await client.sendText(
+                    numero,
+                    'Solicitacao de teste recebida. Nossa equipe vai liberar e enviar os dados aqui.'
+                );
+
+            }
+
+            sessoes[numero] = 'em_analise';
+
+            concluirTeste(
+                numeroParaTeste,
+                {
+                    customer_id: teste.cliente?.id,
+                    username: teste.cliente?.username
+                }
+            );
+
+            if (teste.mensagem) {
+
+                return await client.sendText(
+                    numero,
+                    teste.mensagem
+                );
+
+            }
+
+            return await client.sendText(
+                numero,
+                'Teste gratis solicitado com sucesso. Em instantes enviaremos os dados de acesso aqui.'
+            );
+
+        } catch (erro) {
+
+            falharTeste(numeroParaTeste);
+
+            console.log('ERRO TESTE GRATIS', erro);
+
+            await notificar(
+                client,
+                'ERRO TESTE GRATIS',
+
+`Cliente:
+${numero}
+
+Numero teste:
+${numeroParaTeste}
+
+Erro:
+${erro.message}`
+            );
+
+            return await client.sendText(
+                numero,
+                'Nao consegui criar o teste automaticamente agora. Nossa equipe foi avisada e vai continuar seu atendimento.'
+            );
+
+        }
+
+    }
 
     // MENU SUPORTE
 
@@ -89,108 +203,44 @@ module.exports = async function suporteHandler(
 
     if (etapa === 'teste_gratis') {
 
+        if (sessoes[chaveAguardandoTelefone]) {
+
+            const telefoneDigitado = montarWidTelefone(texto);
+
+            if (!telefoneDigitado) {
+
+                return await client.sendText(
+                    numero,
+                    'Nao consegui entender o numero. Digite seu WhatsApp com DDD, exemplo: 5599999999999.'
+                );
+
+            }
+
+            sessoes[chaveTelefoneTeste] = telefoneDigitado;
+            delete sessoes[chaveAguardandoTelefone];
+
+            return await criarTeste(telefoneDigitado);
+
+        }
+
         if (texto === '1') {
 
-            const controle = iniciarTeste(numero);
+            const numeroParaTeste =
+            numeroWhatsapp ||
+            sessoes[chaveTelefoneTeste];
 
-            if (!controle.permitido) {
+            if (!numeroParaTeste) {
 
-                const testeExistente = controle.teste;
-
-                if (testeExistente.status === 'processando') {
-
-                    return await client.sendText(
-                        numero,
-                        'Ja existe uma solicitacao de teste em andamento para este numero. Aguarde os dados de acesso aqui.'
-                    );
-
-                }
+                sessoes[chaveAguardandoTelefone] = true;
 
                 return await client.sendText(
                     numero,
-                    'Este numero ja recebeu um teste gratis. Para continuar, escolha um pacote ou fale com um atendente.'
+                    'Para liberar o teste, digite seu WhatsApp com DDD. Exemplo: 5599999999999.'
                 );
 
             }
 
-            try {
-
-                const teste = await criarTesteGratis(numero);
-
-                if (teste.automatico === false) {
-
-                    registrarSolicitacaoManual(numero);
-
-                    await notificar(
-                        client,
-                        'NOVO TESTE GRATIS',
-
-`Cliente:
-${numero}
-
-Numero limpo:
-${teste.telefone}
-
-Status:
-Credenciais do Sigma ainda nao configuradas.`
-                    );
-
-                    sessoes[numero] = 'em_analise';
-
-                    return await client.sendText(
-                        numero,
-                        'Solicitacao de teste recebida. Nossa equipe vai liberar e enviar os dados aqui.'
-                    );
-
-                }
-
-                sessoes[numero] = 'em_analise';
-
-                concluirTeste(
-                    numero,
-                    {
-                        customer_id: teste.cliente?.id,
-                        username: teste.cliente?.username
-                    }
-                );
-
-                if (teste.mensagem) {
-
-                    return await client.sendText(
-                        numero,
-                        teste.mensagem
-                    );
-
-                }
-
-                return await client.sendText(
-                    numero,
-                    'Teste gratis solicitado com sucesso. Em instantes enviaremos os dados de acesso aqui.'
-                );
-
-            } catch (erro) {
-
-                falharTeste(numero);
-
-                console.log('ERRO TESTE GRATIS', erro);
-
-                await notificar(
-                    client,
-                    'ERRO TESTE GRATIS',
-
-`Cliente:
-${numero}
-
-Erro:
-${erro.message}`
-                );
-
-                return await client.sendText(
-                    numero,
-                    'Nao consegui criar o teste automaticamente agora. Nossa equipe foi avisada e vai continuar seu atendimento.'
-                );
-
-            }
+            return await criarTeste(numeroParaTeste);
 
         }
 

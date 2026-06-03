@@ -1,6 +1,15 @@
 
-const ADMIN =
-'55SEUNUMERO@c.us';
+function obterAdmin() {
+
+    const admin = process.env.ADMIN_WHATSAPP;
+
+    if (!admin || admin.includes('SEUNUMERO')) return null;
+
+    if (admin.endsWith('@c.us')) return admin;
+
+    return `${admin.replace(/\D/g, '')}@c.us`;
+
+}
 
 async function notificar(
     client,
@@ -10,8 +19,18 @@ async function notificar(
 
     try {
 
+        const admin = obterAdmin();
+
+        if (!admin) {
+
+            console.log('ADMIN_WHATSAPP nao configurado; notificacao ignorada.');
+
+            return;
+
+        }
+
         await client.sendText(
-            ADMIN,
+            admin,
 
 `🚨 ${titulo}
 

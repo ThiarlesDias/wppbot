@@ -97,6 +97,7 @@ async function chamarSigma(caminho, opcoes = {}) {
     );
 
     const texto = await resposta.text();
+    const contentType = resposta.headers.get('content-type') || '';
     let dados;
 
     try {
@@ -106,6 +107,22 @@ async function chamarSigma(caminho, opcoes = {}) {
     } catch (_) {
 
         dados = texto;
+
+    }
+
+    if (
+        typeof dados === 'string' &&
+        (
+            contentType.includes('text/html') ||
+            dados.trim().startsWith('<!DOCTYPE') ||
+            dados.includes('Cloudflare')
+        )
+    ) {
+
+        throw new Error(
+            'A API do Sigma retornou HTML/Cloudflare em vez de JSON. ' +
+            'A VM provavelmente foi bloqueada pelo Cloudflare do painel.'
+        );
 
     }
 
