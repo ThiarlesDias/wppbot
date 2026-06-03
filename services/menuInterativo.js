@@ -16,12 +16,6 @@ function textoFallback(titulo, descricao, opcoes) {
 
         linhas.push(`${opcao.id} - ${opcao.titulo}`);
 
-        if (opcao.descricao) {
-
-            linhas.push(`    ${opcao.descricao}`);
-
-        }
-
     }
 
     return linhas.join('\n');
@@ -37,51 +31,10 @@ async function enviarMenu(client, numero, config) {
         opcoes
     );
 
-    if (
-        typeof client.sendListMessage !== 'function' ||
-        opcoes.length === 0
-    ) {
-
-        return await client.sendText(
-            numero,
-            texto
-        );
-
-    }
-
-    try {
-
-        return await client.sendListMessage(
-            numero,
-            {
-                buttonText: config.botao || 'Ver opcoes',
-                description: texto,
-                sections: [
-                    {
-                        title: config.secao || config.titulo,
-                        rows: opcoes.map(opcao => ({
-                            rowId: String(opcao.id),
-                            title: opcao.titulo,
-                            description: opcao.descricao || ''
-                        }))
-                    }
-                ]
-            }
-        );
-
-    } catch (erro) {
-
-        console.log(
-            'MENU INTERATIVO INDISPONIVEL; enviando texto.',
-            erro.message
-        );
-
-        return await client.sendText(
-            numero,
-            texto
-        );
-
-    }
+    return await client.sendText(
+        numero,
+        texto
+    );
 
 }
 
