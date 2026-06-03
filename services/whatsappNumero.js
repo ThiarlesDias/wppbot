@@ -6,9 +6,21 @@ function limparTelefone(valor) {
 
 function montarWidTelefone(telefone) {
 
-    const limpo = limparTelefone(telefone);
+    let limpo = limparTelefone(telefone);
 
     if (!limpo || limpo.length < 10) return null;
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+
+        limpo = `55${limpo}`;
+
+    }
+
+    if (!limpo.startsWith('55')) return null;
+    if (limpo.length < 12 || limpo.length > 13) return null;
 
     return `${limpo}@c.us`;
 
