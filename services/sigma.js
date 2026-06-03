@@ -222,6 +222,32 @@ function escolherTemplatePlaylist(playlist) {
 
 }
 
+function montarMensagemChatbot(dados) {
+
+    const usuario = dados.username;
+    const senha = dados.password;
+    const dns = String(dados.dns || '').replace(/\/$/, '');
+    const dnsComBarra = dns ? `${dns}/` : '';
+
+    if (!usuario || !senha) return '';
+
+    const linkM3u = dns ?
+        `${dns}/get.php?username=${usuario}&password=${senha}&type=m3u_plus&output=mpegts` :
+        '';
+
+    return [
+        '*Segue os Dados De Acesso*',
+        `✅ *Usuário:* ${usuario}`,
+        `✅ *Senha:* ${senha}`,
+        '',
+        dnsComBarra ? `🟠 *DNS XCIPTV:* ${dnsComBarra}` : '',
+        dnsComBarra ? `🟠 *DNS SMARTERS:* ${dnsComBarra}` : '',
+        '',
+        linkM3u ? `🟢 *Link (M3U):* ${linkM3u}` : ''
+    ].filter(linha => linha !== '').join('\n');
+
+}
+
 async function criarTesteGratisNoNavegador(telefone) {
 
     let puppeteer;
@@ -639,11 +665,7 @@ async function criarTesteGratisViaChatbot(telefone) {
 
     }
 
-    const mensagem =
-    dados.reply ||
-    dados.data?.[0]?.message ||
-    dados.message ||
-    '';
+    const mensagem = montarMensagemChatbot(dados);
 
     if (!mensagem && !dados.username) {
 
