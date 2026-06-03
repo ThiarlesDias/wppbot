@@ -2,14 +2,18 @@ const {
     enviarMenu
 } = require('../../services/menuInterativo');
 
-async function testeGratis(client, numero) {
+async function testeGratis(client, numero, numeroWhatsapp) {
+
+    const descricao = numeroWhatsapp ?
+        `Vamos criar um teste usando este numero: ${numeroWhatsapp.replace('@c.us', '')}` :
+        'Confirme para informar o WhatsApp com DDD e liberar o teste.';
 
     return await enviarMenu(
         client,
         numero,
         {
             titulo: 'Teste gratis',
-            descricao: `Vamos criar um teste usando este atendimento: ${numero}`,
+            descricao,
             botao: 'Confirmar',
             secao: 'Teste gratis',
             opcoes: [

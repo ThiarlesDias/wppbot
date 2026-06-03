@@ -21,6 +21,9 @@ function extrairWidTelefone(valor) {
     if (typeof valor === 'string') {
 
         if (valor.includes('@c.us')) return valor;
+        if (valor.includes('@lid')) return null;
+        if (valor.includes('@g.us')) return null;
+        if (valor.includes('@newsletter')) return null;
 
         return montarWidTelefone(valor);
 

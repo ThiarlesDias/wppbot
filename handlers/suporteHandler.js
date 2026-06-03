@@ -176,7 +176,11 @@ ${erro.message}`
 
             sessoes[numero] = 'teste_gratis';
 
-            return await testeGratis(client, numero);
+            return await testeGratis(
+                client,
+                numero,
+                numeroWhatsapp
+            );
 
         }
 
@@ -252,7 +256,11 @@ ${erro.message}`
 
         }
 
-        return await testeGratis(client, numero);
+        return await testeGratis(
+            client,
+            numero,
+            numeroWhatsapp
+        );
 
     }
 
