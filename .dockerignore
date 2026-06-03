@@ -1,4 +1,8 @@
 node_modules
 session
+tokens
+data
+logs
 .wwebjs_auth
 .git
+.env
