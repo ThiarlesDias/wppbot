@@ -56,6 +56,12 @@ const TESTE_PADRAO = {
 
 let tokenCache = null;
 
+function erroCloudflare(mensagem) {
+
+    return String(mensagem || '').includes('HTML/Cloudflare');
+
+}
+
 function limparNumero(numero) {
 
     return String(numero || '')
@@ -210,10 +216,247 @@ function escolherTemplatePlaylist(playlist) {
 
 }
 
+async function criarTesteGratisNoNavegador(telefone) {
+
+    let puppeteer;
+
+    try {
+
+        puppeteer = require('puppeteer-extra');
+
+        try {
+
+            const stealth = require('puppeteer-extra-plugin-stealth');
+            puppeteer.use(stealth());
+
+        } catch (_) {}
+
+    } catch (_) {
+
+        puppeteer = require('puppeteer');
+
+    }
+
+    const executablePath =
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    process.env.CHROME_PATH ||
+    '/usr/bin/google-chrome';
+
+    const browser = await puppeteer.launch({
+        executablePath,
+        headless: true,
+        userDataDir: path.join(__dirname, '..', 'data', 'sigma-browser'),
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-blink-features=AutomationControlled'
+        ]
+    });
+
+    try {
+
+        const page = await browser.newPage();
+
+        await page.setViewport({
+            width: 1365,
+            height: 900
+        });
+
+        await page.goto(
+            `${SIGMA_APP_URL}#/dashboard`,
+            {
+                waitUntil: 'domcontentloaded',
+                timeout: 60000
+            }
+        );
+
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        const precisaLogin = await page.$('input[type="password"]');
+
+        if (precisaLogin) {
+
+            await page.waitForSelector('input[type="password"]', {
+                timeout: 30000
+            });
+
+            const inputs = await page.$$('input');
+
+            if (!inputs.length) {
+
+                throw new Error('Formulario de login do Sigma nao encontrado.');
+
+            }
+
+            await inputs[0].click({
+                clickCount: 3
+            });
+            await inputs[0].type(process.env.SIGMA_USERNAME || '');
+
+            await precisaLogin.click({
+                clickCount: 3
+            });
+            await precisaLogin.type(process.env.SIGMA_PASSWORD || '');
+
+            const botaoEntrar = await page.$('#kt_sign_in_submit');
+
+            if (botaoEntrar) {
+
+                await botaoEntrar.click();
+
+            } else {
+
+                await page.keyboard.press('Enter');
+
+            }
+
+            await page.waitForNetworkIdle({
+                idleTime: 1000,
+                timeout: 45000
+            }).catch(() => {});
+
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+        }
+
+        const resultado = await page.evaluate(
+            async (testePadrao, telefone, appVersion) => {
+
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+
+                    throw new Error('Login no Sigma nao retornou token no navegador.');
+
+                }
+
+                const headers = {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                    locale: 'pt-BR',
+                    'x-app-version': appVersion,
+                    authorization: `Bearer ${token}`
+                };
+
+                async function request(caminho, options = {}) {
+
+                    const response = await fetch(
+                        `/api/${caminho.replace(/^\/+/, '')}`,
+                        {
+                            ...options,
+                            headers: {
+                                ...headers,
+                                ...(options.headers || {})
+                            }
+                        }
+                    );
+
+                    const text = await response.text();
+                    let data;
+
+                    try {
+
+                        data = JSON.parse(text);
+
+                    } catch (_) {
+
+                        data = text;
+
+                    }
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data?.message ||
+                            data?.errors?.[0] ||
+                            text.slice(0, 200) ||
+                            `Erro Sigma: ${response.status}`
+                        );
+
+                    }
+
+                    return data;
+
+                }
+
+                const criado = await request(
+                    'customers',
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            ...testePadrao,
+                            name: `WhatsApp ${telefone}`,
+                            whatsapp: telefone,
+                            note: `Teste gratis solicitado pelo WhatsApp ${telefone}`
+                        })
+                    }
+                );
+
+                const cliente = criado.data || criado;
+
+                if (!cliente.id) {
+
+                    throw new Error('Sigma criou o teste, mas nao retornou ID do cliente.');
+
+                }
+
+                const playlist = await request(
+                    `customers/${cliente.id}/playlist`
+                );
+
+                return {
+                    cliente,
+                    playlist
+                };
+
+            },
+            TESTE_PADRAO,
+            telefone,
+            SIGMA_APP_VERSION
+        );
+
+        return {
+            automatico: true,
+            telefone,
+            cliente: resultado.cliente,
+            playlist: resultado.playlist,
+            mensagem: escolherTemplatePlaylist(resultado.playlist)
+        };
+
+    } finally {
+
+        await browser.close();
+
+    }
+
+}
+
 async function criarTesteGratis(numero) {
 
     const telefone = limparNumero(numero);
-    const token = await loginSigma();
+    let token;
+
+    try {
+
+        token = await loginSigma();
+
+    } catch (erro) {
+
+        if (
+            process.env.SIGMA_BROWSER_FALLBACK !== '0' &&
+            erroCloudflare(erro.message)
+        ) {
+
+            console.log('SIGMA API BLOQUEADA; tentando fallback por navegador.');
+
+            return await criarTesteGratisNoNavegador(telefone);
+
+        }
+
+        throw erro;
+
+    }
 
     if (!token) {
 
@@ -224,19 +467,40 @@ async function criarTesteGratis(numero) {
 
     }
 
-    const criado = await chamarSigma(
-        'customers',
-        {
-            method: 'POST',
-            token,
-            body: JSON.stringify({
-                ...TESTE_PADRAO,
-                name: `WhatsApp ${telefone}`,
-                whatsapp: telefone,
-                note: `Teste gratis solicitado pelo WhatsApp ${telefone}`
-            })
+    let criado;
+
+    try {
+
+        criado = await chamarSigma(
+            'customers',
+            {
+                method: 'POST',
+                token,
+                body: JSON.stringify({
+                    ...TESTE_PADRAO,
+                    name: `WhatsApp ${telefone}`,
+                    whatsapp: telefone,
+                    note: `Teste gratis solicitado pelo WhatsApp ${telefone}`
+                })
+            }
+        );
+
+    } catch (erro) {
+
+        if (
+            process.env.SIGMA_BROWSER_FALLBACK !== '0' &&
+            erroCloudflare(erro.message)
+        ) {
+
+            console.log('SIGMA API BLOQUEADA; tentando fallback por navegador.');
+
+            return await criarTesteGratisNoNavegador(telefone);
+
         }
-    );
+
+        throw erro;
+
+    }
 
     const cliente = criado.data || criado;
     const customerId = cliente.id;

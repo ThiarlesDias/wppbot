@@ -1,4 +1,3 @@
-
 const wppconnect = require('@wppconnect-team/wppconnect');
 const registrar = require('./services/logger');
 const sessoes = require('./services/sessions');
@@ -45,23 +44,26 @@ wppconnect.create({
 
     client.onMessage(async (message) => {
 
-        console.log(
-            'NUMERO:',
-            message.from
-        );
-
         try {
 
-            // Ignora grupos
             if (message.isGroupMsg) return;
 
-            // Ignora mensagens do próprio bot
+            if (
+                message.from?.endsWith('@g.us') ||
+                message.from?.endsWith('@newsletter')
+            ) return;
+
             if (message.fromMe) return;
 
-            // Apenas texto
             if (message.type !== 'chat') return;
 
             const numero = message.from;
+
+            console.log(
+                'NUMERO:',
+                numero
+            );
+
             const numeroWhatsapp = await resolverNumeroMensagem(
                 client,
                 message
@@ -71,8 +73,6 @@ wppconnect.create({
             verificarTimeout(
                 numero
             );
-
-            // PRIMEIRA INTERAÇÃO
 
             if (!sessoes[numero + '_iniciado']) {
 
@@ -88,8 +88,6 @@ wppconnect.create({
                 return;
 
             }
-
-            // GARANTE ETAPA
 
             if (!sessoes[numero]) {
 
@@ -113,8 +111,6 @@ wppconnect.create({
                 `[${etapa}]`,
                 texto
             );
-
-            // ROTEAMENTO
 
             switch (etapa) {
 
@@ -140,7 +136,8 @@ wppconnect.create({
                     return await suporteHandler(
                         client,
                         numero,
-                        texto
+                        texto,
+                        numeroWhatsapp
                     );
 
                 case 'financeiro':
@@ -197,7 +194,7 @@ wppconnect.create({
 
 .catch((erro) => {
 
-    console.log('ERRO INICIALIZAÇÃO');
+    console.log('ERRO INICIALIZACAO');
 
     console.log(erro);
 
