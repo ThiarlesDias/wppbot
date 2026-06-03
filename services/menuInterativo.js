@@ -1,7 +1,26 @@
+const NUMEROS = {
+    0: '↩️',
+    1: '1️⃣',
+    2: '2️⃣',
+    3: '3️⃣',
+    4: '4️⃣',
+    5: '5️⃣',
+    6: '6️⃣',
+    7: '7️⃣',
+    8: '8️⃣',
+    9: '9️⃣'
+};
+
+function numeroBonito(id) {
+
+    return NUMEROS[id] || `${id}️⃣`;
+
+}
+
 function textoFallback(titulo, descricao, opcoes) {
 
     const linhas = [
-        `*${titulo}*`
+        `🤖 *${titulo}*`
     ];
 
     if (descricao) {
@@ -10,13 +29,16 @@ function textoFallback(titulo, descricao, opcoes) {
 
     }
 
-    linhas.push('', 'Escolha uma opcao:');
+    linhas.push('', '━━━━━━━━━━━━━━');
+    linhas.push('Escolha uma opção:');
 
     for (const opcao of opcoes) {
 
-        linhas.push(`${opcao.id} - ${opcao.titulo}`);
+        linhas.push(`${numeroBonito(opcao.id)} ${opcao.titulo}`);
 
     }
+
+    linhas.push('━━━━━━━━━━━━━━');
 
     return linhas.join('\n');
 
