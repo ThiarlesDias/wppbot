@@ -32,23 +32,27 @@ function limparTravasChrome() {
     ];
 
     for (const pasta of pastas) {
-        for (const arquivo of [
-            'SingletonLock',
-            'SingletonSocket',
-            'SingletonCookie'
-        ]) {
+        let arquivos = [];
+
+        try {
+            arquivos = fs.readdirSync(pasta)
+                .filter(arquivo => arquivo.startsWith('Singleton'));
+        } catch (_) {
+            continue;
+        }
+
+        for (const arquivo of arquivos) {
             const caminho = path.join(pasta, arquivo);
 
             try {
-                if (fs.existsSync(caminho)) {
-                    fs.rmSync(
-                        caminho,
-                        {
-                            force: true
-                        }
-                    );
-                    console.log('TRAVA CHROME REMOVIDA:', caminho);
-                }
+                fs.rmSync(
+                    caminho,
+                    {
+                        force: true,
+                        recursive: true
+                    }
+                );
+                console.log('TRAVA CHROME REMOVIDA:', caminho);
             } catch (erro) {
                 console.log(
                     'NAO FOI POSSIVEL REMOVER TRAVA CHROME:',
