@@ -1,18 +1,28 @@
+const {
+    enviarMenu
+} = require('../../services/menuInterativo');
+
 module.exports = async function humano(
     client,
     numero
 ) {
 
-    await client.sendText(
+    return await enviarMenu(
+        client,
         numero,
-
-`👨‍💼 Seu atendimento foi encaminhado.
-
-Aguarde nosso retorno.
-
-Digite:
-
-0️⃣ Voltar ao menu`
+        {
+            titulo: 'Atendimento humano',
+            descricao: 'Seu atendimento foi encaminhado. Aguarde nosso retorno.',
+            botao: 'Opcoes',
+            secao: 'Atendimento',
+            opcoes: [
+                {
+                    id: '0',
+                    titulo: 'Voltar ao menu',
+                    descricao: 'Retornar ao menu principal.'
+                }
+            ]
+        }
     );
 
 };

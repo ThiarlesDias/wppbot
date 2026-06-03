@@ -1,14 +1,30 @@
+const {
+    enviarMenu
+} = require('../../services/menuInterativo');
+
 async function emAnalise(client, numero) {
 
-    await client.sendText(
+    return await enviarMenu(
+        client,
         numero,
-
-`🔎 Seu atendimento está em análise.
-
-Digite:
-
-0️⃣ Voltar ao menu
-9️⃣ Falar com atendente`
+        {
+            titulo: 'Atendimento em analise',
+            descricao: 'Estamos acompanhando sua solicitacao.',
+            botao: 'Opcoes',
+            secao: 'Atendimento',
+            opcoes: [
+                {
+                    id: '0',
+                    titulo: 'Voltar ao menu',
+                    descricao: 'Retornar ao menu Sistema de TV.'
+                },
+                {
+                    id: '9',
+                    titulo: 'Falar com atendente',
+                    descricao: 'Encaminhar para atendimento humano.'
+                }
+            ]
+        }
     );
 
 }

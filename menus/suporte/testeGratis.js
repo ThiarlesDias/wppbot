@@ -1,17 +1,30 @@
+const {
+    enviarMenu
+} = require('../../services/menuInterativo');
+
 async function testeGratis(client, numero) {
 
-    await client.sendText(
+    return await enviarMenu(
+        client,
         numero,
-
-`*TESTE GRATIS*
-
-Vamos criar um teste usando este numero:
-${numero}
-
-Digite:
-
-1 - Confirmar teste gratis
-0 - Voltar`
+        {
+            titulo: 'Teste gratis',
+            descricao: `Vamos criar um teste usando este atendimento: ${numero}`,
+            botao: 'Confirmar',
+            secao: 'Teste gratis',
+            opcoes: [
+                {
+                    id: '1',
+                    titulo: 'Confirmar teste gratis',
+                    descricao: 'Criar o acesso de teste.'
+                },
+                {
+                    id: '0',
+                    titulo: 'Voltar',
+                    descricao: 'Retornar ao menu Sistema de TV.'
+                }
+            ]
+        }
     );
 
 }

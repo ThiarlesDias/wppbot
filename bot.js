@@ -6,6 +6,9 @@ const sessoes = require('./services/sessions');
 const {
     resolverNumeroMensagem
 } = require('./services/whatsappNumero');
+const {
+    obterTextoMensagem
+} = require('./services/menuInterativo');
 
 const menuPrincipal = require('./menus/menuPrincipal');
 
@@ -94,8 +97,6 @@ wppconnect.create({
 
             if (message.fromMe) return;
 
-            if (message.type !== 'chat') return;
-
             const numero = message.from;
 
             console.log(
@@ -107,7 +108,9 @@ wppconnect.create({
                 client,
                 message
             );
-            const texto = message.body.trim().toLowerCase();
+            const texto = obterTextoMensagem(message);
+
+            if (!texto) return;
 
             verificarTimeout(
                 numero

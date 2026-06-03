@@ -1,17 +1,40 @@
+const {
+    enviarMenu
+} = require('../../services/menuInterativo');
+
 async function pacote(client, numero) {
 
-    await client.sendText(
+    return await enviarMenu(
+        client,
         numero,
-
-`📦 PACOTES IPTV
-
-1️⃣ 1 Mês - R$ 25,00
-
-2️⃣ 3 Meses - R$ 60,00
-
-3️⃣ 6 Meses - R$ 110,00
-
-0️⃣ Voltar`
+        {
+            titulo: 'Pacotes IPTV',
+            descricao: 'Escolha o pacote desejado.',
+            botao: 'Ver pacotes',
+            secao: 'Pacotes',
+            opcoes: [
+                {
+                    id: '1',
+                    titulo: '1 Mes - R$ 25,00',
+                    descricao: 'Acesso por 30 dias.'
+                },
+                {
+                    id: '2',
+                    titulo: '3 Meses - R$ 60,00',
+                    descricao: 'Acesso por 90 dias.'
+                },
+                {
+                    id: '3',
+                    titulo: '6 Meses - R$ 110,00',
+                    descricao: 'Acesso por 180 dias.'
+                },
+                {
+                    id: '0',
+                    titulo: 'Voltar',
+                    descricao: 'Retornar ao menu Sistema de TV.'
+                }
+            ]
+        }
     );
 
 }
