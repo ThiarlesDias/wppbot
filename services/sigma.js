@@ -273,57 +273,68 @@ async function criarTesteGratisNoNavegador(telefone) {
 
         await new Promise(resolve => setTimeout(resolve, 2500));
 
-        const precisaLogin = await page.$('input[type="password"]');
-
-        if (precisaLogin) {
-
-            await page.waitForSelector('input[type="password"]', {
-                timeout: 30000
-            });
-
-            const inputs = await page.$$('input');
-
-            if (!inputs.length) {
-
-                throw new Error('Formulario de login do Sigma nao encontrado.');
-
-            }
-
-            await inputs[0].click({
-                clickCount: 3
-            });
-            await inputs[0].type(process.env.SIGMA_USERNAME || '');
-
-            await precisaLogin.click({
-                clickCount: 3
-            });
-            await precisaLogin.type(process.env.SIGMA_PASSWORD || '');
-
-            const botaoEntrar = await page.$('#kt_sign_in_submit');
-
-            if (botaoEntrar) {
-
-                await botaoEntrar.click();
-
-            } else {
-
-                await page.keyboard.press('Enter');
-
-            }
-
-            await page.waitForNetworkIdle({
-                idleTime: 1000,
-                timeout: 45000
-            }).catch(() => {});
-
-            await new Promise(resolve => setTimeout(resolve, 2500));
-
-        }
-
         const resultado = await page.evaluate(
-            async (testePadrao, telefone, appVersion) => {
+            async (testePadrao, telefone, appVersion, username, password) => {
 
-                const token = localStorage.getItem('token');
+                async function login() {
+
+                    const tokenAtual = localStorage.getItem('token');
+
+                    if (tokenAtual) return tokenAtual;
+
+                    const response = await fetch(
+                        '/api/auth/login',
+                        {
+                            method: 'POST',
+                            headers: {
+                                accept: 'application/json',
+                                'content-type': 'application/json',
+                                locale: 'pt-BR',
+                                'x-app-version': appVersion
+                            },
+                            body: JSON.stringify({
+                                captcha: 'not-a-robot',
+                                captchaChecked: true,
+                                username,
+                                password,
+                                twofactor_code: '',
+                                twofactor_recovery_code: '',
+                                twofactor_trusted_device_id: ''
+                            })
+                        }
+                    );
+
+                    const text = await response.text();
+                    let data;
+
+                    try {
+
+                        data = JSON.parse(text);
+
+                    } catch (_) {
+
+                        data = text;
+
+                    }
+
+                    if (!response.ok || !data?.token) {
+
+                        throw new Error(
+                            data?.message ||
+                            data?.errors?.[0] ||
+                            text.slice(0, 180) ||
+                            'Login no Sigma nao retornou token no navegador.'
+                        );
+
+                    }
+
+                    localStorage.setItem('token', data.token);
+
+                    return data.token;
+
+                }
+
+                const token = await login();
 
                 if (!token) {
 
@@ -413,7 +424,9 @@ async function criarTesteGratisNoNavegador(telefone) {
             },
             TESTE_PADRAO,
             telefone,
-            SIGMA_APP_VERSION
+            SIGMA_APP_VERSION,
+            process.env.SIGMA_USERNAME || '',
+            process.env.SIGMA_PASSWORD || ''
         );
 
         return {

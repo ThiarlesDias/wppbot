@@ -41,7 +41,7 @@ ${mensagem}`
 
         console.log(
             'ERRO NOTIFICADOR',
-            erro
+            erro.message
         );
 
     }
