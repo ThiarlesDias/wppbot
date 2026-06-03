@@ -1,4 +1,6 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
+const fs = require('fs');
+const path = require('path');
 const registrar = require('./services/logger');
 const sessoes = require('./services/sessions');
 const {
@@ -19,6 +21,43 @@ const {
 } = require('./services/sessionManager');
 
 console.log('INICIANDO BOT...');
+
+function limparTravasChrome() {
+    const pastas = [
+        path.join(__dirname, 'tokens', 'bot'),
+        path.join(__dirname, 'data', 'sigma-browser')
+    ];
+
+    for (const pasta of pastas) {
+        for (const arquivo of [
+            'SingletonLock',
+            'SingletonSocket',
+            'SingletonCookie'
+        ]) {
+            const caminho = path.join(pasta, arquivo);
+
+            try {
+                if (fs.existsSync(caminho)) {
+                    fs.rmSync(
+                        caminho,
+                        {
+                            force: true
+                        }
+                    );
+                    console.log('TRAVA CHROME REMOVIDA:', caminho);
+                }
+            } catch (erro) {
+                console.log(
+                    'NAO FOI POSSIVEL REMOVER TRAVA CHROME:',
+                    caminho,
+                    erro.message
+                );
+            }
+        }
+    }
+}
+
+limparTravasChrome();
 
 wppconnect.create({
     session: 'bot',
