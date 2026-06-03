@@ -54,6 +54,10 @@ const TESTE_PADRAO = {
     connections: Number(process.env.SIGMA_CONNECTIONS || 1)
 };
 
+const SIGMA_PROXY_SERVER = process.env.SIGMA_PROXY_SERVER || '';
+const SIGMA_PROXY_USERNAME = process.env.SIGMA_PROXY_USERNAME || '';
+const SIGMA_PROXY_PASSWORD = process.env.SIGMA_PROXY_PASSWORD || '';
+
 let tokenCache = null;
 
 function erroCloudflare(mensagem) {
@@ -242,21 +246,38 @@ async function criarTesteGratisNoNavegador(telefone) {
     process.env.CHROME_PATH ||
     '/usr/bin/google-chrome';
 
+    const args = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled'
+    ];
+
+    if (SIGMA_PROXY_SERVER) {
+
+        args.push(`--proxy-server=${SIGMA_PROXY_SERVER}`);
+
+    }
+
     const browser = await puppeteer.launch({
         executablePath,
         headless: true,
         userDataDir: path.join(__dirname, '..', 'data', 'sigma-browser'),
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-blink-features=AutomationControlled'
-        ]
+        args
     });
 
     try {
 
         const page = await browser.newPage();
+
+        if (SIGMA_PROXY_USERNAME || SIGMA_PROXY_PASSWORD) {
+
+            await page.authenticate({
+                username: SIGMA_PROXY_USERNAME,
+                password: SIGMA_PROXY_PASSWORD
+            });
+
+        }
 
         await page.setViewport({
             width: 1365,
@@ -272,6 +293,90 @@ async function criarTesteGratisNoNavegador(telefone) {
         );
 
         await new Promise(resolve => setTimeout(resolve, 2500));
+
+        let tokenNavegador = await page.evaluate(() => localStorage.getItem('token'));
+
+        if (!tokenNavegador) {
+
+            const loginFeito = await page.evaluate(
+                async (username, password) => {
+
+                    const inputs = Array.from(document.querySelectorAll('input'));
+                    const passwordInput =
+                    inputs.find(input => input.type === 'password');
+                    const userInput =
+                    inputs.find(input => input.type === 'text') ||
+                    inputs.find(input => input.type === 'email') ||
+                    inputs.find(input => input !== passwordInput);
+
+                    if (!userInput || !passwordInput) return false;
+
+                    function preencher(input, valor) {
+
+                        input.focus();
+                        input.value = valor;
+                        input.dispatchEvent(
+                            new Event(
+                                'input',
+                                {
+                                    bubbles: true
+                                }
+                            )
+                        );
+                        input.dispatchEvent(
+                            new Event(
+                                'change',
+                                {
+                                    bubbles: true
+                                }
+                            )
+                        );
+
+                    }
+
+                    preencher(
+                        userInput,
+                        username
+                    );
+                    preencher(
+                        passwordInput,
+                        password
+                    );
+
+                    const botao =
+                    document.querySelector('button[type="submit"]') ||
+                    Array.from(document.querySelectorAll('button'))
+                        .find(item => !item.disabled);
+
+                    if (!botao) return false;
+
+                    botao.click();
+
+                    return true;
+
+                },
+                process.env.SIGMA_USERNAME || '',
+                process.env.SIGMA_PASSWORD || ''
+            );
+
+            if (loginFeito) {
+
+                try {
+
+                    await page.waitForFunction(
+                        () => Boolean(localStorage.getItem('token')),
+                        {
+                            timeout: 20000
+                        }
+                    );
+
+                } catch (_) {}
+
+                tokenNavegador = await page.evaluate(() => localStorage.getItem('token'));
+
+            }
+
+        }
 
         const resultado = await page.evaluate(
             async (testePadrao, telefone, appVersion, username, password) => {
@@ -318,6 +423,20 @@ async function criarTesteGratisNoNavegador(telefone) {
                     }
 
                     if (!response.ok || !data?.token) {
+
+                        if (
+                            typeof data === 'string' &&
+                            (
+                                data.trim().startsWith('<!DOCTYPE') ||
+                                data.includes('Cloudflare')
+                            )
+                        ) {
+
+                            throw new Error(
+                                'Cloudflare bloqueou o login do Sigma tambem no navegador.'
+                            );
+
+                        }
 
                         throw new Error(
                             data?.message ||
@@ -377,6 +496,20 @@ async function criarTesteGratisNoNavegador(telefone) {
                     }
 
                     if (!response.ok) {
+
+                        if (
+                            typeof data === 'string' &&
+                            (
+                                data.trim().startsWith('<!DOCTYPE') ||
+                                data.includes('Cloudflare')
+                            )
+                        ) {
+
+                            throw new Error(
+                                'Cloudflare bloqueou a requisicao do Sigma no navegador.'
+                            );
+
+                        }
 
                         throw new Error(
                             data?.message ||
