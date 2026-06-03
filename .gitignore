@@ -1,6 +1,9 @@
 node_modules
 tokens
 session
+.env
+data/testes-gratis.json
 .git
 .gitignore
 npm-debug.log
+wpp-bot/
