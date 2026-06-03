@@ -39,6 +39,16 @@ ${mensagem}`
 
     } catch (erro) {
 
+        if (erro.message === 'No LID for user') {
+
+            console.log(
+                'ADMIN_WHATSAPP nao encontrado no WhatsApp; notificacao ignorada.'
+            );
+
+            return;
+
+        }
+
         console.log(
             'ERRO NOTIFICADOR',
             erro.message

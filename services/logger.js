@@ -14,10 +14,25 @@ function registrar(numero, etapa, texto) {
             `[${etapa}] ` +
             `${texto}\n`;
 
-        const arquivo = path.join(
+        const pastaLogs = path.join(
             __dirname,
             '..',
-            'logs',
+            'logs'
+        );
+
+        if (!fs.existsSync(pastaLogs)) {
+
+            fs.mkdirSync(
+                pastaLogs,
+                {
+                    recursive: true
+                }
+            );
+
+        }
+
+        const arquivo = path.join(
+            pastaLogs,
             'atendimentos.log'
         );
 
