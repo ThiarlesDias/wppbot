@@ -47,6 +47,8 @@ const SIGMA_APP_VERSION =
 process.env.SIGMA_APP_VERSION ||
 '3.81';
 
+const SIGMA_CHATBOT_URL = process.env.SIGMA_CHATBOT_URL || '';
+
 const TESTE_PADRAO = {
     server_id: process.env.SIGMA_SERVER_ID || 'we6Wnw1K8N',
     package_id: process.env.SIGMA_PACKAGE_ID || 'VpKDaw21RA',
@@ -578,9 +580,102 @@ async function criarTesteGratisNoNavegador(telefone) {
 
 }
 
+async function criarTesteGratisViaChatbot(telefone) {
+
+    const resposta = await fetch(
+        SIGMA_CHATBOT_URL,
+        {
+            method: 'POST',
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+                'user-agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                '(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
+            },
+            body: JSON.stringify({
+                name: `WhatsApp ${telefone}`,
+                whatsapp: telefone,
+                phone: telefone,
+                number: telefone,
+                message: telefone
+            })
+        }
+    );
+
+    const texto = await resposta.text();
+    let dados;
+
+    try {
+
+        dados = JSON.parse(texto);
+
+    } catch (_) {
+
+        dados = texto;
+
+    }
+
+    if (
+        typeof dados === 'string' &&
+        (
+            dados.trim().startsWith('<!DOCTYPE') ||
+            dados.includes('Cloudflare')
+        )
+    ) {
+
+        throw new Error('O chatbot do Sigma retornou HTML/Cloudflare em vez de JSON.');
+
+    }
+
+    if (!resposta.ok) {
+
+        throw new Error(
+            dados?.message ||
+            dados?.errors?.[0] ||
+            texto.slice(0, 200) ||
+            `Erro chatbot Sigma: ${resposta.status}`
+        );
+
+    }
+
+    const mensagem =
+    dados.reply ||
+    dados.data?.[0]?.message ||
+    dados.message ||
+    '';
+
+    if (!mensagem && !dados.username) {
+
+        throw new Error('Chatbot Sigma nao retornou dados do teste.');
+
+    }
+
+    return {
+        automatico: true,
+        telefone,
+        cliente: {
+            username: dados.username,
+            password: dados.password,
+            package: dados.package,
+            expiresAt: dados.expiresAt
+        },
+        playlist: dados,
+        mensagem
+    };
+
+}
+
 async function criarTesteGratis(numero) {
 
     const telefone = limparNumero(numero);
+
+    if (SIGMA_CHATBOT_URL) {
+
+        return await criarTesteGratisViaChatbot(telefone);
+
+    }
+
     let token;
 
     try {
