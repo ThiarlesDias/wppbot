@@ -12,11 +12,14 @@ function uso() {
         '  node scripts/importarAssinaturas.js caminho/clientes.csv',
         '',
         'Colunas aceitas:',
-        '  telefone, usuario, senha, vencimento, email, dns, link_m3u, plano',
+        '  telefonePK, usuario, vencimento',
+        '',
+        'Colunas opcionais:',
+        '  senha, email, dns, link_m3u, plano',
         '',
         'Exemplo CSV com ;',
-        '  telefone;usuario;senha;vencimento;email;dns;plano',
-        '  5543999999999;123456;abc123;30/06/2026 23:59:00;cliente@email.com;http://aznxplay1.sbs/;1 Mes'
+        '  telefonePK;usuario;vencimento',
+        '  5543999999999;123456;30/06/2026 23:59:00'
     ].join('\n'));
 
 }
@@ -177,7 +180,7 @@ function lerCsv(arquivo) {
 function importarCliente(linha, indice) {
 
     const telefone = limparNumero(
-        valor(linha, 'telefone', 'whatsapp', 'numero', 'celular')
+        valor(linha, 'telefonePK', 'telefone_pk', 'telefone', 'whatsapp', 'numero', 'celular')
     );
     const username = valor(linha, 'usuario', 'username', 'user', 'login');
     const password = valor(linha, 'senha', 'password', 'pass');
