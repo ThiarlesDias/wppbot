@@ -542,13 +542,19 @@ ${erro.message}`
 
         if (texto === '1') {
 
+            return await consultarUsuarios();
+
+        }
+
+        if (texto === '2') {
+
             sessoes[numero] = 'renovacao';
 
             return await renovacao(client, numero);
 
         }
 
-        if (texto === '2') {
+        if (texto === '3') {
 
             sessoes[numero] = 'sem_sinal';
 
@@ -556,7 +562,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '3') {
+        if (texto === '4') {
 
             sessoes[numero] = 'pacote';
 
@@ -576,14 +582,8 @@ ${erro.message}`
 
         }
 
-        if (texto === '6') {
-
-            return await consultarUsuarios();
-
-        }
-
         
-        if (texto === '4' || texto === '0') {
+        if (texto === '0') {
 
             sessoes[numero] = 'menu';
 

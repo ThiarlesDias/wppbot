@@ -15,16 +15,21 @@ async function menuSuporte(client, numero) {
             opcoes: [
                 {
                     id: '1',
+                    titulo: 'Consultar meu usuario',
+                    descricao: 'Receber seus dados de acesso cadastrados.'
+                },
+                {
+                    id: '2',
                     titulo: 'Renovar plano',
                     descricao: 'Ver valores e formas de pagamento.'
                 },
                 {
-                    id: '2',
+                    id: '3',
                     titulo: 'Estou sem sinal',
                     descricao: 'Abrir atendimento para suporte tecnico.'
                 },
                 {
-                    id: '3',
+                    id: '4',
                     titulo: 'Adquirir pacote',
                     descricao: 'Escolher plano IPTV.'
                 },
@@ -34,12 +39,7 @@ async function menuSuporte(client, numero) {
                     descricao: 'Liberar um teste para seu WhatsApp.'
                 },
                 {
-                    id: '6',
-                    titulo: 'Consultar usuario',
-                    descricao: 'Receber seus dados de acesso cadastrados.'
-                },
-                {
-                    id: '4',
+                    id: '0',
                     titulo: 'Voltar',
                     descricao: 'Retornar ao menu principal.'
                 }
