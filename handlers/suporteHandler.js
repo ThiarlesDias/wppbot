@@ -241,9 +241,12 @@ Se nao quiser informar agora, digite *0* para pular.`
 
 `💠 *PIX copia e cola*
 
-Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo abaixo:
+Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo da proxima mensagem.`
+                );
 
-${pixTexto}`
+                await client.sendText(
+                    numero,
+                    pixTexto
                 );
 
                 await notificar(
