@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const XLSX = require('xlsx');
 const {
     registrarAssinatura,
     formatarData
@@ -12,21 +13,39 @@ function uso() {
         '  node scripts/importarAssinaturas.js caminho/clientes.csv',
         '',
         'Colunas aceitas:',
-        '  nome, telefonePK, usuario, vencimento',
+        '  nome, telefone, usuario, senha, dns, m3u, vencimento',
         '',
         'Colunas opcionais:',
-        '  senha, email, dns, link_m3u, plano',
+        '  email, plano',
         '',
-        'Exemplo CSV com ;',
-        '  nome;telefonePK;usuario;vencimento',
-        '  Joao Silva;5543999999999;123456;30/06/2026 23:59:00'
+        'Exemplo CSV/TSV:',
+        '  nome;telefone;usuario;senha;dns;m3u;vencimento',
+        '  Joao Silva;5543999999999;123456;abc123;http://aznxplay1.sbs/;http://aznxplay1.sbs/get.php?...;30/06/2026 23:59:00'
     ].join('\n'));
+
+}
+
+function textoValor(valorCampo) {
+
+    if (valorCampo === undefined || valorCampo === null) return '';
+
+    if (valorCampo instanceof Date) return valorCampo.toISOString();
+
+    if (typeof valorCampo === 'number') {
+
+        if (Number.isInteger(valorCampo)) return String(valorCampo);
+
+        return String(valorCampo).replace(/\.0$/, '');
+
+    }
+
+    return String(valorCampo).trim();
 
 }
 
 function limparNumero(numero) {
 
-    return String(numero || '').replace(/\D/g, '');
+    return textoValor(numero).replace(/\D/g, '');
 
 }
 
@@ -105,7 +124,16 @@ function valor(linha, ...nomes) {
 
         const chave = normalizarCabecalho(nome);
 
-        if (linha[chave]) return linha[chave];
+        if (
+            Object.prototype.hasOwnProperty.call(linha, chave) &&
+            linha[chave] !== undefined &&
+            linha[chave] !== null &&
+            textoValor(linha[chave]) !== ''
+        ) {
+
+            return linha[chave];
+
+        }
 
     }
 
@@ -115,7 +143,9 @@ function valor(linha, ...nomes) {
 
 function normalizarData(valorData) {
 
-    const texto = String(valorData || '').trim();
+    if (valorData instanceof Date) return valorData;
+
+    const texto = textoValor(valorData);
 
     if (!texto) return null;
 
@@ -146,30 +176,22 @@ function normalizarData(valorData) {
 
 }
 
-function lerCsv(arquivo) {
-
-    const conteudo = fs.readFileSync(arquivo, 'utf8').replace(/^\uFEFF/, '');
-    const linhas = conteudo
-        .split(/\r?\n/)
-        .map(linha => linha.trim())
-        .filter(Boolean);
+function linhasParaObjetos(linhas) {
 
     if (linhas.length < 2) {
 
-        throw new Error('CSV precisa ter cabecalho e pelo menos um cliente.');
+        throw new Error('Arquivo precisa ter cabecalho e pelo menos um cliente.');
 
     }
 
-    const separador = detectarSeparador(linhas[0]);
-    const cabecalho = parseCsvLinha(linhas[0], separador)
+    const cabecalho = linhas[0]
         .map(normalizarCabecalho);
 
     return linhas.slice(1).map(linha => {
-        const campos = parseCsvLinha(linha, separador);
         const item = {};
 
         cabecalho.forEach((campo, indice) => {
-            item[campo] = campos[indice] || '';
+            item[campo] = linha[indice] ?? '';
         });
 
         return item;
@@ -177,19 +199,133 @@ function lerCsv(arquivo) {
 
 }
 
+function lerCsv(arquivo) {
+
+    const conteudo = fs.readFileSync(arquivo, 'utf8').replace(/^\uFEFF/, '');
+    const linhasTexto = conteudo
+        .split(/\r?\n/)
+        .map(linha => linha.trim())
+        .filter(Boolean);
+
+    if (linhasTexto.length < 2) {
+
+        throw new Error('CSV precisa ter cabecalho e pelo menos um cliente.');
+
+    }
+
+    const separador = detectarSeparador(linhasTexto[0]);
+    const linhas = linhasTexto.map(linha => parseCsvLinha(linha, separador));
+
+    return linhasParaObjetos(linhas);
+
+}
+
+function lerXlsx(arquivo) {
+
+    const workbook = XLSX.readFile(
+        arquivo,
+        {
+            cellDates: false
+        }
+    );
+    const nomePlanilha = workbook.SheetNames[0];
+    const planilha = workbook.Sheets[nomePlanilha];
+    const range = XLSX.utils.decode_range(planilha['!ref']);
+    const linhas = [];
+
+    for (let row = range.s.r; row <= range.e.r; row += 1) {
+
+        const linha = [];
+
+        for (let col = range.s.c; col <= range.e.c; col += 1) {
+
+            const endereco = XLSX.utils.encode_cell({
+                r: row,
+                c: col
+            });
+            const celula = planilha[endereco];
+            const cabecalho = row === range.s.r ?
+                '' :
+                normalizarCabecalho(linhas[0]?.[col - range.s.c] || '');
+
+            linha.push(
+                cabecalho.includes('venc') ||
+                cabecalho.includes('validade') ||
+                cabecalho.includes('expires') ?
+                    (celula?.w ?? celula?.v ?? '') :
+                    (celula?.v ?? '')
+            );
+
+        }
+
+        if (linha.some(campo => textoValor(campo) !== '')) linhas.push(linha);
+
+    }
+
+    return linhasParaObjetos(linhas);
+
+}
+
+function lerArquivo(arquivo) {
+
+    const ext = path.extname(arquivo).toLowerCase();
+
+    if (ext === '.xlsx' || ext === '.xls') return lerXlsx(arquivo);
+
+    return lerCsv(arquivo);
+
+}
+
+function extrairDnsDoM3u(linkM3u) {
+
+    try {
+
+        const url = new URL(linkM3u);
+
+        return `${url.origin}/`;
+
+    } catch (_) {
+
+        return '';
+
+    }
+
+}
+
+function extrairSenhaDoM3u(linkM3u) {
+
+    try {
+
+        const url = new URL(linkM3u);
+
+        return url.searchParams.get('password') || '';
+
+    } catch (_) {
+
+        return '';
+
+    }
+
+}
+
 function importarCliente(linha, indice) {
 
-    const nome = valor(linha, 'nome', 'cliente', 'nome_cliente');
+    const nome = textoValor(valor(linha, 'nome', 'cliente', 'nome_cliente'));
     const telefone = limparNumero(
         valor(linha, 'telefonePK', 'telefone_pk', 'column_14', 'telefone', 'whatsapp', 'numero', 'celular')
     );
-    const username = valor(linha, 'usuario', 'username', 'user', 'login');
-    const password = valor(linha, 'senha', 'password', 'pass');
-    const email = valor(linha, 'email', 'e_mail');
-    const plano = valor(linha, 'plano', 'pacote') || 'Importado';
-    const dnsBruto = valor(linha, 'dns', 'dns_xciptv', 'dns_smarters');
+    const username = textoValor(valor(linha, 'usuario', 'username', 'user', 'login'));
+    let password = textoValor(valor(linha, 'senha', 'password', 'pass'));
+    const email = textoValor(valor(linha, 'email', 'e_mail'));
+    const plano = textoValor(valor(linha, 'plano', 'pacote')) || 'Importado';
+    const linkM3uInformado = textoValor(valor(linha, 'm3u', 'link_m3u', 'link'));
+    const senhaM3u = extrairSenhaDoM3u(linkM3uInformado);
+
+    if (senhaM3u) password = senhaM3u;
+
+    const dnsBruto = textoValor(valor(linha, 'dns', 'dns_xciptv', 'dns_smarters')) ||
+        extrairDnsDoM3u(linkM3uInformado);
     const dns = dnsBruto ? dnsBruto.replace(/\/$/, '') + '/' : '';
-    const linkM3uInformado = valor(linha, 'link_m3u', 'm3u', 'link');
     const expiresAt = normalizarData(
         valor(linha, 'vencimento', 'validade', 'vence_em', 'expires_at')
     );
@@ -212,6 +348,18 @@ function importarCliente(linha, indice) {
 
     }
 
+    if (!password) {
+
+        throw new Error(`Linha ${indice}: senha vazia.`);
+
+    }
+
+    if (!dns) {
+
+        throw new Error(`Linha ${indice}: dns vazio.`);
+
+    }
+
     if (!expiresAt) {
 
         throw new Error(`Linha ${indice}: vencimento invalido.`);
@@ -224,6 +372,12 @@ function importarCliente(linha, indice) {
                 `${dns.replace(/\/$/, '')}/get.php?username=${username}&password=${password}&type=m3u_plus&output=mpegts` :
                 ''
         );
+
+    if (!linkM3u) {
+
+        throw new Error(`Linha ${indice}: m3u vazio.`);
+
+    }
 
     return registrarAssinatura({
         numero: `${telefone}@c.us`,
@@ -265,7 +419,7 @@ function main() {
 
     }
 
-    const linhas = lerCsv(caminho);
+    const linhas = lerArquivo(caminho);
     let importados = 0;
     const erros = [];
 

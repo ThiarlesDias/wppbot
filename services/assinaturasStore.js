@@ -70,6 +70,53 @@ function salvarStore(store) {
 
 }
 
+function listaIdsTelefone(valor) {
+
+    if (Array.isArray(valor)) {
+
+        return valor
+            .map(item => String(item || '').trim())
+            .filter(Boolean);
+
+    }
+
+    if (valor) return [String(valor).trim()].filter(Boolean);
+
+    return [];
+
+}
+
+function vincularTelefone(store, telefone, id) {
+
+    if (!telefone || !id) return;
+
+    const ids = listaIdsTelefone(store.telefones[telefone]);
+
+    if (!ids.includes(id)) ids.push(id);
+
+    store.telefones[telefone] = ids;
+
+}
+
+function desvincularTelefone(store, telefone, id) {
+
+    if (!telefone || !id) return;
+
+    const ids = listaIdsTelefone(store.telefones[telefone])
+        .filter(item => item !== id);
+
+    if (ids.length) {
+
+        store.telefones[telefone] = ids;
+
+    } else {
+
+        delete store.telefones[telefone];
+
+    }
+
+}
+
 function limparNumero(numero) {
 
     return String(numero || '')
@@ -173,6 +220,16 @@ function salvarAssinatura(assinatura) {
 
     const atual = store.assinaturas[id] || {};
 
+    if (atual.telefone && atual.telefone !== telefone) {
+
+        desvincularTelefone(
+            store,
+            limparNumero(atual.telefone),
+            id
+        );
+
+    }
+
     store.assinaturas[id] = {
         ...atual,
         ...assinatura,
@@ -187,7 +244,11 @@ function salvarAssinatura(assinatura) {
 
     }
 
-    if (telefone) store.telefones[telefone] = id;
+    vincularTelefone(
+        store,
+        telefone,
+        id
+    );
 
     salvarStore(store);
 
@@ -245,6 +306,15 @@ function buscarAssinaturaPorId(id) {
 
 function buscarAssinaturaPorNumero(numero, telefone) {
 
+    return buscarAssinaturasPorNumero(
+        numero,
+        telefone
+    )[0] || null;
+
+}
+
+function buscarAssinaturasPorNumero(numero, telefone) {
+
     const store = lerStore();
     const candidatos = [
         limparNumero(telefone),
@@ -253,20 +323,23 @@ function buscarAssinaturaPorNumero(numero, telefone) {
 
     for (const candidato of candidatos) {
 
-        const id = store.telefones[candidato];
+        const ids = listaIdsTelefone(store.telefones[candidato]);
+        const assinaturas = ids
+            .map(id => store.assinaturas[id])
+            .filter(Boolean);
 
-        if (id && store.assinaturas[id]) return store.assinaturas[id];
+        if (assinaturas.length) return assinaturas;
 
     }
 
-    return Object.values(store.assinaturas || {}).find(assinatura => {
+    return Object.values(store.assinaturas || {}).filter(assinatura => {
         const numeros = [
             limparNumero(assinatura.telefone),
             limparNumero(assinatura.numero)
         ];
 
         return candidatos.some(candidato => numeros.includes(candidato));
-    }) || null;
+    });
 
 }
 
@@ -404,6 +477,7 @@ module.exports = {
     adicionarDias,
     buscarAssinaturaPorId,
     buscarAssinaturaPorNumero,
+    buscarAssinaturasPorNumero,
     cancelarAssinaturaPorNumero,
     diasDoPlano,
     formatarData,

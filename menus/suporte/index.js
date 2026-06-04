@@ -34,6 +34,11 @@ async function menuSuporte(client, numero) {
                     descricao: 'Liberar um teste para seu WhatsApp.'
                 },
                 {
+                    id: '6',
+                    titulo: 'Consultar usuario',
+                    descricao: 'Receber seus dados de acesso cadastrados.'
+                },
+                {
                     id: '4',
                     titulo: 'Voltar',
                     descricao: 'Retornar ao menu principal.'

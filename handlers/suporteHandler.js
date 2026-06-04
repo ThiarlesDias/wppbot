@@ -30,7 +30,7 @@ const {
     criarCheckoutVenda
 } = require('../services/mercadopago');
 const {
-    buscarAssinaturaPorNumero,
+    buscarAssinaturasPorNumero,
     cancelarAssinaturaPorNumero,
     registrarAssinatura
 } = require('../services/assinaturasStore');
@@ -220,6 +220,83 @@ ${erro.message}`
 
     }
 
+    function formatarDataAssinatura(valor) {
+
+        if (!valor) return 'Nao informado';
+
+        const data = new Date(valor);
+
+        if (Number.isNaN(data.getTime())) return String(valor);
+
+        return new Intl.DateTimeFormat(
+            'pt-BR',
+            {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }
+        ).format(data);
+
+    }
+
+    function montarMensagemConsultaAssinaturas(assinaturas) {
+
+        const acessos = assinaturas.filter(assinatura =>
+            assinatura.status !== 'cancelada'
+        );
+
+        if (!acessos.length) {
+
+            return 'Nao encontrei usuario ativo vinculado a este WhatsApp. Se voce usa outro numero no cadastro, fale com um atendente.';
+
+        }
+
+        const blocos = acessos.map((assinatura, indice) => [
+            acessos.length > 1 ? `*Acesso ${indice + 1}*` : '*Seu acesso*',
+            assinatura.nome ? `Cliente: ${assinatura.nome}` : '',
+            `✅ *Usuario:* ${assinatura.username || 'Nao informado'}`,
+            `✅ *Senha:* ${assinatura.password || 'Nao informado'}`,
+            `🗓️ *Vencimento:* ${formatarDataAssinatura(assinatura.expiresAt)}`,
+            assinatura.dns ? `🟠 *DNS:* ${assinatura.dns}` : '',
+            assinatura.linkM3u ? `🟢 *M3U:* ${assinatura.linkM3u}` : ''
+        ].filter(Boolean).join('\n'));
+
+        return [
+            '*Dados de acesso vinculados ao seu WhatsApp*',
+            '',
+            ...blocos
+        ].join('\n\n');
+
+    }
+
+    async function consultarUsuarios() {
+
+        if (!numeroWhatsapp) {
+
+            return await client.sendText(
+                numero,
+                'Nao consegui confirmar o telefone deste WhatsApp automaticamente. Para proteger seus dados de acesso, fale com um atendente.'
+            );
+
+        }
+
+        const assinaturas = buscarAssinaturasPorNumero(
+            numero,
+            numeroWhatsapp
+        );
+
+        return await client.sendText(
+            numero,
+            montarMensagemConsultaAssinaturas(assinaturas)
+        );
+
+    }
+
     function extrairCredenciaisTeste(teste) {
 
         const username = teste?.cliente?.username || teste?.playlist?.username || '';
@@ -294,14 +371,16 @@ Se nao quiser informar agora, digite *0* para pular.`
 
         try {
 
-            const assinatura = buscarAssinaturaPorNumero(
+            const assinaturasRenovaveis = buscarAssinaturasPorNumero(
                 numero,
                 numeroWhatsapp
-            );
-            const assinaturaRenovavel =
-                assinatura &&
+            ).filter(assinatura =>
                 assinatura.status !== 'cancelada' &&
-                assinatura.username;
+                assinatura.username
+            );
+            const assinaturaRenovavel = assinaturasRenovaveis.length === 1 ?
+                assinaturasRenovaveis[0] :
+                null;
             const tipoVenda = assinaturaRenovavel ? 'renovacao' : 'nova';
 
             const venda = await criarCheckoutVenda({
@@ -494,6 +573,12 @@ ${erro.message}`
                 numero,
                 numeroWhatsapp
             );
+
+        }
+
+        if (texto === '6') {
+
+            return await consultarUsuarios();
 
         }
 
