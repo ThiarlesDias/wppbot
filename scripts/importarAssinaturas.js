@@ -408,15 +408,15 @@ function importarCliente(linha, indice) {
 
 }
 
-function main() {
+function importarArquivo(arquivo = caminhoCsv(), opcoes = {}) {
 
-    const arquivo = process.argv[2] || caminhoCsv();
+    const log = opcoes.log !== false ?
+        (...args) => console.log(...args) :
+        () => {};
 
     if (!arquivo) {
 
-        uso();
-        process.exitCode = 1;
-        return;
+        throw new Error('Caminho do arquivo de clientes nao informado.');
 
     }
 
@@ -438,24 +438,53 @@ function main() {
             const assinatura = importarCliente(linha, indice + 2);
             importados += 1;
 
-            console.log(
+            log(
                 `OK ${assinatura.nome} ${assinatura.telefone} usuario=${assinatura.username} vencimento=${formatarData(assinatura.expiresAt)}`
             );
 
         } catch (erro) {
 
             erros.push(erro.message);
-            console.log(`ERRO ${erro.message}`);
+            log(`ERRO ${erro.message}`);
 
         }
     });
 
-    console.log('');
-    console.log(`Importados: ${importados}`);
-    console.log(`Erros: ${erros.length}`);
+    log('');
+    log(`Importados: ${importados}`);
+    log(`Erros: ${erros.length}`);
 
-    if (erros.length) process.exitCode = 1;
+    return {
+        caminho,
+        importados,
+        erros
+    };
 
 }
 
-main();
+function main() {
+
+    try {
+
+        const resultado = importarArquivo(process.argv[2] || caminhoCsv());
+
+        if (resultado.erros.length) process.exitCode = 1;
+
+    } catch (erro) {
+
+        uso();
+        throw erro;
+
+    }
+
+}
+
+if (require.main === module) {
+
+    main();
+
+}
+
+module.exports = {
+    importarArquivo
+};

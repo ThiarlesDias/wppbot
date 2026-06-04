@@ -4,12 +4,13 @@ const menuPrincipal = require('../menus/menuPrincipal');
 const menuSuporte = require('../menus/suporte');
 const menuComercial = require('../menus/comercial');
 const menuFinanceiro = require('../menus/financeiro');
-const menuHumano = require('../menus/humano');
+const encaminharAtendente = require('../services/atendimentoHumano');
 
 module.exports = async function menuHandler(
     client,
     numero,
-    texto
+    texto,
+    numeroWhatsapp
 ) {
 
     if (texto === '1') {
@@ -47,11 +48,11 @@ module.exports = async function menuHandler(
 
     if (texto === '4') {
 
-        sessoes[numero] = 'humano';
-
-        return await menuHumano(
+        return await encaminharAtendente(
             client,
-            numero
+            numero,
+            numeroWhatsapp,
+            'Menu principal'
         );
 
     }

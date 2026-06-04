@@ -19,6 +19,7 @@ const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
 const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
+const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 
 const {
     atualizarInteracao,
@@ -92,6 +93,7 @@ wppconnect.create({
 
     iniciarMonitorPagamentos(client);
     iniciarMonitorVencimentos(client);
+    iniciarMonitorClientesCsv();
 
     client.onMessage(async (message) => {
 
@@ -204,7 +206,8 @@ wppconnect.create({
                     return await financeiroHandler(
                         client,
                         numero,
-                        texto
+                        texto,
+                        numeroWhatsapp
                     );
 
                 case 'comercial':
@@ -220,7 +223,8 @@ wppconnect.create({
                     return await humanoHandler(
                         client,
                         numero,
-                        texto
+                        texto,
+                        numeroWhatsapp
                     );
 
                 default:

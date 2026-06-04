@@ -2,7 +2,7 @@ const sessoes = require('../services/sessions');
 
 const menuPrincipal = require('../menus/menuPrincipal');
 const menuFinanceiro = require('../menus/financeiro');
-const menuHumano = require('../menus/humano');
+const encaminharAtendente = require('../services/atendimentoHumano');
 
 const pagamentos = require('../menus/financeiro/pagamentos');
 const segundaVia = require('../menus/financeiro/segundaVia');
@@ -11,7 +11,8 @@ const contratos = require('../menus/financeiro/contratos');
 module.exports = async function financeiroHandler(
     client,
     numero,
-    texto
+    texto,
+    numeroWhatsapp
 ) {
 
     if (texto === '1') {
@@ -34,11 +35,11 @@ module.exports = async function financeiroHandler(
 
     if (texto === '4') {
 
-        sessoes[numero] = 'humano';
-
-        return await menuHumano(
+        return await encaminharAtendente(
             client,
-            numero
+            numero,
+            numeroWhatsapp,
+            'Financeiro'
         );
 
     }

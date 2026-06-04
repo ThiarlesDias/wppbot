@@ -5,7 +5,8 @@ const menuHumano = require('../menus/humano');
 module.exports = async function humanoHandler(
     client,
     numero,
-    texto
+    texto,
+    numeroWhatsapp
 ) {
 
     if (texto === '0') {

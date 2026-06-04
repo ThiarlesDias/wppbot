@@ -36,6 +36,7 @@ const {
 } = require('../services/assinaturasStore');
 const notificar =
 require('../services/notificador');
+const encaminharAtendente = require('../services/atendimentoHumano');
 
 module.exports = async function suporteHandler(
     client,
@@ -290,9 +291,16 @@ ${erro.message}`
             numeroWhatsapp
         );
 
-        return await client.sendText(
+        await client.sendText(
             numero,
             montarMensagemConsultaAssinaturas(assinaturas)
+        );
+
+        sessoes[numero] = 'pos_teste';
+
+        return await ajudaPosTeste(
+            client,
+            numero
         );
 
     }
@@ -692,11 +700,14 @@ ${erro.message}`
 
         if (texto === '9') {
 
-            sessoes[numero] = 'humano';
-
-            return await client.sendText(
+            return await encaminharAtendente(
+                client,
                 numero,
-                'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                numeroWhatsapp,
+                'Teste gratis ja usado',
+                {
+                    mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                }
             );
 
         }
@@ -790,11 +801,14 @@ ${erro.message}`
 
         if (texto === '9') {
 
-            sessoes[numero] = 'humano';
-
-            return await client.sendText(
+            return await encaminharAtendente(
+                client,
                 numero,
-                'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                numeroWhatsapp,
+                'Ajuda de configuracao',
+                {
+                    mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                }
             );
 
         }
@@ -1155,14 +1169,15 @@ Se nao quiser responder, envie *0* para pular.`
 
         if (texto === '9') {
 
-            sessoes[numero] = 'humano';
-
-            await client.sendText(
+            return await encaminharAtendente(
+                client,
                 numero,
-                '👨‍💼 Atendimento encaminhado para nossa equipe.'
+                numeroWhatsapp,
+                'Em analise',
+                {
+                    mensagem: '👨‍💼 Atendimento encaminhado para nossa equipe.'
+                }
             );
-
-            return;
 
         }
 
