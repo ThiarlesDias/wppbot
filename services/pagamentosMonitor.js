@@ -254,6 +254,118 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
 
 }
 
+async function registrarPagamentoPendenteAtivacao(client, venda, pagamento, pagador, erro) {
+
+    const credenciaisPendentes = {
+        username: 'PENDENTE ATIVACAO MANUAL',
+        password: '',
+        dns: '',
+        linkM3u: '',
+        createdAt: '',
+        expiresAt: ''
+    };
+
+    const atualizada = atualizarVenda(
+        venda.reference,
+        {
+            status: 'approved_pending_activation',
+            payment_id: pagamento.id,
+            payment_status: pagamento.status,
+            payment_status_detail: pagamento.status_detail,
+            paid_at: new Date().toISOString(),
+            payer_email: pagador.email,
+            customer_email: venda.email || '',
+            customer_name: venda.nome || '',
+            payer_name: pagador.nome,
+            activation_status: 'pending_manual',
+            activation_error: erro.message
+        }
+    );
+
+    await client.sendText(
+        venda.numero,
+
+`âœ… *Pagamento recebido!*
+
+Plano: ${venda.plano}
+Valor: ${formatarValor(venda.valor)}
+Forma: ${descricaoMetodo(venda.metodo)}
+
+Seu pagamento foi aprovado. A ativacao ficou pendente de liberacao manual e nossa equipe ja foi avisada.
+Assim que o acesso for liberado, enviamos os dados aqui no WhatsApp.`
+    );
+
+    try {
+
+        await enviarNovaVendaAdmin({
+            venda: {
+                ...venda,
+                status: 'approved_pending_activation'
+            },
+            pagamento,
+            credenciais: credenciaisPendentes,
+            pagador: {
+                ...pagador,
+                email: venda.email || (venda.metodo === 'pix' ? '' : pagador.email)
+            }
+        });
+
+    } catch (erroEmail) {
+
+        console.log('ERRO EMAIL VENDA PENDENTE', erroEmail.message);
+
+    }
+
+    await notificar(
+        client,
+        'PAGAMENTO APROVADO - ATIVACAO MANUAL',
+
+`Cliente:
+${venda.numero}
+
+WhatsApp:
+${venda.telefone || 'Nao informado'}
+
+Nome:
+${venda.nome || 'Nao informado'}
+
+Tipo:
+${venda.tipo === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}
+
+Plano:
+${venda.plano}
+
+Valor:
+${formatarValor(venda.valor)}
+
+Forma:
+${descricaoMetodo(venda.metodo)}
+
+Pagador:
+${pagador.nome || 'Nao informado'}
+
+Email:
+${pagador.email || 'Nao informado'}
+
+Referencia:
+${venda.reference}
+
+Pagamento Mercado Pago:
+${pagamento.id}
+
+Erro na ativacao automatica:
+${erro.message}`
+    );
+
+    console.log(
+        'PAGAMENTO APROVADO PENDENTE ATIVACAO',
+        atualizada?.reference || venda.reference,
+        pagamento.id,
+        erro.message
+    );
+
+}
+
 function montarCredenciaisVenda(venda, pagamento) {
 
     if (venda.tipo === 'renovacao' && venda.assinatura_id) {
@@ -300,13 +412,45 @@ async function verificarVenda(client, venda) {
     if (status === 'approved') {
 
         const pagador = dadosPagador(pagamento);
-        let resultadoAcesso = montarCredenciaisVenda(venda, pagamento);
+        let resultadoAcesso;
+
+        try {
+
+            resultadoAcesso = montarCredenciaisVenda(venda, pagamento);
+
+        } catch (erro) {
+
+            return await registrarPagamentoPendenteAtivacao(
+                client,
+                venda,
+                pagamento,
+                pagador,
+                erro
+            );
+
+        }
 
         if (!resultadoAcesso) {
 
-            const credenciais = venda.credenciais?.username ?
-                venda.credenciais :
-                await gerarCredenciaisVenda(venda);
+            let credenciais;
+
+            try {
+
+                credenciais = venda.credenciais?.username ?
+                    venda.credenciais :
+                    await gerarCredenciaisVenda(venda);
+
+            } catch (erro) {
+
+                return await registrarPagamentoPendenteAtivacao(
+                    client,
+                    venda,
+                    pagamento,
+                    pagador,
+                    erro
+                );
+
+            }
 
             const assinatura = registrarAssinatura({
                 numero: venda.numero,

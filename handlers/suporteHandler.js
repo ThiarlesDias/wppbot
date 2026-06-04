@@ -468,7 +468,7 @@ Se nao quiser informar agora, digite *0* para pular.`
                 valor,
                 metodo,
                 tipo: tipoVenda,
-                assinatura: assinaturaRenovavel ? assinatura : null
+                assinatura: assinaturaRenovavel || null
             });
 
             delete sessoes[chaveForcarRenovacao];
