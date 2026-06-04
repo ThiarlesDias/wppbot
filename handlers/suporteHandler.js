@@ -199,6 +199,40 @@ ${erro.message}`
                 metodo
             });
 
+            if (metodo === 'pix') {
+
+                await client.sendText(
+                    numero,
+                    venda.init_point
+                );
+
+                await notificar(
+                    client,
+                    'LEAD DE VENDA GERADO',
+
+`Cliente:
+${numero}
+
+Plano:
+${plano}
+
+Valor:
+${valor}
+
+Forma:
+${nomeMetodo(metodo)}
+
+Referencia:
+${venda.reference}
+
+Checkout:
+${venda.init_point}`
+                );
+
+                return;
+
+            }
+
             await client.sendText(
                 numero,
 
