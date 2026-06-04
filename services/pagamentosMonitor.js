@@ -3,6 +3,13 @@ const {
     atualizarVenda,
     buscarPagamentoPorReferencia
 } = require('./mercadopago');
+const {
+    criarTesteGratis
+} = require('./sigma');
+const {
+    enviarConfirmacaoCliente,
+    enviarNovaVendaAdmin
+} = require('./resend');
 const notificar = require('./notificador');
 
 const INTERVALO_MS = Number(process.env.MP_MONITOR_INTERVAL_MS || 60000);
@@ -19,6 +26,84 @@ function descricaoMetodo(metodo) {
 
 }
 
+function formatarValor(valor) {
+
+    return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
+
+}
+
+function dadosPagador(pagamento) {
+
+    const payer = pagamento?.payer || {};
+    const nome = [
+        payer.first_name,
+        payer.last_name
+    ].filter(Boolean).join(' ');
+
+    return {
+        nome: nome || payer.name || '',
+        email: payer.email || ''
+    };
+
+}
+
+function extrairCredenciais(teste) {
+
+    const username = teste?.cliente?.username || teste?.playlist?.username || '';
+    const password = teste?.cliente?.password || teste?.playlist?.password || '';
+    const dns = String(teste?.playlist?.dns || '').replace(/\/$/, '');
+    const dnsComBarra = dns ? `${dns}/` : '';
+    const linkM3u = dns && username && password ?
+        `${dns}/get.php?username=${username}&password=${password}&type=m3u_plus&output=mpegts` :
+        '';
+
+    return {
+        username,
+        password,
+        dns: dnsComBarra,
+        linkM3u
+    };
+
+}
+
+async function gerarCredenciaisVenda(venda) {
+
+    const numeroTeste = venda.telefone || venda.numero;
+    const teste = await criarTesteGratis(numeroTeste);
+    const credenciais = extrairCredenciais(teste);
+
+    if (!credenciais.username || !credenciais.password) {
+
+        throw new Error('Sigma nao retornou usuario/senha para a venda aprovada.');
+
+    }
+
+    return credenciais;
+
+}
+
+async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
+
+    if (pagador.email) {
+
+        await enviarConfirmacaoCliente({
+            email: pagador.email,
+            nome: pagador.nome,
+            venda,
+            credenciais
+        });
+
+    }
+
+    await enviarNovaVendaAdmin({
+        venda,
+        pagamento,
+        credenciais,
+        pagador
+    });
+
+}
+
 async function verificarVenda(client, venda) {
 
     const pagamento = await buscarPagamentoPorReferencia(venda.reference);
@@ -29,6 +114,11 @@ async function verificarVenda(client, venda) {
 
     if (status === 'approved') {
 
+        const pagador = dadosPagador(pagamento);
+        const credenciais = venda.credenciais?.username ?
+            venda.credenciais :
+            await gerarCredenciaisVenda(venda);
+
         const atualizada = atualizarVenda(
             venda.reference,
             {
@@ -36,7 +126,10 @@ async function verificarVenda(client, venda) {
                 payment_id: pagamento.id,
                 payment_status: pagamento.status,
                 payment_status_detail: pagamento.status_detail,
-                paid_at: new Date().toISOString()
+                paid_at: new Date().toISOString(),
+                payer_email: pagador.email,
+                payer_name: pagador.nome,
+                credenciais
             }
         );
 
@@ -46,11 +139,27 @@ async function verificarVenda(client, venda) {
 `✅ *Pagamento recebido!*
 
 Plano: ${venda.plano}
-Valor: R$ ${venda.valor.toFixed(2).replace('.', ',')}
+Valor: ${formatarValor(venda.valor)}
 Forma: ${descricaoMetodo(venda.metodo)}
 
-Nossa equipe foi avisada e vai ativar seu acesso.`
+Seus dados de acesso foram enviados por email.
+Nossa equipe tambem foi avisada para finalizar a ativacao.`
         );
+
+        try {
+
+            await enviarEmailsVenda(
+                venda,
+                pagamento,
+                credenciais,
+                pagador
+            );
+
+        } catch (erro) {
+
+            console.log('ERRO EMAIL VENDA', erro.message);
+
+        }
 
         await notificar(
             client,
@@ -63,10 +172,22 @@ Plano:
 ${venda.plano}
 
 Valor:
-R$ ${venda.valor.toFixed(2).replace('.', ',')}
+${formatarValor(venda.valor)}
 
 Forma:
 ${descricaoMetodo(venda.metodo)}
+
+Pagador:
+${pagador.nome || 'Nao informado'}
+
+Email:
+${pagador.email || 'Nao informado'}
+
+Usuario:
+${credenciais.username}
+
+Senha:
+${credenciais.password}
 
 Referencia:
 ${venda.reference}

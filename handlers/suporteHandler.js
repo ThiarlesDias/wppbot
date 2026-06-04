@@ -194,6 +194,7 @@ ${erro.message}`
 
             const venda = await criarCheckoutVenda({
                 numero,
+                telefone: numeroWhatsapp,
                 plano,
                 valor,
                 metodo

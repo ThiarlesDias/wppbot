@@ -265,6 +265,7 @@ async function criarPreferencia(body) {
 
 async function criarCheckoutVenda({
     numero,
+    telefone,
     plano,
     valor,
     metodo
@@ -272,7 +273,7 @@ async function criarCheckoutVenda({
 
     const reference = referenciaVenda();
     const valorNumero = normalizarValor(valor);
-    const telefone = limparNumero(numero);
+    const telefoneVenda = limparNumero(telefone || numero);
     const titulo = `TopTec TV - ${plano}`;
     const baseBody = {
         items: [
@@ -285,7 +286,7 @@ async function criarCheckoutVenda({
         ],
         external_reference: reference,
         metadata: {
-            whatsapp: telefone,
+            whatsapp: telefoneVenda,
             plano,
             metodo
         },
@@ -337,7 +338,7 @@ async function criarCheckoutVenda({
     const venda = {
         reference,
         numero,
-        telefone,
+        telefone: telefoneVenda,
         plano,
         valor: valorNumero,
         metodo,
