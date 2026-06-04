@@ -1,7 +1,7 @@
 const sessoes = require('./sessions');
 const {
     formatarData,
-    listarVencendoEmAteHoras,
+    listarVencendoNoDia,
     marcarAvisoVencimento
 } = require('./assinaturasStore');
 const {
@@ -9,10 +9,94 @@ const {
 } = require('./resend');
 const notificar = require('./notificador');
 
-const INTERVALO_MS = Number(process.env.VENCIMENTOS_MONITOR_INTERVAL_MS || 60 * 60 * 1000);
-const ANTECEDENCIA_HORAS = Number(process.env.VENCIMENTOS_AVISO_HORAS || 24);
+const HORA_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_HORA || 10);
+const MINUTO_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_MINUTO || 0);
+const UM_DIA_MS = 24 * 60 * 60 * 1000;
 
 let monitorIniciado = false;
+
+function dataSaoPauloAgora(data = new Date()) {
+
+    const partes = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }
+    ).formatToParts(data).reduce(
+        (acc, parte) => {
+            acc[parte.type] = parte.value;
+            return acc;
+        },
+        {}
+    );
+
+    return {
+        ano: Number(partes.year),
+        mes: Number(partes.month),
+        dia: Number(partes.day),
+        hora: Number(partes.hour),
+        minuto: Number(partes.minute),
+        segundo: Number(partes.second)
+    };
+
+}
+
+function dataUtcDeSaoPaulo(ano, mes, dia, hora, minuto, segundo = 0) {
+
+    return new Date(Date.UTC(
+        ano,
+        mes - 1,
+        dia,
+        hora + 3,
+        minuto,
+        segundo
+    ));
+
+}
+
+function proximaExecucao() {
+
+    const agora = new Date();
+    const sp = dataSaoPauloAgora(agora);
+    let alvo = dataUtcDeSaoPaulo(
+        sp.ano,
+        sp.mes,
+        sp.dia,
+        HORA_ENVIO,
+        MINUTO_ENVIO
+    );
+
+    if (alvo <= agora) {
+
+        alvo = new Date(alvo.getTime() + UM_DIA_MS);
+
+    }
+
+    return alvo;
+
+}
+
+function amanhaSaoPaulo() {
+
+    const sp = dataSaoPauloAgora();
+    const hojeMeioDiaUtc = dataUtcDeSaoPaulo(
+        sp.ano,
+        sp.mes,
+        sp.dia,
+        12,
+        0
+    );
+
+    return new Date(hojeMeioDiaUtc.getTime() + UM_DIA_MS);
+
+}
 
 function mensagemAviso(assinatura) {
 
@@ -97,7 +181,7 @@ async function verificarVencimentos(client) {
 
     try {
 
-        assinaturas = listarVencendoEmAteHoras(ANTECEDENCIA_HORAS);
+        assinaturas = listarVencendoNoDia(amanhaSaoPaulo());
 
     } catch (erro) {
 
@@ -135,17 +219,32 @@ function iniciarMonitorVencimentos(client) {
 
     monitorIniciado = true;
 
-    setTimeout(
-        () => verificarVencimentos(client),
-        30000
-    );
+    function agendarProxima() {
 
-    setInterval(
-        () => verificarVencimentos(client),
-        INTERVALO_MS
-    );
+        const alvo = proximaExecucao();
+        const delay = Math.max(
+            1000,
+            alvo.getTime() - Date.now()
+        );
 
-    console.log('MONITOR VENCIMENTOS ATIVO');
+        setTimeout(
+            async () => {
+                await verificarVencimentos(client);
+                agendarProxima();
+            },
+            delay
+        );
+
+        console.log(
+            'MONITOR VENCIMENTOS AGENDADO PARA',
+            alvo.toISOString()
+        );
+
+    }
+
+    agendarProxima();
+
+    console.log('MONITOR VENCIMENTOS ATIVO AS 10:00');
 
 }
 

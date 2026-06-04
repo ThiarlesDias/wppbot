@@ -326,6 +326,50 @@ function listarVencendoEmAteHoras(horas = 24) {
 
 }
 
+function chaveDiaSaoPaulo(valor) {
+
+    const data = normalizarData(valor);
+
+    if (!data) return '';
+
+    const partes = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }
+    ).formatToParts(data).reduce(
+        (acc, parte) => {
+            acc[parte.type] = parte.value;
+            return acc;
+        },
+        {}
+    );
+
+    return `${partes.year}-${partes.month}-${partes.day}`;
+
+}
+
+function listarVencendoNoDia(dia) {
+
+    const chaveDia = chaveDiaSaoPaulo(dia);
+    const store = lerStore();
+
+    return Object.values(store.assinaturas || {}).filter(assinatura => {
+        if (assinatura.status !== 'ativa') return false;
+        if (assinatura.origem === 'teste_gratis') return false;
+
+        const vencimento = normalizarData(assinatura.expiresAt);
+        if (!vencimento) return false;
+        if (chaveDiaSaoPaulo(vencimento) !== chaveDia) return false;
+
+        return assinatura.avisoVencimento !== vencimento.toISOString();
+    });
+
+}
+
 function marcarAvisoVencimento(id, expiresAt) {
 
     const assinatura = buscarAssinaturaPorId(id);
@@ -364,6 +408,7 @@ module.exports = {
     diasDoPlano,
     formatarData,
     listarVencendoEmAteHoras,
+    listarVencendoNoDia,
     marcarAvisoVencimento,
     registrarAssinatura,
     renovarAssinatura
