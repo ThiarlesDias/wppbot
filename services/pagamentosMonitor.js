@@ -233,10 +233,12 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
         ...credenciais,
         expiresAt: formatarData(credenciais.expiresAt)
     };
+    let emailCliente = null;
+    let emailAdmin = null;
 
     if (venda.email) {
 
-        await enviarConfirmacaoCliente({
+        emailCliente = await enviarConfirmacaoCliente({
             email: venda.email,
             nome: venda.nome || pagador.nome,
             venda,
@@ -245,7 +247,7 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
 
     }
 
-    await enviarNovaVendaAdmin({
+    emailAdmin = await enviarNovaVendaAdmin({
         venda,
         pagamento,
         credenciais: credenciaisEmail,
@@ -254,6 +256,11 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
             email: venda.email || (venda.metodo === 'pix' ? '' : pagador.email)
         }
     });
+
+    return {
+        cliente: emailCliente,
+        admin: emailAdmin
+    };
 
 }
 
@@ -300,7 +307,7 @@ Assim que o acesso for liberado, enviamos os dados aqui no WhatsApp.`
 
     try {
 
-        await enviarNovaVendaAdmin({
+        const emailAdmin = await enviarNovaVendaAdmin({
             venda: {
                 ...venda,
                 status: 'approved_pending_activation'
@@ -313,9 +320,42 @@ Assim que o acesso for liberado, enviamos os dados aqui no WhatsApp.`
             }
         });
 
+        if (!emailAdmin) {
+
+            await notificar(
+                client,
+                'EMAIL NOVA VENDA NAO ENVIADO',
+
+`O pagamento foi aprovado, mas o email de nova venda nao foi confirmado pelo Resend.
+
+Referencia:
+${venda.reference}
+
+Plano:
+${venda.plano}
+
+Valor:
+${formatarValor(venda.valor)}`
+            );
+
+        }
+
     } catch (erroEmail) {
 
         console.log('ERRO EMAIL VENDA PENDENTE', erroEmail.message);
+
+        await notificar(
+            client,
+            'ERRO EMAIL NOVA VENDA',
+
+`Pagamento aprovado, mas falhou o envio do email de nova venda.
+
+Referencia:
+${venda.reference}
+
+Erro:
+${erroEmail.message}`
+        );
 
     }
 
@@ -532,24 +572,62 @@ Nossa equipe tambem foi avisada para finalizar a ativacao.`
             montarMensagemAcessoWhatsapp(credenciais)
         );
 
+        let statusEmailAdmin = 'nao enviado';
+
         try {
 
-            await enviarEmailsVenda(
+            const emails = await enviarEmailsVenda(
                 venda,
                 pagamento,
                 credenciais,
                 pagador
             );
 
+            statusEmailAdmin = emails?.admin ? 'enviado' : 'nao confirmado';
+
+            if (!emails?.admin) {
+
+                await notificar(
+                    client,
+                    'EMAIL NOVA VENDA NAO ENVIADO',
+
+`O pagamento foi aprovado, mas o email de nova venda nao foi confirmado pelo Resend.
+
+Referencia:
+${venda.reference}
+
+Plano:
+${venda.plano}
+
+Valor:
+${formatarValor(venda.valor)}`
+                );
+
+            }
+
         } catch (erro) {
 
             console.log('ERRO EMAIL VENDA', erro.message);
+            statusEmailAdmin = `erro: ${erro.message}`;
+
+            await notificar(
+                client,
+                'ERRO EMAIL NOVA VENDA',
+
+`Pagamento aprovado, mas falhou o envio do email de nova venda.
+
+Referencia:
+${venda.reference}
+
+Erro:
+${erro.message}`
+            );
 
         }
 
         await notificar(
             client,
-            'PAGAMENTO APROVADO',
+            'NOVA VENDA APROVADA',
 
 `Cliente:
 ${venda.numero}
@@ -591,7 +669,10 @@ Referencia:
 ${venda.reference}
 
 Pagamento Mercado Pago:
-${pagamento.id}`
+${pagamento.id}
+
+Email nova venda:
+${statusEmailAdmin}`
         );
 
         console.log(

@@ -20,6 +20,7 @@ const humanoHandler = require('./handlers/humanoHandler');
 const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
+const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
 
 const {
     atualizarInteracao,
@@ -94,6 +95,7 @@ wppconnect.create({
     iniciarMonitorPagamentos(client);
     iniciarMonitorVencimentos(client);
     iniciarMonitorClientesCsv();
+    iniciarMonitorSigma(client);
 
     client.onMessage(async (message) => {
 

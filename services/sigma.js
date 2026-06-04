@@ -688,6 +688,99 @@ async function criarTesteGratisViaChatbot(telefone) {
 
 }
 
+async function validarLinkCriacaoTeste() {
+
+    if (!SIGMA_CHATBOT_URL) {
+
+        return {
+            ok: false,
+            status: 0,
+            detalhe: 'SIGMA_CHATBOT_URL nao configurado.'
+        };
+
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+        () => controller.abort(),
+        Number(process.env.SIGMA_HEALTH_TIMEOUT_MS || 20000)
+    );
+
+    try {
+
+        const resposta = await fetch(
+            SIGMA_CHATBOT_URL,
+            {
+                method: 'GET',
+                headers: {
+                    accept: 'application/json',
+                    'user-agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                    '(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
+                },
+                signal: controller.signal
+            }
+        );
+        const texto = await resposta.text();
+
+        if (
+            texto.includes('Cloudflare')
+        ) {
+
+            return {
+                ok: false,
+                status: resposta.status,
+                detalhe: 'Link retornou HTML/Cloudflare.'
+            };
+
+        }
+
+        if (resposta.status === 404) {
+
+            return {
+                ok: false,
+                status: resposta.status,
+                detalhe: 'Link nao encontrado no Sigma.'
+            };
+
+        }
+
+        if (resposta.status >= 500) {
+
+            return {
+                ok: false,
+                status: resposta.status,
+                detalhe: `Sigma retornou erro ${resposta.status}.`
+            };
+
+        }
+
+        return {
+            ok: true,
+            status: resposta.status,
+            detalhe: resposta.ok ?
+                'Link respondeu normalmente.' :
+                `Link ativo; GET retornou ${resposta.status}.`
+        };
+
+    } catch (erro) {
+
+        return {
+            ok: false,
+            status: 0,
+            detalhe: erro.name === 'AbortError' ?
+                'Timeout ao validar link do Sigma.' :
+                erro.message
+        };
+
+    } finally {
+
+        clearTimeout(timeout);
+
+    }
+
+}
+
 async function criarTesteGratis(numero) {
 
     const telefone = limparNumero(numero);
@@ -806,5 +899,6 @@ async function criarTesteGratis(numero) {
 
 module.exports = {
     criarTesteGratis,
+    validarLinkCriacaoTeste,
     limparNumero
 };
