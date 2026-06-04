@@ -120,7 +120,7 @@ function normalizarData(valorData) {
     if (!texto) return null;
 
     const br = texto.match(
-        /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+        /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
     );
 
     if (br) {
@@ -181,7 +181,7 @@ function importarCliente(linha, indice) {
 
     const nome = valor(linha, 'nome', 'cliente', 'nome_cliente');
     const telefone = limparNumero(
-        valor(linha, 'telefonePK', 'telefone_pk', 'telefone', 'whatsapp', 'numero', 'celular')
+        valor(linha, 'telefonePK', 'telefone_pk', 'column_14', 'telefone', 'whatsapp', 'numero', 'celular')
     );
     const username = valor(linha, 'usuario', 'username', 'user', 'login');
     const password = valor(linha, 'senha', 'password', 'pass');
