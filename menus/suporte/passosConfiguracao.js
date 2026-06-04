@@ -14,7 +14,7 @@ async function smartTv(client, numero) {
 
 Se pedir nome da playlist, pode colocar *TopTec TV*.
 
-↩️ Digite *0* para voltar.`
+0️⃣ Digite *0* para voltar.`
     );
 
 }
@@ -36,7 +36,7 @@ https://www.arcplayer.com/pt-BR/download
 
 Se pedir nome da lista, use *TopTec TV*.
 
-↩️ Digite *0* para voltar.`
+0️⃣ Digite *0* para voltar.`
     );
 
 }
@@ -58,7 +58,7 @@ https://www.arcplayer.com/pt-BR/download
 
 No Android, tambem pode procurar *ARC Player* na loja de aplicativos.
 
-↩️ Digite *0* para voltar.`
+0️⃣ Digite *0* para voltar.`
     );
 
 }
@@ -81,7 +81,7 @@ Passo geral:
 
 Se o aparelho pedir outro formato, fale com a gente que ajudamos a configurar.
 
-↩️ Digite *0* para voltar.`
+0️⃣ Digite *0* para voltar.`
     );
 
 }
