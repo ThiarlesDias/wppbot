@@ -6,6 +6,9 @@ const pacote = require('../menus/suporte/pacote');
 const pacotePagamento = require('../menus/suporte/pacotePagamento');
 const emAnalise = require('../menus/suporte/emAnalise');
 const testeGratis = require('../menus/suporte/testeGratis');
+const ajudaPosTeste = require('../menus/suporte/ajudaPosTeste');
+const ajudaConfiguracao = require('../menus/suporte/ajudaConfiguracao');
+const passosConfiguracao = require('../menus/suporte/passosConfiguracao');
 const pix = require('../menus/suporte/pagamento/pix');
 const cartao = require('../menus/suporte/pagamento/cartao');
 const boleto = require('../menus/suporte/pagamento/boleto');
@@ -103,16 +106,30 @@ Credenciais do Sigma ainda nao configuradas.`
 
             if (teste.mensagem) {
 
-                return await client.sendText(
+                await client.sendText(
                     numero,
                     teste.mensagem
                 );
 
+                sessoes[numero] = 'pos_teste';
+
+                return await ajudaPosTeste(
+                    client,
+                    numero
+                );
+
             }
 
-            return await client.sendText(
+            await client.sendText(
                 numero,
                 'Teste gratis solicitado com sucesso. Em instantes enviaremos os dados de acesso aqui.'
+            );
+
+            sessoes[numero] = 'pos_teste';
+
+            return await ajudaPosTeste(
+                client,
+                numero
             );
 
         } catch (erro) {
@@ -204,6 +221,93 @@ ${erro.message}`
     // RENOVAÇÃO
 
     // TESTE GRATIS
+
+    if (etapa === 'pos_teste') {
+
+        if (texto === '6' || texto.includes('ajuda')) {
+
+            sessoes[numero] = 'ajuda_config';
+
+            return await ajudaConfiguracao(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await ajudaPosTeste(
+            client,
+            numero
+        );
+
+    }
+
+    if (etapa === 'ajuda_config') {
+
+        if (texto === '1') {
+
+            return await passosConfiguracao.smartTv(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '2') {
+
+            return await passosConfiguracao.computador(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '3') {
+
+            return await passosConfiguracao.celular(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '4') {
+
+            return await passosConfiguracao.outro(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'pos_teste';
+
+            return await ajudaPosTeste(
+                client,
+                numero
+            );
+
+        }
+
+        return await ajudaConfiguracao(
+            client,
+            numero
+        );
+
+    }
 
     if (etapa === 'teste_gratis') {
 

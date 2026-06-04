@@ -178,6 +178,8 @@ wppconnect.create({
                 case 'pacote_3':
                 case 'pacote_6':
                 case 'teste_gratis':
+                case 'pos_teste':
+                case 'ajuda_config':
 
                     return await suporteHandler(
                         client,
