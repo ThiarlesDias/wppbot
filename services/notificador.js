@@ -1,7 +1,7 @@
 
 function obterAdmin() {
 
-    const admin = process.env.ADMIN_WHATSAPP_ID || process.env.ADMIN_WHATSAPP;
+    const admin = process.env.ADMIN_WHATSAPP || process.env.ADMIN_WHATSAPP_ID;
 
     if (!admin || admin.includes('SEUNUMERO')) return null;
 
