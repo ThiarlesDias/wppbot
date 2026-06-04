@@ -47,6 +47,16 @@ module.exports = async function comercial(
                     descricao: 'Analise e orientacao tecnica.'
                 },
                 {
+                    id: '7',
+                    titulo: 'Produtos',
+                    descricao: 'Conheca os produtos da TopTec Digital.'
+                },
+                {
+                    id: '8',
+                    titulo: 'Servicos',
+                    descricao: 'Veja nossos servicos digitais.'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar',
                     descricao: 'Retornar ao menu principal.'

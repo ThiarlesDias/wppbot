@@ -8,6 +8,8 @@ const whatsapp = require('../menus/comercial/whatsapp');
 const marketing = require('../menus/comercial/marketing');
 const infraestrutura = require('../menus/comercial/infraestrutura');
 const consultoria = require('../menus/comercial/consultoria');
+const produtos = require('../menus/comercial/produtos');
+const servicos = require('../menus/comercial/servicos');
 
 module.exports = async function comercialHandler(
 client,
@@ -38,6 +40,14 @@ if (texto === '5') {
 
 if (texto === '6') {
     return await consultoria(client, numero);
+}
+
+if (texto === '7') {
+    return await produtos(client, numero);
+}
+
+if (texto === '8') {
+    return await servicos(client, numero);
 }
 
 if (texto === '0') {
