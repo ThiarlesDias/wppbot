@@ -11,7 +11,7 @@ module.exports = async function comercial(
         client,
         numero,
         {
-            titulo: 'Comercial',
+            titulo: 'Produtos e servicos',
             descricao: 'Escolha o servico que deseja conhecer.',
             botao: 'Ver servicos',
             secao: 'Servicos',
@@ -23,7 +23,7 @@ module.exports = async function comercial(
                 },
                 {
                     id: '2',
-                    titulo: 'Aplicativos',
+                    titulo: 'Desenvolvimento de aplicativos',
                     descricao: 'Apps e solucoes sob medida.'
                 },
                 {

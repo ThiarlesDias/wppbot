@@ -20,7 +20,7 @@ async function menuPrincipal(client, numero) {
                 },
                 {
                     id: '2',
-                    titulo: 'Comercial / Vendas',
+                    titulo: 'Produtos e servicos',
                     descricao: 'Sites, aplicativos, automacao e marketing.'
                 },
                 {

@@ -297,6 +297,76 @@ ${erro.message}`
 
     }
 
+    function resumoAssinaturas(assinaturas) {
+
+        const acessos = assinaturas.filter(assinatura =>
+            assinatura.status !== 'cancelada' &&
+            assinatura.username
+        );
+
+        if (!acessos.length) return 'Nenhum usuario ativo encontrado para este WhatsApp.';
+
+        return acessos.map((assinatura, indice) => [
+            `Acesso ${indice + 1}:`,
+            `Nome: ${assinatura.nome || 'Nao informado'}`,
+            `Usuario: ${assinatura.username || 'Nao informado'}`,
+            `Vencimento: ${formatarDataAssinatura(assinatura.expiresAt)}`
+        ].join('\n')).join('\n\n');
+
+    }
+
+    async function abrirChamadoSemSinal() {
+
+        if (!numeroWhatsapp) {
+
+            sessoes[numero] = 'humano';
+
+            await notificar(
+                client,
+                'NOVO CHAMADO SEM SINAL',
+
+`Cliente:
+${numero}
+
+Status:
+Nao consegui confirmar o telefone do WhatsApp automaticamente.`
+            );
+
+            return await client.sendText(
+                numero,
+                'Recebi sua solicitacao, mas nao consegui confirmar seu telefone automaticamente. Para proteger seus dados, encaminhei para um atendente.'
+            );
+
+        }
+
+        const assinaturas = buscarAssinaturasPorNumero(
+            numero,
+            numeroWhatsapp
+        );
+
+        await semSinal(
+            client,
+            numero,
+            assinaturas
+        );
+
+        await notificar(
+            client,
+            'NOVO CHAMADO SEM SINAL',
+
+`Cliente:
+${numero}
+
+WhatsApp:
+${numeroWhatsapp}
+
+${resumoAssinaturas(assinaturas)}`
+        );
+
+        sessoes[numero] = 'em_analise';
+
+    }
+
     function extrairCredenciaisTeste(teste) {
 
         const username = teste?.cliente?.username || teste?.playlist?.username || '';
@@ -330,6 +400,12 @@ ${erro.message}`
 
     }
 
+    function primeiroNome(nome) {
+
+        return String(nome || '').trim().split(/\s+/)[0] || '';
+
+    }
+
     async function solicitarEmailCheckout(plano, valor, metodo) {
 
         sessoes[chaveCheckout] = {
@@ -344,7 +420,7 @@ ${erro.message}`
 
 `👤 *Nome do cliente*
 
-Informe seu nome para continuar com o pagamento.
+Informe apenas seu primeiro nome para continuar com o pagamento.
 
 Depois eu pergunto o email, que sera opcional.`
         );
@@ -556,9 +632,7 @@ ${erro.message}`
 
         if (texto === '3') {
 
-            sessoes[numero] = 'sem_sinal';
-
-            return await semSinal(client, numero);
+            return await abrirChamadoSemSinal();
 
         }
 
@@ -762,14 +836,14 @@ ${erro.message}`
 
             return await client.sendText(
                 numero,
-                'Digite o nome do cliente para continuar.'
+                'Digite apenas o primeiro nome para continuar.'
             );
 
         }
 
         sessoes[chaveCheckout] = {
             ...checkout,
-            nome: texto.trim()
+            nome: primeiroNome(texto)
         };
 
         return await solicitarEmailOpcionalCheckout();
@@ -1062,32 +1136,10 @@ Se nao quiser responder, envie *0* para pular.`
 
     if (etapa === 'sem_sinal') {
 
-  
-        await client.sendText(
-            numero,
-            '📡 Vamos verificar seu problema.'
-        );
-
-        await notificar(
-
-            client,
-
-            'NOVO CHAMADO SEM SINAL',
-
-        `Cliente:
-        ${numero}
-
-        Informado:
-        ${texto}`
-        );
-
-        sessoes[numero] = 'em_analise';
-
-        return;
-
-
+        return await abrirChamadoSemSinal();
 
     }
+
 
     // EM ANALISE
 
