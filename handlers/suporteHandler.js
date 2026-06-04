@@ -247,6 +247,12 @@ ${erro.message}`
 
     }
 
+    function nomeValido(nome) {
+
+        return String(nome || '').trim().length >= 2;
+
+    }
+
     async function solicitarEmailCheckout(plano, valor, metodo) {
 
         sessoes[chaveCheckout] = {
@@ -254,6 +260,22 @@ ${erro.message}`
             valor,
             metodo
         };
+        sessoes[numero] = 'checkout_nome';
+
+        return await client.sendText(
+            numero,
+
+`👤 *Nome do cliente*
+
+Informe seu nome para continuar com o pagamento.
+
+Depois eu pergunto o email, que sera opcional.`
+        );
+
+    }
+
+    async function solicitarEmailOpcionalCheckout() {
+
         sessoes[numero] = 'checkout_email';
 
         return await client.sendText(
@@ -268,7 +290,7 @@ Se nao quiser informar agora, digite *0* para pular.`
 
     }
 
-    async function enviarCheckoutPacote(plano, valor, metodo, email) {
+    async function enviarCheckoutPacote(plano, valor, metodo, nome, email) {
 
         try {
 
@@ -285,6 +307,7 @@ Se nao quiser informar agora, digite *0* para pular.`
             const venda = await criarCheckoutVenda({
                 numero,
                 telefone: numeroWhatsapp,
+                nome,
                 email,
                 plano,
                 valor,
@@ -321,6 +344,9 @@ Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo da pr
 
 `Cliente:
 ${numero}
+
+Nome:
+${nome || 'Nao informado'}
 
 Plano:
 ${plano}
@@ -369,6 +395,9 @@ Assim que o pagamento for aprovado, vou avisar aqui e nossa equipe ativa manualm
 
 `Cliente:
 ${numero}
+
+Nome:
+${nome || 'Nao informado'}
 
 Plano:
 ${plano}
@@ -629,6 +658,39 @@ ${erro.message}`
 
     }
 
+    if (etapa === 'checkout_nome') {
+
+        const checkout = sessoes[chaveCheckout];
+
+        if (!checkout) {
+
+            sessoes[numero] = 'pacote';
+
+            return await pacote(
+                client,
+                numero
+            );
+
+        }
+
+        if (!nomeValido(texto)) {
+
+            return await client.sendText(
+                numero,
+                'Digite o nome do cliente para continuar.'
+            );
+
+        }
+
+        sessoes[chaveCheckout] = {
+            ...checkout,
+            nome: texto.trim()
+        };
+
+        return await solicitarEmailOpcionalCheckout();
+
+    }
+
     if (etapa === 'checkout_email') {
 
         const checkout = sessoes[chaveCheckout];
@@ -672,6 +734,7 @@ ${erro.message}`
             checkout.plano,
             checkout.valor,
             checkout.metodo,
+            checkout.nome,
             email
         );
 

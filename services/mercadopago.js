@@ -266,6 +266,7 @@ async function criarPreferencia(body) {
 async function criarCheckoutVenda({
     numero,
     telefone,
+    nome,
     email,
     plano,
     valor,
@@ -285,6 +286,7 @@ async function criarCheckoutVenda({
             reference,
             numero,
             telefone: telefoneVenda,
+            nome,
             email,
             plano,
             valor: valorNumero,
@@ -307,6 +309,7 @@ async function criarCheckoutVenda({
         external_reference: reference,
         metadata: {
             whatsapp: telefoneVenda,
+            nome: nome || '',
             email: email || '',
             plano,
             metodo,
@@ -316,10 +319,15 @@ async function criarCheckoutVenda({
         statement_descriptor: 'TOPTEC TV'
     };
 
-    if (email) {
+    if (email || nome) {
 
         baseBody.payer = {
-            email
+            ...(email ? {
+                email
+            } : {}),
+            ...(nome ? {
+                name: nome
+            } : {})
         };
 
     }
@@ -370,6 +378,7 @@ async function criarCheckoutVenda({
         reference,
         numero,
         telefone: telefoneVenda,
+        nome: nome || '',
         plano,
         valor: valorNumero,
         metodo,
@@ -397,6 +406,7 @@ async function criarPagamentoPix({
     reference,
     numero,
     telefone,
+    nome,
     email,
     plano,
     valor,
@@ -423,10 +433,12 @@ async function criarPagamentoPix({
                 payment_method_id: 'pix',
                 external_reference: reference,
                 payer: {
-                    email: payerEmail
+                    email: payerEmail,
+                    first_name: nome || undefined
                 },
                 metadata: {
                     whatsapp: telefone,
+                    nome: nome || '',
                     email: email || '',
                     plano,
                     metodo: 'pix',
@@ -442,6 +454,7 @@ async function criarPagamentoPix({
         reference,
         numero,
         telefone,
+        nome: nome || '',
         plano,
         valor,
         metodo: 'pix',

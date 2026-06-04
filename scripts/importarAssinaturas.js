@@ -12,14 +12,14 @@ function uso() {
         '  node scripts/importarAssinaturas.js caminho/clientes.csv',
         '',
         'Colunas aceitas:',
-        '  telefonePK, usuario, vencimento',
+        '  nome, telefonePK, usuario, vencimento',
         '',
         'Colunas opcionais:',
         '  senha, email, dns, link_m3u, plano',
         '',
         'Exemplo CSV com ;',
-        '  telefonePK;usuario;vencimento',
-        '  5543999999999;123456;30/06/2026 23:59:00'
+        '  nome;telefonePK;usuario;vencimento',
+        '  Joao Silva;5543999999999;123456;30/06/2026 23:59:00'
     ].join('\n'));
 
 }
@@ -179,6 +179,7 @@ function lerCsv(arquivo) {
 
 function importarCliente(linha, indice) {
 
+    const nome = valor(linha, 'nome', 'cliente', 'nome_cliente');
     const telefone = limparNumero(
         valor(linha, 'telefonePK', 'telefone_pk', 'telefone', 'whatsapp', 'numero', 'celular')
     );
@@ -192,6 +193,12 @@ function importarCliente(linha, indice) {
     const expiresAt = normalizarData(
         valor(linha, 'vencimento', 'validade', 'vence_em', 'expires_at')
     );
+
+    if (!nome) {
+
+        throw new Error(`Linha ${indice}: nome vazio.`);
+
+    }
 
     if (!telefone) {
 
@@ -221,6 +228,7 @@ function importarCliente(linha, indice) {
     return registrarAssinatura({
         numero: `${telefone}@c.us`,
         telefone,
+        nome,
         email,
         plano,
         origem: 'importado',
@@ -268,7 +276,7 @@ function main() {
             importados += 1;
 
             console.log(
-                `OK ${assinatura.telefone} usuario=${assinatura.username} vencimento=${formatarData(assinatura.expiresAt)}`
+                `OK ${assinatura.nome} ${assinatura.telefone} usuario=${assinatura.username} vencimento=${formatarData(assinatura.expiresAt)}`
             );
 
         } catch (erro) {

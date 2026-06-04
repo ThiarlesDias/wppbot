@@ -172,6 +172,7 @@ Seu pagamento foi confirmado.
 Item: ${venda.plano}
 Valor: ${valor}
 Forma de pagamento: ${venda.metodo}
+Nome: ${venda.nome || 'Nao informado'}
 
 Dados de acesso:
 ${textoAcesso(credenciais)}
@@ -184,6 +185,7 @@ Nossa equipe tambem foi avisada para finalizar a ativacao.`,
 <p><strong>Item:</strong> ${venda.plano}</p>
 <p><strong>Valor:</strong> ${valor}</p>
 <p><strong>Forma de pagamento:</strong> ${venda.metodo}</p>
+<p><strong>Nome:</strong> ${venda.nome || 'Nao informado'}</p>
 <h3>Dados de acesso</h3>
 ${htmlAcesso(credenciais)}
 <p>Nossa equipe tambem foi avisada para finalizar a ativacao.</p>`
@@ -217,6 +219,7 @@ Nome do pagador: ${nomePagador}
 Email do pagador: ${emailPagador}
 WhatsApp: ${venda.numero}
 WhatsApp normalizado: ${venda.telefone || 'Nao informado'}
+Nome informado no WhatsApp: ${venda.nome || 'Nao informado'}
 
 Usuario: ${credenciais.username || ''}
 Senha: ${credenciais.password || ''}
@@ -233,6 +236,7 @@ Pagamento Mercado Pago: ${pagamento.id}`,
 <p><strong>Email do pagador:</strong> ${emailPagador}</p>
 <p><strong>WhatsApp:</strong> ${venda.numero}</p>
 <p><strong>WhatsApp normalizado:</strong> ${venda.telefone || 'Nao informado'}</p>
+<p><strong>Nome informado no WhatsApp:</strong> ${venda.nome || 'Nao informado'}</p>
 <h3>Dados para ativacao manual</h3>
 ${htmlAcesso(credenciais)}
 <p><strong>Referencia:</strong> ${venda.reference}</p>
@@ -257,6 +261,7 @@ async function enviarAvisoVencimentoCliente({
 `Seu acesso TopTec vence amanha.
 
 Usuario: ${assinatura.username || ''}
+Nome: ${assinatura.nome || 'Nao informado'}
 Vencimento: ${vencimento}
 
 Para renovar, responda no WhatsApp com a opcao Renovar agora. Assim que o pagamento for confirmado, a renovacao soma dias no vencimento atual e mantem o mesmo usuario.`,
@@ -264,6 +269,7 @@ Para renovar, responda no WhatsApp com a opcao Renovar agora. Assim que o pagame
 `<h2>Seu acesso vence amanha</h2>
 <p>Seu acesso TopTec vence amanha.</p>
 <p><strong>Usuario:</strong> ${assinatura.username || ''}</p>
+<p><strong>Nome:</strong> ${assinatura.nome || 'Nao informado'}</p>
 <p><strong>Vencimento:</strong> ${vencimento}</p>
 <p>Para renovar, responda no WhatsApp com a opcao <strong>Renovar agora</strong>. Assim que o pagamento for confirmado, a renovacao soma dias no vencimento atual e mantem o mesmo usuario.</p>`
     });

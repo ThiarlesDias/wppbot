@@ -198,6 +198,7 @@ function salvarAssinatura(assinatura) {
 function registrarAssinatura({
     numero,
     telefone,
+    nome,
     email,
     plano,
     origem,
@@ -218,6 +219,7 @@ function registrarAssinatura({
         id,
         numero,
         telefone: limparNumero(telefone || numero),
+        nome: nome || '',
         email: email || '',
         plano: plano || '',
         origem: origem || 'pagamento',
@@ -270,6 +272,8 @@ function buscarAssinaturaPorNumero(numero, telefone) {
 
 function renovarAssinatura(id, {
     plano,
+    nome,
+    email,
     vendaReference,
     paymentId
 } = {}) {
@@ -285,6 +289,8 @@ function renovarAssinatura(id, {
 
     return salvarAssinatura({
         ...assinatura,
+        nome: nome || assinatura.nome || '',
+        email: email || assinatura.email || '',
         plano: plano || assinatura.plano,
         status: 'ativa',
         expiresAt: novoVencimento.toISOString(),

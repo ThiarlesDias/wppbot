@@ -186,6 +186,7 @@ wppconnect.create({
                 case 'teste_ja_usado':
                 case 'pos_teste':
                 case 'ajuda_config':
+                case 'checkout_nome':
                 case 'checkout_email':
                 case 'vencimento_aviso':
                 case 'cancelamento_feedback':

@@ -235,7 +235,7 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
 
         await enviarConfirmacaoCliente({
             email: venda.email,
-            nome: pagador.nome,
+            nome: venda.nome || pagador.nome,
             venda,
             credenciais: credenciaisEmail
         });
@@ -270,6 +270,8 @@ function montarCredenciaisVenda(venda, pagamento) {
             assinatura.id,
             {
                 plano: venda.plano,
+                nome: venda.nome,
+                email: venda.email,
                 vendaReference: venda.reference,
                 paymentId: pagamento.id
             }
@@ -309,6 +311,7 @@ async function verificarVenda(client, venda) {
             const assinatura = registrarAssinatura({
                 numero: venda.numero,
                 telefone: venda.telefone,
+                nome: venda.nome,
                 email: venda.email,
                 plano: venda.plano,
                 origem: 'pagamento',
@@ -337,6 +340,7 @@ async function verificarVenda(client, venda) {
                 paid_at: new Date().toISOString(),
                 payer_email: pagador.email,
                 customer_email: venda.email || '',
+                customer_name: venda.nome || '',
                 payer_name: pagador.nome,
                 tipo: resultadoAcesso.tipo,
                 assinatura_id: assinatura?.id || venda.assinatura_id || '',
@@ -391,6 +395,9 @@ ${venda.numero}
 
 WhatsApp:
 ${venda.telefone || 'Nao informado'}
+
+Nome:
+${venda.nome || 'Nao informado'}
 
 Tipo:
 ${resultadoAcesso.tipo === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}

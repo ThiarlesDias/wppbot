@@ -19,6 +19,7 @@ function mensagemAviso(assinatura) {
     return [
         '⏰ *Seu acesso vence amanha*',
         '',
+        assinatura.nome ? `Cliente: ${assinatura.nome}` : '',
         `Usuario: ${assinatura.username}`,
         `Vencimento: ${formatarData(assinatura.expiresAt)}`,
         '',
@@ -72,6 +73,9 @@ ${assinatura.telefone || 'Nao informado'}
 
 Usuario:
 ${assinatura.username}
+
+Nome:
+${assinatura.nome || 'Nao informado'}
 
 Vencimento:
 ${formatarData(assinatura.expiresAt)}
