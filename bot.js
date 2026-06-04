@@ -17,6 +17,7 @@ const suporteHandler = require('./handlers/suporteHandler');
 const financeiroHandler = require('./handlers/financeiroHandler');
 const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
+const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 
 const {
     atualizarInteracao,
@@ -87,6 +88,8 @@ wppconnect.create({
 .then((client) => {
 
     console.log('BOT ONLINE');
+
+    iniciarMonitorPagamentos(client);
 
     client.onMessage(async (message) => {
 

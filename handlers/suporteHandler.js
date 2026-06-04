@@ -26,6 +26,9 @@ const {
     registrarSolicitacaoManual,
     falharTeste
 } = require('../services/testeGratisStore');
+const {
+    criarCheckoutVenda
+} = require('../services/mercadopago');
 const notificar =
 require('../services/notificador');
 
@@ -175,36 +178,98 @@ ${erro.message}`
 
     }
 
-    async function enviarPixPacote(valor) {
+    function nomeMetodo(metodo) {
 
-        await client.sendText(
-            numero,
+        if (metodo === 'pix') return 'PIX';
+        if (metodo === 'cartao') return 'Cartao';
+        if (metodo === 'boleto') return 'Boleto';
 
-`💳 PIX
-
-Valor: ${valor}
-
-Chave PIX:
-financeiro@toptecdigital.com
-
-Favorecido:
-Thiarles R Dias
-
-Envie o comprovante apos o pagamento.`
-        );
-
-        return await oferecerAjudaConfiguracao();
+        return metodo;
 
     }
 
-    async function enviarPagamentoComAjuda(enviarPagamento) {
+    async function enviarCheckoutPacote(plano, valor, metodo) {
 
-        await enviarPagamento(
-            client,
-            numero
-        );
+        try {
 
-        return await oferecerAjudaConfiguracao();
+            const venda = await criarCheckoutVenda({
+                numero,
+                plano,
+                valor,
+                metodo
+            });
+
+            await client.sendText(
+                numero,
+
+`💳 *Pagamento Mercado Pago*
+
+Plano: ${plano}
+Valor: ${valor}
+Forma: ${nomeMetodo(metodo)}
+
+Pague pelo link abaixo:
+${venda.init_point}
+
+Assim que o pagamento for aprovado, vou avisar aqui e nossa equipe ativa manualmente seu acesso.`
+            );
+
+            await notificar(
+                client,
+                'LEAD DE VENDA GERADO',
+
+`Cliente:
+${numero}
+
+Plano:
+${plano}
+
+Valor:
+${valor}
+
+Forma:
+${nomeMetodo(metodo)}
+
+Referencia:
+${venda.reference}
+
+Checkout:
+${venda.init_point}`
+            );
+
+            return await oferecerAjudaConfiguracao();
+
+        } catch (erro) {
+
+            console.log('ERRO CHECKOUT MP', erro);
+
+            await notificar(
+                client,
+                'ERRO CHECKOUT MP',
+
+`Cliente:
+${numero}
+
+Plano:
+${plano}
+
+Valor:
+${valor}
+
+Forma:
+${nomeMetodo(metodo)}
+
+Erro:
+${erro.message}`
+            );
+
+            return await client.sendText(
+                numero,
+                'Nao consegui gerar o checkout agora. Nossa equipe foi avisada e vai continuar seu atendimento.'
+            );
+
+        }
+
 
     }
 
@@ -621,19 +686,31 @@ Envie o comprovante apos o pagamento.`
 
         if (texto === '1') {
 
-            return await enviarPixPacote('R$ 25,00');
+            return await enviarCheckoutPacote(
+                '1 Mes',
+                'R$ 25,00',
+                'pix'
+            );
 
         }
 
         if (texto === '2') {
 
-            return await enviarPagamentoComAjuda(cartao);
+            return await enviarCheckoutPacote(
+                '1 Mes',
+                'R$ 25,00',
+                'cartao'
+            );
 
         }
 
         if (texto === '3') {
 
-            return await enviarPagamentoComAjuda(boleto);
+            return await enviarCheckoutPacote(
+                '1 Mes',
+                'R$ 25,00',
+                'boleto'
+            );
 
         }
 
@@ -644,19 +721,31 @@ Envie o comprovante apos o pagamento.`
 
         if (texto === '1') {
 
-            return await enviarPixPacote('R$ 60,00');
+            return await enviarCheckoutPacote(
+                '3 Meses',
+                'R$ 60,00',
+                'pix'
+            );
 
         }
 
         if (texto === '2') {
 
-            return await enviarPagamentoComAjuda(cartao);
+            return await enviarCheckoutPacote(
+                '3 Meses',
+                'R$ 60,00',
+                'cartao'
+            );
 
         }
 
         if (texto === '3') {
 
-            return await enviarPagamentoComAjuda(boleto);
+            return await enviarCheckoutPacote(
+                '3 Meses',
+                'R$ 60,00',
+                'boleto'
+            );
 
         }
 
@@ -667,19 +756,31 @@ Envie o comprovante apos o pagamento.`
 
         if (texto === '1') {
 
-            return await enviarPixPacote('R$ 110,00');
+            return await enviarCheckoutPacote(
+                '6 Meses',
+                'R$ 110,00',
+                'pix'
+            );
 
         }
 
         if (texto === '2') {
 
-            return await enviarPagamentoComAjuda(cartao);
+            return await enviarCheckoutPacote(
+                '6 Meses',
+                'R$ 110,00',
+                'cartao'
+            );
 
         }
 
         if (texto === '3') {
 
-            return await enviarPagamentoComAjuda(boleto);
+            return await enviarCheckoutPacote(
+                '6 Meses',
+                'R$ 110,00',
+                'boleto'
+            );
 
         }
 

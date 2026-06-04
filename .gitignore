@@ -3,6 +3,7 @@ tokens
 session
 .env
 data/testes-gratis.json
+data/*.json
 .git
 .gitignore
 npm-debug.log

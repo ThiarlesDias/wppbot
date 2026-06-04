@@ -1,19 +1,21 @@
-require('dotenv').config();
-
-const { gerarPix } = require('./services/mercadopago');
+const {
+    criarCheckoutVenda
+} = require('./services/mercadopago');
 
 (async () => {
 
     try {
 
-        const pix = await gerarPix(
-            25,
-            'IPTV 1 Mes'
-        );
+        const venda = await criarCheckoutVenda({
+            numero: '5500000000000@c.us',
+            plano: '1 Mes',
+            valor: 'R$ 25,00',
+            metodo: 'pix'
+        });
 
         console.log(
             JSON.stringify(
-                pix,
+                venda,
                 null,
                 2
             )
@@ -22,14 +24,7 @@ const { gerarPix } = require('./services/mercadopago');
     } catch (erro) {
 
         console.log('ERRO MP:');
-
-        console.log(
-            JSON.stringify(
-                erro,
-                null,
-                2
-            )
-        );
+        console.log(erro);
 
     }
 
