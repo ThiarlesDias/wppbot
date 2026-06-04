@@ -81,6 +81,7 @@ Passo geral:
 
 Se o aparelho pedir outro formato, fale com a gente que ajudamos a configurar.
 
+9️⃣ Digite *9* para falar com atendente.
 0️⃣ Digite *0* para voltar.`
     );
 

@@ -6,6 +6,7 @@ const pacote = require('../menus/suporte/pacote');
 const pacotePagamento = require('../menus/suporte/pacotePagamento');
 const emAnalise = require('../menus/suporte/emAnalise');
 const testeGratis = require('../menus/suporte/testeGratis');
+const testeJaUsado = require('../menus/suporte/testeJaUsado');
 const ajudaPosTeste = require('../menus/suporte/ajudaPosTeste');
 const ajudaConfiguracao = require('../menus/suporte/ajudaConfiguracao');
 const passosConfiguracao = require('../menus/suporte/passosConfiguracao');
@@ -56,9 +57,11 @@ module.exports = async function suporteHandler(
 
             }
 
-            return await client.sendText(
-                numero,
-                'Este numero ja recebeu um teste gratis. Para continuar, escolha um pacote ou fale com um atendente.'
+            sessoes[numero] = 'teste_ja_usado';
+
+            return await testeJaUsado(
+                client,
+                numero
             );
 
         }
@@ -222,6 +225,48 @@ ${erro.message}`
 
     // TESTE GRATIS
 
+    if (etapa === 'teste_ja_usado') {
+
+        if (texto === '1') {
+
+            sessoes[numero] = 'pacote';
+
+            return await pacote(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '9') {
+
+            sessoes[numero] = 'humano';
+
+            return await client.sendText(
+                numero,
+                'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await testeJaUsado(
+            client,
+            numero
+        );
+
+    }
+
     if (etapa === 'pos_teste') {
 
         if (texto === '6' || texto.includes('ajuda')) {
@@ -287,6 +332,17 @@ ${erro.message}`
             return await passosConfiguracao.outro(
                 client,
                 numero
+            );
+
+        }
+
+        if (texto === '9') {
+
+            sessoes[numero] = 'humano';
+
+            return await client.sendText(
+                numero,
+                'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
             );
 
         }
