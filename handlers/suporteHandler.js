@@ -42,6 +42,7 @@ module.exports = async function suporteHandler(
     const etapa = sessoes[numero];
     const chaveTelefoneTeste = `${numero}_telefone_teste`;
     const chaveAguardandoTelefone = `${numero}_aguardando_telefone_teste`;
+    const chaveCheckout = `${numero}_checkout`;
 
     async function criarTeste(numeroParaTeste) {
 
@@ -188,13 +189,41 @@ ${erro.message}`
 
     }
 
-    async function enviarCheckoutPacote(plano, valor, metodo) {
+    function emailValido(email) {
+
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+
+    }
+
+    async function solicitarEmailCheckout(plano, valor, metodo) {
+
+        sessoes[chaveCheckout] = {
+            plano,
+            valor,
+            metodo
+        };
+        sessoes[numero] = 'checkout_email';
+
+        return await client.sendText(
+            numero,
+
+`📧 *Email para comprovante*
+
+Informe seu email para receber a confirmacao e os dados de acesso.
+
+Se nao quiser informar agora, digite *0* para pular.`
+        );
+
+    }
+
+    async function enviarCheckoutPacote(plano, valor, metodo, email) {
 
         try {
 
             const venda = await criarCheckoutVenda({
                 numero,
                 telefone: numeroWhatsapp,
+                email,
                 plano,
                 valor,
                 metodo
@@ -202,9 +231,19 @@ ${erro.message}`
 
             if (metodo === 'pix') {
 
+                const pixTexto =
+                venda.pix_qr_code ||
+                venda.pix_ticket_url ||
+                venda.init_point;
+
                 await client.sendText(
                     numero,
-                    venda.init_point
+
+`💠 *PIX copia e cola*
+
+Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo abaixo:
+
+${pixTexto}`
                 );
 
                 await notificar(
@@ -509,6 +548,54 @@ ${erro.message}`
 
     }
 
+    if (etapa === 'checkout_email') {
+
+        const checkout = sessoes[chaveCheckout];
+
+        if (!checkout) {
+
+            sessoes[numero] = 'pacote';
+
+            return await pacote(
+                client,
+                numero
+            );
+
+        }
+
+        let email = '';
+
+        if (
+            texto !== '0' &&
+            texto !== 'pular' &&
+            texto !== 'nao' &&
+            texto !== 'não'
+        ) {
+
+            if (!emailValido(texto)) {
+
+                return await client.sendText(
+                    numero,
+                    'Email invalido. Digite um email valido ou envie *0* para pular.'
+                );
+
+            }
+
+            email = texto;
+
+        }
+
+        delete sessoes[chaveCheckout];
+
+        return await enviarCheckoutPacote(
+            checkout.plano,
+            checkout.valor,
+            checkout.metodo,
+            email
+        );
+
+    }
+
     if (etapa === 'teste_gratis') {
 
         if (sessoes[chaveAguardandoTelefone]) {
@@ -721,7 +808,7 @@ ${erro.message}`
 
         if (texto === '1') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '1 Mes',
                 'R$ 25,00',
                 'pix'
@@ -731,7 +818,7 @@ ${erro.message}`
 
         if (texto === '2') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '1 Mes',
                 'R$ 25,00',
                 'cartao'
@@ -741,7 +828,7 @@ ${erro.message}`
 
         if (texto === '3') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '1 Mes',
                 'R$ 25,00',
                 'boleto'
@@ -756,7 +843,7 @@ ${erro.message}`
 
         if (texto === '1') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '3 Meses',
                 'R$ 60,00',
                 'pix'
@@ -766,7 +853,7 @@ ${erro.message}`
 
         if (texto === '2') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '3 Meses',
                 'R$ 60,00',
                 'cartao'
@@ -776,7 +863,7 @@ ${erro.message}`
 
         if (texto === '3') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '3 Meses',
                 'R$ 60,00',
                 'boleto'
@@ -791,7 +878,7 @@ ${erro.message}`
 
         if (texto === '1') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '6 Meses',
                 'R$ 110,00',
                 'pix'
@@ -801,7 +888,7 @@ ${erro.message}`
 
         if (texto === '2') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '6 Meses',
                 'R$ 110,00',
                 'cartao'
@@ -811,7 +898,7 @@ ${erro.message}`
 
         if (texto === '3') {
 
-            return await enviarCheckoutPacote(
+            return await solicitarEmailCheckout(
                 '6 Meses',
                 'R$ 110,00',
                 'boleto'

@@ -184,6 +184,7 @@ wppconnect.create({
                 case 'teste_ja_usado':
                 case 'pos_teste':
                 case 'ajuda_config':
+                case 'checkout_email':
 
                     return await suporteHandler(
                         client,

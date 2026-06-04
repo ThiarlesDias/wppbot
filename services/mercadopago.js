@@ -266,6 +266,7 @@ async function criarPreferencia(body) {
 async function criarCheckoutVenda({
     numero,
     telefone,
+    email,
     plano,
     valor,
     metodo
@@ -275,6 +276,21 @@ async function criarCheckoutVenda({
     const valorNumero = normalizarValor(valor);
     const telefoneVenda = limparNumero(telefone || numero);
     const titulo = `TopTec TV - ${plano}`;
+
+    if (metodo === 'pix') {
+
+        return await criarPagamentoPix({
+            reference,
+            numero,
+            telefone: telefoneVenda,
+            email,
+            plano,
+            valor: valorNumero,
+            titulo
+        });
+
+    }
+
     const baseBody = {
         items: [
             {
@@ -287,11 +303,20 @@ async function criarCheckoutVenda({
         external_reference: reference,
         metadata: {
             whatsapp: telefoneVenda,
+            email: email || '',
             plano,
             metodo
         },
         statement_descriptor: 'TOPTEC TV'
     };
+
+    if (email) {
+
+        baseBody.payer = {
+            email
+        };
+
+    }
 
     if (process.env.MP_NOTIFICATION_URL) {
 
@@ -342,10 +367,80 @@ async function criarCheckoutVenda({
         plano,
         valor: valorNumero,
         metodo,
+        email: email || '',
         status: 'pending',
         preference_id: preferencia.id,
         init_point: preferencia.init_point,
         sandbox_init_point: preferencia.sandbox_init_point,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+
+    const store = lerStore();
+    store.vendas[reference] = venda;
+    salvarStore(store);
+
+    return venda;
+
+}
+
+async function criarPagamentoPix({
+    reference,
+    numero,
+    telefone,
+    email,
+    plano,
+    valor,
+    titulo
+}) {
+
+    const payerEmail =
+    email ||
+    process.env.MP_PIX_FALLBACK_EMAIL ||
+    'vendas@toptecdigital.com';
+
+    const pagamento = await chamarMercadoPago(
+        '/v1/payments',
+        {
+            method: 'POST',
+            headers: {
+                'X-Idempotency-Key': reference
+            },
+            body: JSON.stringify({
+                transaction_amount: valor,
+                description: titulo,
+                payment_method_id: 'pix',
+                external_reference: reference,
+                payer: {
+                    email: payerEmail
+                },
+                metadata: {
+                    whatsapp: telefone,
+                    email: email || '',
+                    plano,
+                    metodo: 'pix'
+                }
+            })
+        }
+    );
+
+    const transacao = pagamento.point_of_interaction?.transaction_data || {};
+    const venda = {
+        reference,
+        numero,
+        telefone,
+        plano,
+        valor,
+        metodo: 'pix',
+        email: email || '',
+        status: pagamento.status || 'pending',
+        payment_id: pagamento.id,
+        payment_status: pagamento.status,
+        payment_status_detail: pagamento.status_detail,
+        pix_qr_code: transacao.qr_code,
+        pix_qr_code_base64: transacao.qr_code_base64,
+        pix_ticket_url: transacao.ticket_url,
+        init_point: transacao.ticket_url,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };

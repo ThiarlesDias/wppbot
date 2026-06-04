@@ -84,10 +84,10 @@ async function gerarCredenciaisVenda(venda) {
 
 async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
 
-    if (pagador.email) {
+    if (venda.email) {
 
         await enviarConfirmacaoCliente({
-            email: pagador.email,
+            email: venda.email,
             nome: pagador.nome,
             venda,
             credenciais
@@ -99,7 +99,10 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
         venda,
         pagamento,
         credenciais,
-        pagador
+        pagador: {
+            ...pagador,
+            email: venda.email || (venda.metodo === 'pix' ? '' : pagador.email)
+        }
     });
 
 }
@@ -128,6 +131,7 @@ async function verificarVenda(client, venda) {
                 payment_status_detail: pagamento.status_detail,
                 paid_at: new Date().toISOString(),
                 payer_email: pagador.email,
+                customer_email: venda.email || '',
                 payer_name: pagador.nome,
                 credenciais
             }
@@ -142,7 +146,7 @@ Plano: ${venda.plano}
 Valor: ${formatarValor(venda.valor)}
 Forma: ${descricaoMetodo(venda.metodo)}
 
-Seus dados de acesso foram enviados por email.
+${venda.email ? 'Seus dados de acesso foram enviados por email.' : 'Confirmacao enviada aqui no WhatsApp.'}
 Nossa equipe tambem foi avisada para finalizar a ativacao.`
         );
 
