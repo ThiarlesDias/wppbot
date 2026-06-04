@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "importar:assinaturas": "node scripts/importarAssinaturas.js"
   },
   "dependencies": {
     "@wppconnect-team/wppconnect": "^1.37.5",
