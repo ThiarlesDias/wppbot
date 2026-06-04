@@ -29,6 +29,11 @@ const {
 const {
     criarCheckoutVenda
 } = require('../services/mercadopago');
+const {
+    buscarAssinaturaPorNumero,
+    cancelarAssinaturaPorNumero,
+    registrarAssinatura
+} = require('../services/assinaturasStore');
 const notificar =
 require('../services/notificador');
 
@@ -43,6 +48,7 @@ module.exports = async function suporteHandler(
     const chaveTelefoneTeste = `${numero}_telefone_teste`;
     const chaveAguardandoTelefone = `${numero}_aguardando_telefone_teste`;
     const chaveCheckout = `${numero}_checkout`;
+    const chaveForcarRenovacao = `${numero}_forcar_renovacao`;
 
     async function criarTeste(numeroParaTeste) {
 
@@ -110,6 +116,31 @@ Credenciais do Sigma ainda nao configuradas.`
                     username: teste.cliente?.username
                 }
             );
+
+            const credenciaisTeste = extrairCredenciaisTeste(teste);
+
+            if (credenciaisTeste.username && credenciaisTeste.password) {
+
+                const dataCriacao = new Date(credenciaisTeste.createdAt || Date.now());
+                const criadoEm = Number.isNaN(dataCriacao.getTime()) ?
+                    new Date() :
+                    dataCriacao;
+                const vencimentoTeste = credenciaisTeste.expiresAt ||
+                    new Date(
+                        criadoEm.getTime() +
+                        Number(process.env.SIGMA_TRIAL_HOURS || 6) * 60 * 60 * 1000
+                    ).toISOString();
+
+                registrarAssinatura({
+                    numero,
+                    telefone: numeroParaTeste,
+                    plano: 'Teste gratis',
+                    origem: 'teste_gratis',
+                    credenciais: credenciaisTeste,
+                    expiresAt: vencimentoTeste
+                });
+
+            }
 
             if (teste.mensagem) {
 
@@ -189,6 +220,27 @@ ${erro.message}`
 
     }
 
+    function extrairCredenciaisTeste(teste) {
+
+        const username = teste?.cliente?.username || teste?.playlist?.username || '';
+        const password = teste?.cliente?.password || teste?.playlist?.password || '';
+        const dns = String(teste?.playlist?.dns || '').replace(/\/$/, '');
+        const dnsComBarra = dns ? `${dns}/` : '';
+        const linkM3u = dns && username && password ?
+            `${dns}/get.php?username=${username}&password=${password}&type=m3u_plus&output=mpegts` :
+            '';
+
+        return {
+            username,
+            password,
+            dns: dnsComBarra,
+            linkM3u,
+            createdAt: teste?.cliente?.createdAt || teste?.playlist?.createdAt || new Date().toISOString(),
+            expiresAt: teste?.cliente?.expiresAt || teste?.playlist?.expiresAt || ''
+        };
+
+    }
+
     function emailValido(email) {
 
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
@@ -220,14 +272,28 @@ Se nao quiser informar agora, digite *0* para pular.`
 
         try {
 
+            const assinatura = buscarAssinaturaPorNumero(
+                numero,
+                numeroWhatsapp
+            );
+            const assinaturaRenovavel =
+                assinatura &&
+                assinatura.status !== 'cancelada' &&
+                assinatura.username;
+            const tipoVenda = assinaturaRenovavel ? 'renovacao' : 'nova';
+
             const venda = await criarCheckoutVenda({
                 numero,
                 telefone: numeroWhatsapp,
                 email,
                 plano,
                 valor,
-                metodo
+                metodo,
+                tipo: tipoVenda,
+                assinatura: assinaturaRenovavel ? assinatura : null
             });
+
+            delete sessoes[chaveForcarRenovacao];
 
             if (metodo === 'pix') {
 
@@ -264,6 +330,12 @@ ${valor}
 
 Forma:
 ${nomeMetodo(metodo)}
+
+Tipo:
+${tipoVenda === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}
+
+WhatsApp:
+${venda.telefone || 'Nao informado'}
 
 Referencia:
 ${venda.reference}
@@ -306,6 +378,12 @@ ${valor}
 
 Forma:
 ${nomeMetodo(metodo)}
+
+Tipo:
+${tipoVenda === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}
+
+WhatsApp:
+${venda.telefone || 'Nao informado'}
 
 Referencia:
 ${venda.reference}
@@ -599,6 +677,124 @@ ${erro.message}`
 
     }
 
+    if (etapa === 'vencimento_aviso') {
+
+        if (texto === '1') {
+
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'renovacao';
+
+            await client.sendText(
+                numero,
+                'Perfeito. Como voce ja tem usuario ativo, a renovacao vai somar dias no seu vencimento atual apos a confirmacao do pagamento.'
+            );
+
+            return await renovacao(client, numero);
+
+        }
+
+        if (texto === '2') {
+
+            sessoes[numero] = 'cancelamento_feedback';
+
+            return await client.sendText(
+                numero,
+
+`Tudo bem. Antes de cancelar, se puder, conte rapidamente o motivo.
+
+Se nao quiser responder, envie *0* para pular.`
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+
+`Seu acesso esta perto do vencimento.
+
+1️⃣ Renovar agora
+2️⃣ Cancelar minha assinatura
+0️⃣ Voltar ao menu`
+        );
+
+    }
+
+    if (etapa === 'cancelamento_feedback') {
+
+        sessoes[`${numero}_motivo_cancelamento`] = texto === '0' ? '' : texto;
+        sessoes[numero] = 'cancelamento_repescagem';
+
+        return await client.sendText(
+            numero,
+
+`Antes de cancelar de vez, posso te ajudar a manter o acesso sem trocar usuario.
+
+1️⃣ Renovar agora
+2️⃣ Cancelar assim mesmo
+0️⃣ Voltar ao menu`
+        );
+
+    }
+
+    if (etapa === 'cancelamento_repescagem') {
+
+        if (texto === '1') {
+
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'renovacao';
+
+            return await renovacao(client, numero);
+
+        }
+
+        if (texto === '2') {
+
+            const motivo = sessoes[`${numero}_motivo_cancelamento`] || '';
+
+            cancelarAssinaturaPorNumero(
+                numero,
+                motivo
+            );
+
+            delete sessoes[`${numero}_motivo_cancelamento`];
+            sessoes[numero] = 'menu';
+
+            return await client.sendText(
+                numero,
+                'Assinatura cancelada. Obrigado por ter ficado com a gente, esperamos ter voce de novo em breve.'
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            'Digite *1* para renovar agora ou *2* para cancelar assim mesmo.'
+        );
+
+    }
+
     if (etapa === 'teste_gratis') {
 
         if (sessoes[chaveAguardandoTelefone]) {
@@ -662,19 +858,43 @@ ${erro.message}`
 
         if (texto === '1') {
 
-            return await pix(client, numero);
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'pacote_1';
+
+            return await pacotePagamento(
+                client,
+                numero,
+                '1 Mes',
+                'R$ 25,00'
+            );
 
         }
 
         if (texto === '2') {
 
-            return await cartao(client, numero);
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'pacote_3';
+
+            return await pacotePagamento(
+                client,
+                numero,
+                '3 Meses',
+                'R$ 60,00'
+            );
 
         }
 
         if (texto === '3') {
 
-            return await boleto(client, numero);
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'pacote_6';
+
+            return await pacotePagamento(
+                client,
+                numero,
+                '6 Meses',
+                'R$ 110,00'
+            );
 
         }
 

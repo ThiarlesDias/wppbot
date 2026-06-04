@@ -18,6 +18,7 @@ const financeiroHandler = require('./handlers/financeiroHandler');
 const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
 const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
+const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 
 const {
     atualizarInteracao,
@@ -90,6 +91,7 @@ wppconnect.create({
     console.log('BOT ONLINE');
 
     iniciarMonitorPagamentos(client);
+    iniciarMonitorVencimentos(client);
 
     client.onMessage(async (message) => {
 
@@ -185,6 +187,9 @@ wppconnect.create({
                 case 'pos_teste':
                 case 'ajuda_config':
                 case 'checkout_email':
+                case 'vencimento_aviso':
+                case 'cancelamento_feedback':
+                case 'cancelamento_repescagem':
 
                     return await suporteHandler(
                         client,

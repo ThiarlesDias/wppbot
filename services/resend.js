@@ -128,6 +128,7 @@ function textoAcesso(credenciais) {
     return [
         `Usuario: ${credenciais.username || ''}`,
         `Senha: ${credenciais.password || ''}`,
+        credenciais.expiresAt ? `Vencimento: ${credenciais.expiresAt}` : '',
         credenciais.dns ? `DNS: ${credenciais.dns}` : '',
         credenciais.linkM3u ? `Link M3U: ${credenciais.linkM3u}` : ''
     ].filter(Boolean).join('\n');
@@ -139,6 +140,7 @@ function htmlAcesso(credenciais) {
     return [
         `<p><strong>Usuario:</strong> ${credenciais.username || ''}</p>`,
         `<p><strong>Senha:</strong> ${credenciais.password || ''}</p>`,
+        credenciais.expiresAt ? `<p><strong>Vencimento:</strong> ${credenciais.expiresAt}</p>` : '',
         credenciais.dns ? `<p><strong>DNS:</strong> ${credenciais.dns}</p>` : '',
         credenciais.linkM3u ?
             `<p><strong>Link M3U:</strong><br><a href="${credenciais.linkM3u}">${credenciais.linkM3u}</a></p>` :
@@ -214,9 +216,11 @@ Forma: ${venda.metodo}
 Nome do pagador: ${nomePagador}
 Email do pagador: ${emailPagador}
 WhatsApp: ${venda.numero}
+WhatsApp normalizado: ${venda.telefone || 'Nao informado'}
 
 Usuario: ${credenciais.username || ''}
 Senha: ${credenciais.password || ''}
+Vencimento: ${credenciais.expiresAt || ''}
 
 Referencia: ${venda.reference}
 Pagamento Mercado Pago: ${pagamento.id}`,
@@ -228,6 +232,7 @@ Pagamento Mercado Pago: ${pagamento.id}`,
 <p><strong>Nome do pagador:</strong> ${nomePagador}</p>
 <p><strong>Email do pagador:</strong> ${emailPagador}</p>
 <p><strong>WhatsApp:</strong> ${venda.numero}</p>
+<p><strong>WhatsApp normalizado:</strong> ${venda.telefone || 'Nao informado'}</p>
 <h3>Dados para ativacao manual</h3>
 ${htmlAcesso(credenciais)}
 <p><strong>Referencia:</strong> ${venda.reference}</p>
@@ -236,7 +241,37 @@ ${htmlAcesso(credenciais)}
 
 }
 
+async function enviarAvisoVencimentoCliente({
+    email,
+    assinatura,
+    vencimento
+}) {
+
+    if (!email) return null;
+
+    return await enviarEmail({
+        from: emailClienteFrom(),
+        to: email,
+        subject: 'Seu acesso vence amanha',
+        text:
+`Seu acesso TopTec vence amanha.
+
+Usuario: ${assinatura.username || ''}
+Vencimento: ${vencimento}
+
+Para renovar, responda no WhatsApp com a opcao Renovar agora. Assim que o pagamento for confirmado, a renovacao soma dias no vencimento atual e mantem o mesmo usuario.`,
+        html:
+`<h2>Seu acesso vence amanha</h2>
+<p>Seu acesso TopTec vence amanha.</p>
+<p><strong>Usuario:</strong> ${assinatura.username || ''}</p>
+<p><strong>Vencimento:</strong> ${vencimento}</p>
+<p>Para renovar, responda no WhatsApp com a opcao <strong>Renovar agora</strong>. Assim que o pagamento for confirmado, a renovacao soma dias no vencimento atual e mantem o mesmo usuario.</p>`
+    });
+
+}
+
 module.exports = {
     enviarConfirmacaoCliente,
-    enviarNovaVendaAdmin
+    enviarNovaVendaAdmin,
+    enviarAvisoVencimentoCliente
 };

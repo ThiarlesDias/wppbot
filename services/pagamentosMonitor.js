@@ -10,6 +10,13 @@ const {
     enviarConfirmacaoCliente,
     enviarNovaVendaAdmin
 } = require('./resend');
+const {
+    adicionarDias,
+    buscarAssinaturaPorId,
+    diasDoPlano,
+    registrarAssinatura,
+    renovarAssinatura
+} = require('./assinaturasStore');
 const notificar = require('./notificador');
 
 const INTERVALO_MS = Number(process.env.MP_MONITOR_INTERVAL_MS || 60000);
@@ -168,14 +175,34 @@ async function gerarCredenciaisVenda(venda) {
     }
 
     const criadoEm = normalizarData(credenciais.createdAt) || new Date();
+    const vencimentoPlano = adicionarDias(
+        criadoEm,
+        diasDoPlano(venda.plano)
+    );
 
     return {
         ...credenciais,
         createdAt: criadoEm.toISOString(),
-        expiresAt: (
+        trialExpiresAt: (
             normalizarData(credenciais.expiresAt) ||
             somarHoras(criadoEm, process.env.SIGMA_TRIAL_HOURS || 6)
-        ).toISOString()
+        ).toISOString(),
+        expiresAt: vencimentoPlano.toISOString()
+    };
+
+}
+
+function credenciaisDaAssinatura(assinatura) {
+
+    if (!assinatura) return null;
+
+    return {
+        username: assinatura.username,
+        password: assinatura.password,
+        dns: assinatura.dns,
+        linkM3u: assinatura.linkM3u,
+        createdAt: assinatura.createdAt,
+        expiresAt: assinatura.expiresAt
     };
 
 }
@@ -199,13 +226,18 @@ function montarMensagemAcessoWhatsapp(credenciais) {
 
 async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
 
+    const credenciaisEmail = {
+        ...credenciais,
+        expiresAt: formatarData(credenciais.expiresAt)
+    };
+
     if (venda.email) {
 
         await enviarConfirmacaoCliente({
             email: venda.email,
             nome: pagador.nome,
             venda,
-            credenciais
+            credenciais: credenciaisEmail
         });
 
     }
@@ -213,12 +245,45 @@ async function enviarEmailsVenda(venda, pagamento, credenciais, pagador) {
     await enviarNovaVendaAdmin({
         venda,
         pagamento,
-        credenciais,
+        credenciais: credenciaisEmail,
         pagador: {
             ...pagador,
             email: venda.email || (venda.metodo === 'pix' ? '' : pagador.email)
         }
     });
+
+}
+
+function montarCredenciaisVenda(venda, pagamento) {
+
+    if (venda.tipo === 'renovacao' && venda.assinatura_id) {
+
+        const assinatura = buscarAssinaturaPorId(venda.assinatura_id);
+
+        if (!assinatura) {
+
+            throw new Error('Assinatura da renovacao nao encontrada no banco local.');
+
+        }
+
+        const renovada = renovarAssinatura(
+            assinatura.id,
+            {
+                plano: venda.plano,
+                vendaReference: venda.reference,
+                paymentId: pagamento.id
+            }
+        );
+
+        return {
+            credenciais: credenciaisDaAssinatura(renovada),
+            assinatura: renovada,
+            tipo: 'renovacao'
+        };
+
+    }
+
+    return null;
 
 }
 
@@ -233,9 +298,34 @@ async function verificarVenda(client, venda) {
     if (status === 'approved') {
 
         const pagador = dadosPagador(pagamento);
-        const credenciais = venda.credenciais?.username ?
-            venda.credenciais :
-            await gerarCredenciaisVenda(venda);
+        let resultadoAcesso = montarCredenciaisVenda(venda, pagamento);
+
+        if (!resultadoAcesso) {
+
+            const credenciais = venda.credenciais?.username ?
+                venda.credenciais :
+                await gerarCredenciaisVenda(venda);
+
+            const assinatura = registrarAssinatura({
+                numero: venda.numero,
+                telefone: venda.telefone,
+                email: venda.email,
+                plano: venda.plano,
+                origem: 'pagamento',
+                credenciais,
+                expiresAt: credenciais.expiresAt
+            });
+
+            resultadoAcesso = {
+                credenciais: credenciaisDaAssinatura(assinatura),
+                assinatura,
+                tipo: 'nova'
+            };
+
+        }
+
+        const credenciais = resultadoAcesso.credenciais;
+        const assinatura = resultadoAcesso.assinatura;
 
         const atualizada = atualizarVenda(
             venda.reference,
@@ -248,9 +338,15 @@ async function verificarVenda(client, venda) {
                 payer_email: pagador.email,
                 customer_email: venda.email || '',
                 payer_name: pagador.nome,
+                tipo: resultadoAcesso.tipo,
+                assinatura_id: assinatura?.id || venda.assinatura_id || '',
                 credenciais
             }
         );
+
+        const textoStatusAcesso = resultadoAcesso.tipo === 'renovacao' ?
+            `Seu acesso foi renovado automaticamente. Novo vencimento: ${formatarData(credenciais.expiresAt)}.` :
+            'Seu acesso foi criado com sucesso.';
 
         await client.sendText(
             venda.numero,
@@ -261,6 +357,7 @@ Plano: ${venda.plano}
 Valor: ${formatarValor(venda.valor)}
 Forma: ${descricaoMetodo(venda.metodo)}
 
+${textoStatusAcesso}
 ${venda.email ? 'Seus dados de acesso tambem foram enviados por email.' : 'Confirmacao enviada aqui no WhatsApp.'}
 Nossa equipe tambem foi avisada para finalizar a ativacao.`
         );
@@ -292,6 +389,12 @@ Nossa equipe tambem foi avisada para finalizar a ativacao.`
 `Cliente:
 ${venda.numero}
 
+WhatsApp:
+${venda.telefone || 'Nao informado'}
+
+Tipo:
+${resultadoAcesso.tipo === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}
+
 Plano:
 ${venda.plano}
 
@@ -312,6 +415,9 @@ ${credenciais.username}
 
 Senha:
 ${credenciais.password}
+
+Vencimento:
+${formatarData(credenciais.expiresAt)}
 
 Referencia:
 ${venda.reference}

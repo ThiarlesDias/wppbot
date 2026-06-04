@@ -269,7 +269,9 @@ async function criarCheckoutVenda({
     email,
     plano,
     valor,
-    metodo
+    metodo,
+    tipo,
+    assinatura
 }) {
 
     const reference = referenciaVenda();
@@ -286,7 +288,9 @@ async function criarCheckoutVenda({
             email,
             plano,
             valor: valorNumero,
-            titulo
+            titulo,
+            tipo,
+            assinatura
         });
 
     }
@@ -305,7 +309,9 @@ async function criarCheckoutVenda({
             whatsapp: telefoneVenda,
             email: email || '',
             plano,
-            metodo
+            metodo,
+            tipo: tipo || 'nova',
+            assinatura_id: assinatura?.id || ''
         },
         statement_descriptor: 'TOPTEC TV'
     };
@@ -367,6 +373,9 @@ async function criarCheckoutVenda({
         plano,
         valor: valorNumero,
         metodo,
+        tipo: tipo || 'nova',
+        assinatura_id: assinatura?.id || '',
+        assinatura_username: assinatura?.username || '',
         email: email || '',
         status: 'pending',
         preference_id: preferencia.id,
@@ -391,7 +400,9 @@ async function criarPagamentoPix({
     email,
     plano,
     valor,
-    titulo
+    titulo,
+    tipo,
+    assinatura
 }) {
 
     const payerEmail =
@@ -418,7 +429,9 @@ async function criarPagamentoPix({
                     whatsapp: telefone,
                     email: email || '',
                     plano,
-                    metodo: 'pix'
+                    metodo: 'pix',
+                    tipo: tipo || 'nova',
+                    assinatura_id: assinatura?.id || ''
                 }
             })
         }
@@ -432,6 +445,9 @@ async function criarPagamentoPix({
         plano,
         valor,
         metodo: 'pix',
+        tipo: tipo || 'nova',
+        assinatura_id: assinatura?.id || '',
+        assinatura_username: assinatura?.username || '',
         email: email || '',
         status: pagamento.status || 'pending',
         payment_id: pagamento.id,
@@ -458,7 +474,11 @@ function listarVendasPendentes() {
     const store = lerStore();
 
     return Object.values(store.vendas || {})
-        .filter(venda => venda.status === 'pending' || venda.status === 'in_process');
+        .filter(venda =>
+            venda.status === 'pending' ||
+            venda.status === 'in_process' ||
+            (venda.status === 'approved' && !venda.paid_at)
+        );
 
 }
 
