@@ -156,21 +156,24 @@ function normalizarData(valorData) {
     if (!texto) return null;
 
     const br = texto.match(
-        /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+        /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
     );
 
     if (br) {
 
         const [, dia, mes, ano, hora = '0', minuto = '0', segundo = '0'] = br;
+        const anoCompleto = ano.length === 2 ?
+            2000 + Number(ano) :
+            Number(ano);
 
-        return new Date(
-            Number(ano),
+        return new Date(Date.UTC(
+            anoCompleto,
             Number(mes) - 1,
             Number(dia),
-            Number(hora),
+            Number(hora) + 3,
             Number(minuto),
             Number(segundo)
-        );
+        ));
 
     }
 
