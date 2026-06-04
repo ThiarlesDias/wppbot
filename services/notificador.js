@@ -1,11 +1,11 @@
 
 function obterAdmin() {
 
-    const admin = process.env.ADMIN_WHATSAPP;
+    const admin = process.env.ADMIN_WHATSAPP_ID || process.env.ADMIN_WHATSAPP;
 
     if (!admin || admin.includes('SEUNUMERO')) return null;
 
-    if (admin.endsWith('@c.us')) return admin;
+    if (admin.includes('@')) return admin.trim();
 
     return `${admin.replace(/\D/g, '')}@c.us`;
 
