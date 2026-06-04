@@ -5,12 +5,18 @@ const {
     registrarAssinatura,
     formatarData
 } = require('../services/assinaturasStore');
+const {
+    caminhoCsv
+} = require('../services/clientesCsv');
 
 function uso() {
 
     console.log([
         'Uso:',
         '  node scripts/importarAssinaturas.js caminho/clientes.csv',
+        '  node scripts/importarAssinaturas.js',
+        '',
+        'Sem caminho, usa CLIENTES_CSV_PATH ou data/clientes.csv.',
         '',
         'Colunas aceitas:',
         '  nome, telefone, usuario, senha, dns, m3u, vencimento',
@@ -401,7 +407,7 @@ function importarCliente(linha, indice) {
 
 function main() {
 
-    const arquivo = process.argv[2];
+    const arquivo = process.argv[2] || caminhoCsv();
 
     if (!arquivo) {
 

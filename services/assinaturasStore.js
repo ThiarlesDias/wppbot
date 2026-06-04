@@ -304,6 +304,14 @@ function buscarAssinaturaPorId(id) {
 
 }
 
+function listarAssinaturas() {
+
+    const store = lerStore();
+
+    return Object.values(store.assinaturas || {});
+
+}
+
 function buscarAssinaturaPorNumero(numero, telefone) {
 
     return buscarAssinaturasPorNumero(
@@ -481,6 +489,7 @@ module.exports = {
     cancelarAssinaturaPorNumero,
     diasDoPlano,
     formatarData,
+    listarAssinaturas,
     listarVencendoEmAteHoras,
     listarVencendoNoDia,
     marcarAvisoVencimento,

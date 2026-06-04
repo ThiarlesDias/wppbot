@@ -4,7 +4,9 @@
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
-    "importar:assinaturas": "node scripts/importarAssinaturas.js"
+    "importar:clientes": "node scripts/importarAssinaturas.js",
+    "importar:assinaturas": "node scripts/importarAssinaturas.js",
+    "exportar:clientes": "node scripts/exportarClientesCsv.js"
   },
   "dependencies": {
     "@wppconnect-team/wppconnect": "^1.37.5",

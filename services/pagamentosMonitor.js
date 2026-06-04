@@ -17,6 +17,9 @@ const {
     registrarAssinatura,
     renovarAssinatura
 } = require('./assinaturasStore');
+const {
+    atualizarClienteCsv
+} = require('./clientesCsv');
 const notificar = require('./notificador');
 
 const INTERVALO_MS = Number(process.env.MP_MONITOR_INTERVAL_MS || 60000);
@@ -473,6 +476,20 @@ async function verificarVenda(client, venda) {
 
         const credenciais = resultadoAcesso.credenciais;
         const assinatura = resultadoAcesso.assinatura;
+
+        try {
+
+            if (assinatura?.username && assinatura?.password) {
+
+                atualizarClienteCsv(assinatura);
+
+            }
+
+        } catch (erro) {
+
+            console.log('ERRO CLIENTES CSV', erro.message);
+
+        }
 
         const atualizada = atualizarVenda(
             venda.reference,
