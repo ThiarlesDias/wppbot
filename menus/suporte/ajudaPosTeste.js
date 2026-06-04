@@ -9,7 +9,7 @@ async function ajudaPosTeste(client, numero) {
         numero,
         {
             titulo: 'Ajuda com configuracao',
-            descricao: 'Precisa de ajuda para configurar o teste no seu aparelho?',
+            descricao: 'Precisa de ajuda para configurar no seu aparelho?',
             opcoes: [
                 {
                     id: '6',

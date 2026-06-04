@@ -164,6 +164,50 @@ ${erro.message}`
 
     }
 
+    async function oferecerAjudaConfiguracao() {
+
+        sessoes[numero] = 'pos_teste';
+
+        return await ajudaPosTeste(
+            client,
+            numero
+        );
+
+    }
+
+    async function enviarPixPacote(valor) {
+
+        await client.sendText(
+            numero,
+
+`💳 PIX
+
+Valor: ${valor}
+
+Chave PIX:
+financeiro@toptecdigital.com
+
+Favorecido:
+Thiarles R Dias
+
+Envie o comprovante apos o pagamento.`
+        );
+
+        return await oferecerAjudaConfiguracao();
+
+    }
+
+    async function enviarPagamentoComAjuda(enviarPagamento) {
+
+        await enviarPagamento(
+            client,
+            numero
+        );
+
+        return await oferecerAjudaConfiguracao();
+
+    }
+
     // MENU SUPORTE
 
     if (etapa === 'suporte') {
@@ -571,115 +615,71 @@ ${erro.message}`
 
     }
 
-    // PACOTE 1 MÊS
+    // PACOTE 1 MES
 
     if (etapa === 'pacote_1') {
 
         if (texto === '1') {
 
-            return await client.sendText(
-                numero,
-
-`💳 PIX
-
-Valor: R$ 25,00
-
-Chave PIX:
-financeiro@toptecdigital.com
-
-Favorecido:
-Thiarles R Dias
-
-Envie o comprovante após o pagamento.`
-            );
+            return await enviarPixPacote('R$ 25,00');
 
         }
 
         if (texto === '2') {
 
-            return await cartao(client, numero);
+            return await enviarPagamentoComAjuda(cartao);
 
         }
 
         if (texto === '3') {
 
-            return await boleto(client, numero);
+            return await enviarPagamentoComAjuda(boleto);
 
         }
 
     }
 
     // PACOTE 3 MESES
-
     if (etapa === 'pacote_3') {
 
         if (texto === '1') {
 
-            return await client.sendText(
-                numero,
-
-`💳 PIX
-
-Valor: R$ 60,00
-
-Chave PIX:
-financeiro@toptecdigital.com
-
-Favorecido:
-Thiarles R Dias
-
-Envie o comprovante após o pagamento.`
-            );
+            return await enviarPixPacote('R$ 60,00');
 
         }
 
         if (texto === '2') {
 
-            return await cartao(client, numero);
+            return await enviarPagamentoComAjuda(cartao);
 
         }
 
         if (texto === '3') {
 
-            return await boleto(client, numero);
+            return await enviarPagamentoComAjuda(boleto);
 
         }
 
     }
 
     // PACOTE 6 MESES
-
     if (etapa === 'pacote_6') {
 
         if (texto === '1') {
 
-            return await client.sendText(
-                numero,
-
-`💳 PIX
-
-Valor: R$ 110,00
-
-Chave PIX:
-financeiro@toptecdigital.com
-
-Favorecido:
-Thiarles R Dias
-
-Envie o comprovante após o pagamento.`
-            );
+            return await enviarPixPacote('R$ 110,00');
 
         }
 
         if (texto === '2') {
 
-            return await cartao(client, numero);
+            return await enviarPagamentoComAjuda(cartao);
 
         }
 
         if (texto === '3') {
 
-            return await boleto(client, numero);
+            return await enviarPagamentoComAjuda(boleto);
 
         }
 
