@@ -21,6 +21,13 @@ const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
+const {
+    atendimentoPausado,
+    ehMensagemAutomatica,
+    instalarRegistroAutomatico,
+    liberarAtendimento,
+    pausarAtendimento
+} = require('./services/pausaAtendimento');
 
 const {
     atualizarInteracao,
@@ -92,6 +99,8 @@ wppconnect.create({
 
     console.log('BOT ONLINE');
 
+    instalarRegistroAutomatico(client);
+
     iniciarMonitorPagamentos(client);
     iniciarMonitorVencimentos(client);
     iniciarMonitorClientesCsv();
@@ -108,7 +117,36 @@ wppconnect.create({
                 message.from?.endsWith('@newsletter')
             ) return;
 
-            if (message.fromMe) return;
+            if (message.fromMe) {
+
+                const destino = message.to || message.chatId || message.from;
+                const textoEnviado = obterTextoMensagem(message);
+
+                if (
+                    destino &&
+                    !destino.endsWith('@g.us') &&
+                    !destino.endsWith('@newsletter') &&
+                    !ehMensagemAutomatica(
+                        destino,
+                        textoEnviado
+                    )
+                ) {
+
+                    pausarAtendimento(
+                        destino,
+                        'mensagem manual enviada pelo WhatsApp do bot'
+                    );
+
+                    console.log(
+                        'ATENDIMENTO MANUAL PAUSOU BOT:',
+                        destino
+                    );
+
+                }
+
+                return;
+
+            }
 
             const numero = message.from;
 
@@ -124,6 +162,24 @@ wppconnect.create({
             const texto = obterTextoMensagem(message);
 
             if (!texto) return;
+
+            if (
+                texto === '#bot' ||
+                texto === '/bot' ||
+                texto === 'reativar bot'
+            ) {
+
+                liberarAtendimento(numero);
+                sessoes[numero] = 'menu';
+
+                return await menuPrincipal(
+                    client,
+                    numero
+                );
+
+            }
+
+            if (atendimentoPausado(numero)) return;
 
             verificarTimeout(
                 numero
