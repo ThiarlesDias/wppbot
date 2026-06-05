@@ -36,6 +36,29 @@ const {
 
 console.log('INICIANDO BOT...');
 
+function limparNumero(numero) {
+
+    return String(numero || '').replace(/\D/g, '');
+
+}
+
+function ehAdmin(numeroWhatsapp, numero) {
+
+    const admin = limparNumero(
+        process.env.ADMIN_NOTIFY_WHATSAPP ||
+        process.env.ADMIN_WHATSAPP ||
+        process.env.ADMIN_WHATSAPP_ID
+    );
+
+    if (!admin) return false;
+
+    return [
+        limparNumero(numeroWhatsapp),
+        limparNumero(numero)
+    ].includes(admin);
+
+}
+
 function limparTravasChrome() {
     const pastas = [
         path.join(__dirname, 'tokens', 'bot'),
@@ -175,6 +198,28 @@ wppconnect.create({
                 return await menuPrincipal(
                     client,
                     numero
+                );
+
+            }
+
+            if (
+                texto === '#vencimentos' &&
+                ehAdmin(
+                    numeroWhatsapp,
+                    numero
+                )
+            ) {
+
+                await client.sendText(
+                    numero,
+                    'Rodando checagem de vencimentos agora.'
+                );
+
+                await iniciarMonitorVencimentos.verificarVencimentos(client);
+
+                return await client.sendText(
+                    numero,
+                    'Checagem de vencimentos concluida. Veja o log para detalhes.'
                 );
 
             }

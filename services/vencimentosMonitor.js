@@ -280,9 +280,14 @@ function iniciarMonitorVencimentos(client) {
 
     if (process.env.VENCIMENTOS_CHECK_STARTUP !== '0') {
 
+        console.log(
+            'MONITOR VENCIMENTOS CHECAGEM INICIAL EM',
+            `${Number(process.env.VENCIMENTOS_STARTUP_DELAY_MS || 5000)}ms`
+        );
+
         setTimeout(
             () => verificarVencimentos(client),
-            Number(process.env.VENCIMENTOS_STARTUP_DELAY_MS || 30000)
+            Number(process.env.VENCIMENTOS_STARTUP_DELAY_MS || 5000)
         );
 
     }
@@ -292,3 +297,4 @@ function iniciarMonitorVencimentos(client) {
 }
 
 module.exports = iniciarMonitorVencimentos;
+module.exports.verificarVencimentos = verificarVencimentos;
