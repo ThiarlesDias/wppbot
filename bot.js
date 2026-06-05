@@ -102,8 +102,8 @@ wppconnect.create({
     instalarRegistroAutomatico(client);
 
     iniciarMonitorPagamentos(client);
-    iniciarMonitorVencimentos(client);
     iniciarMonitorClientesCsv();
+    iniciarMonitorVencimentos(client);
     iniciarMonitorSigma(client);
 
     client.onMessage(async (message) => {

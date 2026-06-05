@@ -83,10 +83,11 @@ function proximaExecucao() {
 
 }
 
-function amanhaSaoPaulo() {
+function hojeSaoPaulo() {
 
     const sp = dataSaoPauloAgora();
-    const hojeMeioDiaUtc = dataUtcDeSaoPaulo(
+
+    return dataUtcDeSaoPaulo(
         sp.ano,
         sp.mes,
         sp.dia,
@@ -94,14 +95,22 @@ function amanhaSaoPaulo() {
         0
     );
 
-    return new Date(hojeMeioDiaUtc.getTime() + UM_DIA_MS);
+}
+
+function amanhaSaoPaulo() {
+
+    return new Date(hojeSaoPaulo().getTime() + UM_DIA_MS);
 
 }
 
-function mensagemAviso(assinatura) {
+function mensagemAviso(assinatura, periodo = 'amanha') {
+
+    const titulo = periodo === 'hoje' ?
+        '*Seu acesso vence hoje*' :
+        '*Seu acesso vence amanha*';
 
     return [
-        '⏰ *Seu acesso vence amanha*',
+        titulo,
         '',
         assinatura.nome ? `Cliente: ${assinatura.nome}` : '',
         `Usuario: ${assinatura.username}`,
@@ -109,20 +118,23 @@ function mensagemAviso(assinatura) {
         '',
         'Renovando agora, voce mantem o mesmo usuario e os dias sao somados no vencimento atual assim que o pagamento for confirmado.',
         '',
-        '1️⃣ Renovar agora',
-        '2️⃣ Cancelar minha assinatura',
-        '0️⃣ Voltar ao menu'
-    ].join('\n');
+        '1 - Renovar agora',
+        '2 - Cancelar minha assinatura',
+        '0 - Voltar ao menu'
+    ].filter(Boolean).join('\n');
 
 }
 
-async function avisarAssinatura(client, assinatura) {
+async function avisarAssinatura(client, assinatura, periodo = 'amanha') {
 
     if (!assinatura.numero) return;
 
     await client.sendText(
         assinatura.numero,
-        mensagemAviso(assinatura)
+        mensagemAviso(
+            assinatura,
+            periodo
+        )
     );
 
     sessoes[assinatura.numero] = 'vencimento_aviso';
@@ -161,6 +173,9 @@ ${assinatura.username}
 Nome:
 ${assinatura.nome || 'Nao informado'}
 
+Periodo:
+${periodo}
+
 Vencimento:
 ${formatarData(assinatura.expiresAt)}
 
@@ -177,11 +192,20 @@ ${assinatura.email || 'Nao informado'}`
 
 async function verificarVencimentos(client) {
 
-    let assinaturas;
+    let grupos;
 
     try {
 
-        assinaturas = listarVencendoNoDia(amanhaSaoPaulo());
+        grupos = [
+            {
+                periodo: 'hoje',
+                assinaturas: listarVencendoNoDia(hojeSaoPaulo())
+            },
+            {
+                periodo: 'amanha',
+                assinaturas: listarVencendoNoDia(amanhaSaoPaulo())
+            }
+        ];
 
     } catch (erro) {
 
@@ -190,22 +214,32 @@ async function verificarVencimentos(client) {
 
     }
 
-    for (const assinatura of assinaturas) {
+    console.log(
+        'VENCIMENTOS PARA AVISAR',
+        grupos.map(grupo => `${grupo.periodo}=${grupo.assinaturas.length}`).join(' ')
+    );
 
-        try {
+    for (const grupo of grupos) {
 
-            await avisarAssinatura(
-                client,
-                assinatura
-            );
+        for (const assinatura of grupo.assinaturas) {
 
-        } catch (erro) {
+            try {
 
-            console.log(
-                'ERRO AVISO VENCIMENTO',
-                assinatura.id,
-                erro.message
-            );
+                await avisarAssinatura(
+                    client,
+                    assinatura,
+                    grupo.periodo
+                );
+
+            } catch (erro) {
+
+                console.log(
+                    'ERRO AVISO VENCIMENTO',
+                    assinatura.id,
+                    erro.message
+                );
+
+            }
 
         }
 
@@ -243,6 +277,15 @@ function iniciarMonitorVencimentos(client) {
     }
 
     agendarProxima();
+
+    if (process.env.VENCIMENTOS_CHECK_STARTUP !== '0') {
+
+        setTimeout(
+            () => verificarVencimentos(client),
+            Number(process.env.VENCIMENTOS_STARTUP_DELAY_MS || 30000)
+        );
+
+    }
 
     console.log('MONITOR VENCIMENTOS ATIVO AS 10:00');
 
