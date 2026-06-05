@@ -100,6 +100,56 @@ function limparTravasChrome() {
 
 limparTravasChrome();
 
+function idsAtendimentoSaida(message) {
+
+    return [
+        message?.to,
+        message?.chatId,
+        message?.from
+    ].filter(id =>
+        typeof id === 'string' &&
+        id &&
+        !id.endsWith('@g.us') &&
+        !id.endsWith('@newsletter') &&
+        id !== 'status@broadcast'
+    );
+
+}
+
+function registrarAtendimentoManual(message) {
+
+    if (!message?.fromMe) return;
+
+    const destinos = [...new Set(idsAtendimentoSaida(message))];
+    const textoEnviado = obterTextoMensagem(message);
+
+    if (!destinos.length) return;
+
+    const eraAutomatica = destinos.some(destino =>
+        ehMensagemAutomatica(
+            destino,
+            textoEnviado
+        )
+    );
+
+    if (eraAutomatica) return;
+
+    for (const destino of destinos) {
+
+        pausarAtendimento(
+            destino,
+            'mensagem manual enviada pelo WhatsApp do bot'
+        );
+
+    }
+
+    console.log(
+        'ATENDIMENTO MANUAL PAUSOU BOT:',
+        destinos.join(', ')
+    );
+
+}
+
 wppconnect.create({
     session: 'bot',
 
@@ -129,6 +179,23 @@ wppconnect.create({
     iniciarMonitorVencimentos(client);
     iniciarMonitorSigma(client);
 
+    client.onAnyMessage((message) => {
+
+        try {
+
+            registrarAtendimentoManual(message);
+
+        } catch (erro) {
+
+            console.log(
+                'ERRO PAUSA ATENDIMENTO MANUAL',
+                erro.message
+            );
+
+        }
+
+    });
+
     client.onMessage(async (message) => {
 
         try {
@@ -140,36 +207,7 @@ wppconnect.create({
                 message.from?.endsWith('@newsletter')
             ) return;
 
-            if (message.fromMe) {
-
-                const destino = message.to || message.chatId || message.from;
-                const textoEnviado = obterTextoMensagem(message);
-
-                if (
-                    destino &&
-                    !destino.endsWith('@g.us') &&
-                    !destino.endsWith('@newsletter') &&
-                    !ehMensagemAutomatica(
-                        destino,
-                        textoEnviado
-                    )
-                ) {
-
-                    pausarAtendimento(
-                        destino,
-                        'mensagem manual enviada pelo WhatsApp do bot'
-                    );
-
-                    console.log(
-                        'ATENDIMENTO MANUAL PAUSOU BOT:',
-                        destino
-                    );
-
-                }
-
-                return;
-
-            }
+            if (message.fromMe) return;
 
             const numero = message.from;
 
