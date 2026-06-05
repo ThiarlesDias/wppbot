@@ -5,12 +5,12 @@ module.exports = async function produtos(client, numero) {
 
 `🛒 *Produtos TopTec Digital*
 
-Temos solucoes digitais prontas para facilitar sua rotina, melhorar seu atendimento e fortalecer sua presenca online.
+Temos eletronicos e acessorios em geral para o dia a dia: relogios inteligentes, caixas de som, fones de ouvido, carregadores, cabos e outros itens.
 
-Veja nossas opcoes no site:
+Confira os produtos disponiveis no site:
 https://toptecdigital.com/
 
-Se quiser, responda *9* para falar com um atendente ou *0* para voltar.`
+Se quiser ajuda para escolher, responda *9* para falar com um atendente ou *0* para voltar.`
     );
 
 };

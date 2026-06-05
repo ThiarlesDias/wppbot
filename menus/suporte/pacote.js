@@ -29,6 +29,11 @@ async function pacote(client, numero) {
                     descricao: 'Acesso por 180 dias.'
                 },
                 {
+                    id: '8',
+                    titulo: 'Encerrar atendimento',
+                    descricao: 'Finalizar sem contratar agora.'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar',
                     descricao: 'Retornar ao menu Sistema de TV.'

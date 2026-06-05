@@ -29,6 +29,11 @@ async function pacotePagamento(client, numero, plano, valor) {
                     descricao: 'Receber boleto.'
                 },
                 {
+                    id: '8',
+                    titulo: 'Encerrar atendimento',
+                    descricao: 'Finalizar sem pagar agora.'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar',
                     descricao: 'Escolher outro pacote.'

@@ -28,6 +28,10 @@ async function ajudaConfiguracao(client, numero) {
                     titulo: 'Outro dispositivo'
                 },
                 {
+                    id: '8',
+                    titulo: 'Encerrar atendimento'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar'
                 }

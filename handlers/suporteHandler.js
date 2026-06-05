@@ -37,6 +37,9 @@ const {
 const notificar =
 require('../services/notificador');
 const encaminharAtendente = require('../services/atendimentoHumano');
+const {
+    agendarFollowUp
+} = require('../services/followUpFunil');
 
 module.exports = async function suporteHandler(
     client,
@@ -208,6 +211,65 @@ ${erro.message}`
             client,
             numero
         );
+
+    }
+
+    async function enviarMenuPacoteComFollowUp() {
+
+        await pacote(
+            client,
+            numero
+        );
+
+        agendarFollowUp(
+            client,
+            numero,
+            'compra'
+        );
+
+    }
+
+    async function enviarPagamentoComFollowUp(plano, valor) {
+
+        await pacotePagamento(
+            client,
+            numero,
+            plano,
+            valor
+        );
+
+        agendarFollowUp(
+            client,
+            numero,
+            'compra'
+        );
+
+    }
+
+    async function enviarPesquisaSatisfacao() {
+
+        sessoes[numero] = 'satisfacao';
+
+        return await client.sendText(
+            numero,
+
+`Antes de encerrar, sua opiniao ajuda muito.
+
+De *1* a *5*, qual nota voce da para este atendimento?
+
+0 - Nao opinar`
+        );
+
+    }
+
+    async function encerrarComPesquisa() {
+
+        await client.sendText(
+            numero,
+            'Tudo bem, atendimento encerrado por aqui.'
+        );
+
+        return await enviarPesquisaSatisfacao();
 
     }
 
@@ -414,6 +476,39 @@ ${resumoAssinaturas(assinaturas)}`
 
     }
 
+    function dadosPacoteEtapa(etapaAtual) {
+
+        if (etapaAtual === 'pacote_1') {
+
+            return {
+                plano: '1 Mes',
+                valor: 'R$ 25,00'
+            };
+
+        }
+
+        if (etapaAtual === 'pacote_3') {
+
+            return {
+                plano: '3 Meses',
+                valor: 'R$ 60,00'
+            };
+
+        }
+
+        if (etapaAtual === 'pacote_6') {
+
+            return {
+                plano: '6 Meses',
+                valor: 'R$ 110,00'
+            };
+
+        }
+
+        return null;
+
+    }
+
     async function solicitarEmailCheckout(plano, valor, metodo) {
 
         sessoes[chaveCheckout] = {
@@ -422,6 +517,11 @@ ${resumoAssinaturas(assinaturas)}`
             metodo
         };
         sessoes[numero] = 'checkout_nome';
+        agendarFollowUp(
+            client,
+            numero,
+            'pagamento'
+        );
 
         return await client.sendText(
             numero,
@@ -438,6 +538,11 @@ Depois eu pergunto o email, que sera opcional.`
     async function solicitarEmailOpcionalCheckout() {
 
         sessoes[numero] = 'checkout_email';
+        agendarFollowUp(
+            client,
+            numero,
+            'pagamento'
+        );
 
         return await client.sendText(
             numero,
@@ -503,6 +608,13 @@ Assim que o pagamento for aprovado, vamos enviar aqui a confirmacao do pagamento
                     pixTexto
                 );
 
+                sessoes[numero] = 'followup_pagamento';
+                agendarFollowUp(
+                    client,
+                    numero,
+                    'pagamento'
+                );
+
                 await notificar(
                     client,
                     'LEAD DE VENDA GERADO',
@@ -554,6 +666,13 @@ ${venda.init_point}
 Assim que o pagamento for aprovado, vou avisar aqui e nossa equipe ativa manualmente seu acesso.`
             );
 
+            sessoes[numero] = 'followup_pagamento';
+            agendarFollowUp(
+                client,
+                numero,
+                'pagamento'
+            );
+
             await notificar(
                 client,
                 'LEAD DE VENDA GERADO',
@@ -586,7 +705,7 @@ Checkout:
 ${venda.init_point}`
             );
 
-            return await oferecerAjudaConfiguracao();
+            return;
 
         } catch (erro) {
 
@@ -650,7 +769,7 @@ ${erro.message}`
 
             sessoes[numero] = 'pacote';
 
-            return await pacote(client, numero);
+            return await enviarMenuPacoteComFollowUp();
 
         }
 
@@ -693,10 +812,7 @@ ${erro.message}`
 
             sessoes[numero] = 'pacote';
 
-            return await pacote(
-                client,
-                numero
-            );
+            return await enviarMenuPacoteComFollowUp();
 
         }
 
@@ -767,36 +883,60 @@ ${erro.message}`
 
         if (texto === '1') {
 
-            return await passosConfiguracao.smartTv(
+            await passosConfiguracao.smartTv(
                 client,
                 numero
+            );
+
+            return agendarFollowUp(
+                client,
+                numero,
+                'configuracao'
             );
 
         }
 
         if (texto === '2') {
 
-            return await passosConfiguracao.computador(
+            await passosConfiguracao.computador(
                 client,
                 numero
+            );
+
+            return agendarFollowUp(
+                client,
+                numero,
+                'configuracao'
             );
 
         }
 
         if (texto === '3') {
 
-            return await passosConfiguracao.celular(
+            await passosConfiguracao.celular(
                 client,
                 numero
+            );
+
+            return agendarFollowUp(
+                client,
+                numero,
+                'configuracao'
             );
 
         }
 
         if (texto === '4') {
 
-            return await passosConfiguracao.outro(
+            await passosConfiguracao.outro(
                 client,
                 numero
+            );
+
+            return agendarFollowUp(
+                client,
+                numero,
+                'configuracao'
             );
 
         }
@@ -826,9 +966,213 @@ ${erro.message}`
 
         }
 
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
         return await ajudaConfiguracao(
             client,
             numero
+        );
+
+    }
+
+    if (etapa === 'followup_compra') {
+
+        if (texto === '1') {
+
+            sessoes[numero] = 'pacote';
+
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Retomada de compra',
+                {
+                    mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                }
+            );
+
+        }
+
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            'Digite *1* para adquirir agora, *9* para falar com atendente, *8* para encerrar ou *0* para voltar.'
+        );
+
+    }
+
+    if (etapa === 'followup_pagamento') {
+
+        if (texto === '1') {
+
+            sessoes[numero] = 'pacote';
+
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Retomada de pagamento',
+                {
+                    mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                }
+            );
+
+        }
+
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            'Digite *1* para continuar, *9* para falar com atendente, *8* para encerrar ou *0* para voltar.'
+        );
+
+    }
+
+    if (etapa === 'followup_configuracao') {
+
+        if (texto === '1') {
+
+            return await enviarPesquisaSatisfacao();
+
+        }
+
+        if (texto === '2') {
+
+            sessoes[numero] = 'ajuda_config';
+
+            return await ajudaConfiguracao(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Retomada de configuracao',
+                {
+                    mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                }
+            );
+
+        }
+
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            'Digite *1* se funcionou, *2* para ajuda, *9* para atendente, *8* para encerrar ou *0* para voltar.'
+        );
+
+    }
+
+    if (etapa === 'satisfacao') {
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await client.sendText(
+                numero,
+                'Obrigado. Atendimento encerrado.'
+            );
+
+        }
+
+        if (!/^[1-5]$/.test(texto)) {
+
+            return await client.sendText(
+                numero,
+                'Envie uma nota de *1* a *5* ou *0* para nao opinar.'
+            );
+
+        }
+
+        await notificar(
+            client,
+            'PESQUISA DE SATISFACAO',
+
+`Cliente:
+${numero}
+
+WhatsApp:
+${numeroWhatsapp || 'Nao informado'}
+
+Nota:
+${texto}`
+        );
+
+        sessoes[numero] = 'menu';
+
+        return await client.sendText(
+            numero,
+            'Obrigado pela resposta. Atendimento encerrado.'
         );
 
     }
@@ -841,10 +1185,13 @@ ${erro.message}`
 
             sessoes[numero] = 'pacote';
 
-            return await pacote(
-                client,
-                numero
-            );
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
 
         }
 
@@ -874,10 +1221,13 @@ ${erro.message}`
 
             sessoes[numero] = 'pacote';
 
-            return await pacote(
-                client,
-                numero
-            );
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
 
         }
 
@@ -1099,12 +1449,7 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
             sessoes[numero] = 'pacote_1';
 
-            return await pacotePagamento(
-                client,
-                numero,
-                '1 Mes',
-                'R$ 25,00'
-            );
+            return await enviarPagamentoComFollowUp('1 Mes', 'R$ 25,00');
 
         }
 
@@ -1113,12 +1458,7 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
             sessoes[numero] = 'pacote_3';
 
-            return await pacotePagamento(
-                client,
-                numero,
-                '3 Meses',
-                'R$ 60,00'
-            );
+            return await enviarPagamentoComFollowUp('3 Meses', 'R$ 60,00');
 
         }
 
@@ -1127,12 +1467,7 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
             sessoes[numero] = 'pacote_6';
 
-            return await pacotePagamento(
-                client,
-                numero,
-                '6 Meses',
-                'R$ 110,00'
-            );
+            return await enviarPagamentoComFollowUp('6 Meses', 'R$ 110,00');
 
         }
 
@@ -1194,6 +1529,11 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '1') {
 
             sessoes[numero] = 'pacote_1';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
 
             return await pacotePagamento(
                 client,
@@ -1207,6 +1547,11 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '2') {
 
             sessoes[numero] = 'pacote_3';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
 
             return await pacotePagamento(
                 client,
@@ -1220,6 +1565,11 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '3') {
 
             sessoes[numero] = 'pacote_6';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
 
             return await pacotePagamento(
                 client,
@@ -1238,19 +1588,25 @@ Se nao quiser responder, envie *0* para pular.`
 
         }
 
-        return await pacote(client, numero);
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
+        return await enviarMenuPacoteComFollowUp();
 
     }
 
-    // PACOTE 1 MES
+    const pacoteSelecionado = dadosPacoteEtapa(etapa);
 
-    if (etapa === 'pacote_1') {
+    if (pacoteSelecionado) {
 
         if (texto === '1') {
 
             return await solicitarEmailCheckout(
-                '1 Mes',
-                'R$ 25,00',
+                pacoteSelecionado.plano,
+                pacoteSelecionado.valor,
                 'pix'
             );
 
@@ -1259,8 +1615,8 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '2') {
 
             return await solicitarEmailCheckout(
-                '1 Mes',
-                'R$ 25,00',
+                pacoteSelecionado.plano,
+                pacoteSelecionado.valor,
                 'cartao'
             );
 
@@ -1269,82 +1625,33 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '3') {
 
             return await solicitarEmailCheckout(
-                '1 Mes',
-                'R$ 25,00',
+                pacoteSelecionado.plano,
+                pacoteSelecionado.valor,
                 'boleto'
             );
 
         }
 
-    }
+        if (texto === '8') {
 
-    // PACOTE 3 MESES
-    if (etapa === 'pacote_3') {
-
-        if (texto === '1') {
-
-            return await solicitarEmailCheckout(
-                '3 Meses',
-                'R$ 60,00',
-                'pix'
-            );
+            return await encerrarComPesquisa();
 
         }
 
-        if (texto === '2') {
+        if (texto === '0') {
 
-            return await solicitarEmailCheckout(
-                '3 Meses',
-                'R$ 60,00',
-                'cartao'
-            );
+            sessoes[numero] = 'pacote';
+
+            return await enviarMenuPacoteComFollowUp();
 
         }
 
-        if (texto === '3') {
-
-            return await solicitarEmailCheckout(
-                '3 Meses',
-                'R$ 60,00',
-                'boleto'
-            );
-
-        }
-
-    }
-
-    // PACOTE 6 MESES
-    if (etapa === 'pacote_6') {
-
-        if (texto === '1') {
-
-            return await solicitarEmailCheckout(
-                '6 Meses',
-                'R$ 110,00',
-                'pix'
-            );
-
-        }
-
-        if (texto === '2') {
-
-            return await solicitarEmailCheckout(
-                '6 Meses',
-                'R$ 110,00',
-                'cartao'
-            );
-
-        }
-
-        if (texto === '3') {
-
-            return await solicitarEmailCheckout(
-                '6 Meses',
-                'R$ 110,00',
-                'boleto'
-            );
-
-        }
+        return await pacotePagamento(
+            client,
+            numero,
+            pacoteSelecionado.plano,
+            pacoteSelecionado.valor
+        );
 
     }
 

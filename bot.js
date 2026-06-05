@@ -33,6 +33,9 @@ const {
     atualizarInteracao,
     verificarTimeout
 } = require('./services/sessionManager');
+const {
+    cancelarFollowUp
+} = require('./services/followUpFunil');
 
 console.log('INICIANDO BOT...');
 
@@ -246,6 +249,8 @@ wppconnect.create({
 
             if (!texto) return;
 
+            cancelarFollowUp(numero);
+
             if (
                 texto === '#bot' ||
                 texto === '/bot' ||
@@ -353,6 +358,10 @@ wppconnect.create({
                 case 'ajuda_config':
                 case 'checkout_nome':
                 case 'checkout_email':
+                case 'followup_compra':
+                case 'followup_pagamento':
+                case 'followup_configuracao':
+                case 'satisfacao':
                 case 'vencimento_aviso':
                 case 'cancelamento_feedback':
                 case 'cancelamento_repescagem':
