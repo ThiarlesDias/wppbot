@@ -258,6 +258,8 @@ wppconnect.create({
             ) {
 
                 liberarAtendimento(numero);
+                liberarAtendimento(numeroWhatsapp);
+                liberarAtendimento(`${limparNumero(numeroWhatsapp)}@c.us`);
                 sessoes[numero] = 'menu';
 
                 return await menuPrincipal(
@@ -289,7 +291,11 @@ wppconnect.create({
 
             }
 
-            if (atendimentoPausado(numero)) return;
+            if (
+                atendimentoPausado(numero) ||
+                atendimentoPausado(numeroWhatsapp) ||
+                atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
+            ) return;
 
             verificarTimeout(
                 numero

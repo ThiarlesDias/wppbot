@@ -1,6 +1,9 @@
 const sessoes = require('./sessions');
 const menuHumano = require('../menus/humano');
 const notificar = require('./notificador');
+const {
+    pausarAtendimento
+} = require('./pausaAtendimento');
 
 function limparNumero(numero) {
 
@@ -13,6 +16,24 @@ async function encaminharAtendente(client, numero, numeroWhatsapp, origem, opcoe
     const contato = limparNumero(numeroWhatsapp) || limparNumero(numero);
 
     sessoes[numero] = 'humano';
+    pausarAtendimento(
+        numero,
+        `atendimento humano: ${origem || 'Menu'}`
+    );
+
+    if (numeroWhatsapp) {
+
+        pausarAtendimento(
+            numeroWhatsapp,
+            `atendimento humano: ${origem || 'Menu'}`
+        );
+
+        pausarAtendimento(
+            `${limparNumero(numeroWhatsapp)}@c.us`,
+            `atendimento humano: ${origem || 'Menu'}`
+        );
+
+    }
 
     await notificar(
         client,
