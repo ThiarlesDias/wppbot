@@ -493,7 +493,9 @@ Se nao quiser informar agora, digite *0* para pular.`
 
 `💠 *PIX copia e cola*
 
-Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo da proxima mensagem.`
+Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo da proxima mensagem.
+
+Assim que o pagamento for aprovado, vamos enviar aqui a confirmacao do pagamento e, em seguida, os dados do usuario.`
                 );
 
                 await client.sendText(
