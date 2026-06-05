@@ -125,6 +125,28 @@ function registrarAtendimentoManual(message) {
 
     if (!destinos.length) return;
 
+    if (
+        textoEnviado === '#bot' ||
+        textoEnviado === '/bot' ||
+        textoEnviado === 'reativar bot'
+    ) {
+
+        for (const destino of destinos) {
+
+            liberarAtendimento(destino);
+            sessoes[destino] = 'menu';
+
+        }
+
+        console.log(
+            'ATENDIMENTO MANUAL REATIVOU BOT:',
+            destinos.join(', ')
+        );
+
+        return;
+
+    }
+
     const eraAutomatica = destinos.some(destino =>
         ehMensagemAutomatica(
             destino,
