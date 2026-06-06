@@ -21,6 +21,8 @@ const {
     atualizarClienteCsv
 } = require('./clientesCsv');
 const notificar = require('./notificador');
+const sessoes = require('./sessions');
+const ajudaPosTeste = require('../menus/suporte/ajudaPosTeste');
 
 const INTERVALO_MS = Number(process.env.MP_MONITOR_INTERVAL_MS || 60000);
 
@@ -570,6 +572,13 @@ Nossa equipe tambem foi avisada para finalizar a ativacao.`
         await client.sendText(
             venda.numero,
             montarMensagemAcessoWhatsapp(credenciais)
+        );
+
+        sessoes[venda.numero] = 'pos_teste';
+
+        await ajudaPosTeste(
+            client,
+            venda.numero
         );
 
         let statusEmailAdmin = 'nao enviado';

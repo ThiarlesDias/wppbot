@@ -106,21 +106,36 @@ function amanhaSaoPaulo() {
 function mensagemAviso(assinatura, periodo = 'amanha') {
 
     const titulo = periodo === 'hoje' ?
-        '*Seu acesso vence hoje*' :
-        '*Seu acesso vence amanha*';
+        '⚠️ *Seu acesso vence hoje*' :
+        '⏰ *Seu acesso vence amanha*';
+    const chamada = periodo === 'hoje' ?
+        'Para nao ficar sem sinal, renove ainda hoje.' :
+        'Renove com antecedencia e evite ficar sem sinal.';
 
     return [
         titulo,
         '',
+        chamada,
+        '',
+        '📺 *Dados do acesso*',
         assinatura.nome ? `Cliente: ${assinatura.nome}` : '',
         `Usuario: ${assinatura.username}`,
         `Vencimento: ${formatarData(assinatura.expiresAt)}`,
         '',
-        'Renovando agora, voce mantem o mesmo usuario e os dias sao somados no vencimento atual assim que o pagamento for confirmado.',
+        '✅ *Renovando agora voce:*',
+        '• Mantem o mesmo usuario e senha.',
+        '• Nao precisa configurar tudo de novo.',
+        '• Tem os dias do pacote somados no vencimento atual apos a confirmacao do pagamento.',
         '',
-        '1 - Renovar agora',
-        '2 - Cancelar minha assinatura',
-        '0 - Voltar ao menu'
+        'Exemplo: se seu acesso vence hoje e voce renova 1 mes, o novo vencimento passa a contar a partir do vencimento atual.',
+        '',
+        '━━━━━━━━━━━━━━',
+        'Escolha uma opcao:',
+        '',
+        '1️⃣ Renovar agora',
+        '2️⃣ Cancelar minha assinatura',
+        '0️⃣ Voltar ao menu',
+        '━━━━━━━━━━━━━━'
     ].filter(Boolean).join('\n');
 
 }
