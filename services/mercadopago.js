@@ -272,7 +272,10 @@ async function criarCheckoutVenda({
     valor,
     metodo,
     tipo,
-    assinatura
+    assinatura,
+    cupom,
+    desconto,
+    valorOriginal
 }) {
 
     const reference = referenciaVenda();
@@ -292,7 +295,10 @@ async function criarCheckoutVenda({
             valor: valorNumero,
             titulo,
             tipo,
-            assinatura
+            assinatura,
+            cupom,
+            desconto,
+            valorOriginal
         });
 
     }
@@ -314,7 +320,10 @@ async function criarCheckoutVenda({
             plano,
             metodo,
             tipo: tipo || 'nova',
-            assinatura_id: assinatura?.id || ''
+            assinatura_id: assinatura?.id || '',
+            cupom: cupom || '',
+            desconto: desconto || 0,
+            valor_original: valorOriginal || valorNumero
         },
         statement_descriptor: 'TOPTEC TV'
     };
@@ -385,6 +394,9 @@ async function criarCheckoutVenda({
         tipo: tipo || 'nova',
         assinatura_id: assinatura?.id || '',
         assinatura_username: assinatura?.username || '',
+        cupom: cupom || '',
+        desconto: desconto || 0,
+        valor_original: valorOriginal || valorNumero,
         email: email || '',
         status: 'pending',
         preference_id: preferencia.id,
@@ -412,7 +424,10 @@ async function criarPagamentoPix({
     valor,
     titulo,
     tipo,
-    assinatura
+    assinatura,
+    cupom,
+    desconto,
+    valorOriginal
 }) {
 
     const payerEmail =
@@ -443,7 +458,10 @@ async function criarPagamentoPix({
                     plano,
                     metodo: 'pix',
                     tipo: tipo || 'nova',
-                    assinatura_id: assinatura?.id || ''
+                    assinatura_id: assinatura?.id || '',
+                    cupom: cupom || '',
+                    desconto: desconto || 0,
+                    valor_original: valorOriginal || valor
                 }
             })
         }
@@ -461,6 +479,9 @@ async function criarPagamentoPix({
         tipo: tipo || 'nova',
         assinatura_id: assinatura?.id || '',
         assinatura_username: assinatura?.username || '',
+        cupom: cupom || '',
+        desconto: desconto || 0,
+        valor_original: valorOriginal || valor,
         email: email || '',
         status: pagamento.status || 'pending',
         payment_id: pagamento.id,

@@ -40,6 +40,9 @@ const encaminharAtendente = require('../services/atendimentoHumano');
 const {
     agendarFollowUp
 } = require('../services/followUpFunil');
+const {
+    validarCupom
+} = require('../services/marketingCampanha');
 
 module.exports = async function suporteHandler(
     client,
@@ -509,6 +512,24 @@ ${resumoAssinaturas(assinaturas)}`
 
     }
 
+    function valorNumero(valor) {
+
+        return Number(
+            String(valor || '')
+                .replace('R$', '')
+                .replace(/\./g, '')
+                .replace(',', '.')
+                .trim()
+        );
+
+    }
+
+    function formatarValorMoeda(valor) {
+
+        return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
+
+    }
+
     async function solicitarEmailCheckout(plano, valor, metodo) {
 
         sessoes[chaveCheckout] = {
@@ -556,7 +577,28 @@ Se nao quiser informar agora, digite *0* para pular.`
 
     }
 
-    async function enviarCheckoutPacote(plano, valor, metodo, nome, email) {
+    async function solicitarCupomOpcionalCheckout() {
+
+        sessoes[numero] = 'checkout_cupom';
+        agendarFollowUp(
+            client,
+            numero,
+            'pagamento'
+        );
+
+        return await client.sendText(
+            numero,
+
+`🎟️ *Cupom de desconto*
+
+Se voce recebeu um cupom, envie agora para aplicar no pagamento.
+
+Se nao tiver cupom, digite *0* para continuar.`
+        );
+
+    }
+
+    async function enviarCheckoutPacote(plano, valor, metodo, nome, email, cupomInfo = null) {
 
         try {
 
@@ -571,6 +613,15 @@ Se nao quiser informar agora, digite *0* para pular.`
                 assinaturasRenovaveis[0] :
                 null;
             const tipoVenda = assinaturaRenovavel ? 'renovacao' : 'nova';
+            const valorOriginal = valorNumero(valor);
+            const desconto = cupomInfo?.desconto ? Number(cupomInfo.desconto) : 0;
+            const valorFinal = Math.max(
+                1,
+                valorOriginal - desconto
+            );
+            const valorCheckout = desconto > 0 ?
+                formatarValorMoeda(valorFinal) :
+                valor;
 
             const venda = await criarCheckoutVenda({
                 numero,
@@ -578,10 +629,13 @@ Se nao quiser informar agora, digite *0* para pular.`
                 nome,
                 email,
                 plano,
-                valor,
+                valor: valorCheckout,
                 metodo,
                 tipo: tipoVenda,
-                assinatura: assinaturaRenovavel || null
+                assinatura: assinaturaRenovavel || null,
+                cupom: cupomInfo?.codigo || '',
+                desconto,
+                valorOriginal
             });
 
             delete sessoes[chaveForcarRenovacao];
@@ -629,7 +683,9 @@ Plano:
 ${plano}
 
 Valor:
-${valor}
+${valorCheckout}
+
+${desconto > 0 ? `Cupom aplicado: ${cupomInfo.codigo}\nDesconto: ${formatarValorMoeda(desconto)}\nValor original: ${formatarValorMoeda(valorOriginal)}\n` : ''}
 
 Forma:
 ${nomeMetodo(metodo)}
@@ -657,8 +713,9 @@ ${venda.init_point}`
 `💳 *Pagamento Mercado Pago*
 
 Plano: ${plano}
-Valor: ${valor}
+Valor: ${valorCheckout}
 Forma: ${nomeMetodo(metodo)}
+${desconto > 0 ? `Cupom: ${cupomInfo.codigo}\nDesconto: ${formatarValorMoeda(desconto)}\nValor original: ${formatarValorMoeda(valorOriginal)}\n` : ''}
 
 Pague pelo link abaixo:
 ${venda.init_point}
@@ -687,7 +744,9 @@ Plano:
 ${plano}
 
 Valor:
-${valor}
+${valorCheckout}
+
+${desconto > 0 ? `Cupom aplicado: ${cupomInfo.codigo}\nDesconto: ${formatarValorMoeda(desconto)}\nValor original: ${formatarValorMoeda(valorOriginal)}\n` : ''}
 
 Forma:
 ${nomeMetodo(metodo)}
@@ -1253,6 +1312,65 @@ ${texto}`
 
         }
 
+        sessoes[chaveCheckout] = {
+            ...checkout,
+            email
+        };
+
+        return await solicitarCupomOpcionalCheckout();
+
+    }
+
+    if (etapa === 'checkout_cupom') {
+
+        const checkout = sessoes[chaveCheckout];
+
+        if (!checkout) {
+
+            sessoes[numero] = 'pacote';
+
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
+        let cupomInfo = null;
+
+        if (
+            texto !== '0' &&
+            texto !== 'pular' &&
+            texto !== 'nao' &&
+            texto !== 'não'
+        ) {
+
+            const resultadoCupom = validarCupom(
+                texto,
+                numeroWhatsapp || numero
+            );
+
+            if (!resultadoCupom.valido) {
+
+                return await client.sendText(
+                    numero,
+                    `${resultadoCupom.motivo} Envie outro cupom ou digite *0* para continuar sem desconto.`
+                );
+
+            }
+
+            cupomInfo = resultadoCupom.cupom;
+
+            await client.sendText(
+                numero,
+                `Cupom *${cupomInfo.codigo}* aplicado. Desconto de R$ ${Number(cupomInfo.desconto).toFixed(2).replace('.', ',')}.`
+            );
+
+        }
+
         delete sessoes[chaveCheckout];
 
         return await enviarCheckoutPacote(
@@ -1260,7 +1378,8 @@ ${texto}`
             checkout.valor,
             checkout.metodo,
             checkout.nome,
-            email
+            checkout.email || '',
+            cupomInfo
         );
 
     }

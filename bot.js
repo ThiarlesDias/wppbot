@@ -22,6 +22,10 @@ const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
 const {
+    enviarCampanha,
+    statusMarketing
+} = require('./services/marketingCampanha');
+const {
     atendimentoPausado,
     ehMensagemAutomatica,
     instalarRegistroAutomatico,
@@ -292,6 +296,77 @@ wppconnect.create({
             }
 
             if (
+                texto === '#marketing status' &&
+                ehAdmin(
+                    numeroWhatsapp,
+                    numero
+                )
+            ) {
+
+                const status = statusMarketing();
+
+                return await client.sendText(
+                    numero,
+
+`📣 *Marketing*
+
+Arquivo:
+${status.arquivo}
+
+Numeros na planilha:
+${status.totalPlanilha}
+
+Cupons criados:
+${status.cupons}
+
+Mensagens enviadas:
+${status.enviados}
+
+Cupons usados:
+${status.usados}
+
+Campanha rodando:
+${status.rodando ? 'Sim' : 'Nao'}`
+                );
+
+            }
+
+            if (
+                texto === '#marketing enviar' &&
+                ehAdmin(
+                    numeroWhatsapp,
+                    numero
+                )
+            ) {
+
+                await client.sendText(
+                    numero,
+                    'Iniciando campanha de marketing. Vou enviar com intervalo entre mensagens e ignorar numeros que ja receberam.'
+                );
+
+                const resultado = await enviarCampanha(client);
+
+                return await client.sendText(
+                    numero,
+
+`📣 *Campanha finalizada*
+
+Total na planilha:
+${resultado.total}
+
+Enviados:
+${resultado.enviados}
+
+Ignorados:
+${resultado.ignorados}
+
+Erros:
+${resultado.erros}`
+                );
+
+            }
+
+            if (
                 atendimentoPausado(numero) ||
                 atendimentoPausado(numeroWhatsapp) ||
                 atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
@@ -364,6 +439,7 @@ wppconnect.create({
                 case 'ajuda_config':
                 case 'checkout_nome':
                 case 'checkout_email':
+                case 'checkout_cupom':
                 case 'followup_compra':
                 case 'followup_pagamento':
                 case 'followup_configuracao':

@@ -9,5 +9,6 @@ data/*.json
 npm-debug.log
 wpp-bot/
 clientes.csv
+marketing.csv
 .~lock.*#
 data/*.csv
