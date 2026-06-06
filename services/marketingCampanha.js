@@ -15,7 +15,8 @@ const MARKETING_PATH = process.env.MARKETING_CSV_PATH ||
     );
 const STORE_PATH = path.join(DATA_DIR, 'marketing-cupons.json');
 const DESCONTO_PADRAO = Number(process.env.MARKETING_CUPOM_DESCONTO || 10);
-const INTERVALO_ENVIO_MS = Number(process.env.MARKETING_ENVIO_INTERVALO_MS || 12000);
+const INTERVALO_ENVIO_MS = Number(process.env.MARKETING_ENVIO_INTERVALO_MS || 15 * 60 * 1000);
+const LIMITE_DIARIO = Number(process.env.MARKETING_LIMITE_DIARIO || 10);
 
 let campanhaRodando = false;
 
@@ -277,6 +278,39 @@ function montarMensagem(cupom) {
 
 }
 
+function diaSaoPaulo(valor = new Date()) {
+
+    const partes = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }
+    ).formatToParts(new Date(valor)).reduce(
+        (acc, parte) => {
+            acc[parte.type] = parte.value;
+            return acc;
+        },
+        {}
+    );
+
+    return `${partes.year}-${partes.month}-${partes.day}`;
+
+}
+
+function totalEnviadoHoje(store = lerStore()) {
+
+    const hoje = diaSaoPaulo();
+
+    return Object.values(store.cupons || {}).filter(cupom =>
+        cupom.enviadoEm &&
+        diaSaoPaulo(cupom.enviadoEm) === hoje
+    ).length;
+
+}
+
 async function enviarCampanha(client) {
 
     if (campanhaRodando) {
@@ -286,7 +320,9 @@ async function enviarCampanha(client) {
             total: 0,
             enviados: 0,
             ignorados: 0,
-            erros: 0
+            erros: 0,
+            limiteDiario: LIMITE_DIARIO,
+            enviadosHoje: totalEnviadoHoje()
         };
 
     }
@@ -300,12 +336,25 @@ async function enviarCampanha(client) {
         total: numeros.length,
         enviados: 0,
         ignorados: 0,
-        erros: 0
+        erros: 0,
+        limiteDiario: LIMITE_DIARIO,
+        enviadosHoje: totalEnviadoHoje(store),
+        pausadoPorLimite: false
     };
 
     try {
 
         for (const item of numeros) {
+
+            if (
+                LIMITE_DIARIO > 0 &&
+                resultado.enviadosHoje >= LIMITE_DIARIO
+            ) {
+
+                resultado.pausadoPorLimite = true;
+                break;
+
+            }
 
             const existente = store.telefones[item.telefone]?.codigo;
             const cupomExistente = existente ? store.cupons[existente] : null;
@@ -333,6 +382,7 @@ async function enviarCampanha(client) {
                 };
                 salvarStore(storeAtual);
                 resultado.enviados += 1;
+                resultado.enviadosHoje += 1;
 
                 await esperar(INTERVALO_ENVIO_MS);
 
@@ -371,6 +421,9 @@ function statusMarketing() {
         totalPlanilha: numeros.length,
         cupons: cupons.length,
         enviados: cupons.filter(cupom => cupom.enviadoEm).length,
+        enviadosHoje: totalEnviadoHoje(store),
+        limiteDiario: LIMITE_DIARIO,
+        intervaloMs: INTERVALO_ENVIO_MS,
         usados: cupons.filter(cupom => cupom.status === 'usado').length,
         rodando: campanhaRodando
     };

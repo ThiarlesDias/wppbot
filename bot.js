@@ -325,6 +325,12 @@ ${status.enviados}
 Cupons usados:
 ${status.usados}
 
+Enviados hoje:
+${status.enviadosHoje}/${status.limiteDiario || 'sem limite'}
+
+Intervalo:
+${Math.round(status.intervaloMs / 1000)} segundos
+
 Campanha rodando:
 ${status.rodando ? 'Sim' : 'Nao'}`
                 );
@@ -361,7 +367,12 @@ Ignorados:
 ${resultado.ignorados}
 
 Erros:
-${resultado.erros}`
+${resultado.erros}
+
+Enviados hoje:
+${resultado.enviadosHoje}/${resultado.limiteDiario || 'sem limite'}
+
+${resultado.pausadoPorLimite ? 'Pausado porque atingiu o limite diario. Rode novamente amanha para continuar.' : 'Campanha concluida para este ciclo.'}`
                 );
 
             }
