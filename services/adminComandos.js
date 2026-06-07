@@ -11,6 +11,7 @@ const {
 const {
     limparPausasAtendimento
 } = require('./pausaAtendimento');
+const statusDiario = require('./statusDiario');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
@@ -69,6 +70,8 @@ function menuAdmin() {
         '#clientes ultimos - ultimos 10 clientes da planilha',
         '#marketing status - status da campanha',
         '#marketing enviar - disparar campanha com limite/intervalo',
+        '#status imagens - ver imagens do status diario',
+        '#status postar - postar uma imagem aleatoria agora',
         '#vencimentos - rodar checagem de vencimentos agora',
         '#pausas limpar - liberar todos os atendimentos pausados',
         '#restart - reiniciar somente o bot',
@@ -162,6 +165,24 @@ function textoMarketingStatus() {
 
 }
 
+function textoStatusImagens() {
+
+    const status = statusDiario.resumo();
+
+    return [
+        '*Status diario*',
+        '',
+        `Ativo: ${status.habilitado ? 'Sim' : 'Nao'}`,
+        `Pasta: ${status.pasta}`,
+        `Imagens: ${status.totalImagens}`,
+        `Ultimo dia: ${status.ultimoDia || 'nenhum'}`,
+        `Ultimo arquivo: ${status.ultimoArquivo || 'nenhum'}`,
+        `Postado em: ${status.postadoEm ? formatarData(new Date(status.postadoEm)) : 'nenhum'}`,
+        `Proximo envio: ${status.proximaExecucao ? formatarData(new Date(status.proximaExecucao)) : 'nao agendado'}`
+    ].join('\n');
+
+}
+
 async function tratarComandoAdmin({
     client,
     numero,
@@ -233,6 +254,42 @@ async function tratarComandoAdmin({
                     'Campanha concluida para este ciclo.'
             ].join('\n')
         );
+
+    }
+
+    if (texto === '#status imagens') {
+
+        return await client.sendText(numero, textoStatusImagens());
+
+    }
+
+    if (texto === '#status postar') {
+
+        await client.sendText(numero, 'Postando uma imagem aleatoria no status agora.');
+
+        try {
+
+            const resultado = await statusDiario.postarAgora(client, {
+                forcar: true
+            });
+
+            return await client.sendText(
+                numero,
+                [
+                    '*Status postado*',
+                    '',
+                    `Arquivo: ${path.basename(resultado.arquivo || '') || 'nao informado'}`
+                ].join('\n')
+            );
+
+        } catch (erro) {
+
+            return await client.sendText(
+                numero,
+                `Nao consegui postar o status: ${erro.message}`
+            );
+
+        }
 
     }
 

@@ -21,6 +21,7 @@ const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
+const iniciarStatusDiario = require('./services/statusDiario');
 const {
     tratarComandoAdmin
 } = require('./services/adminComandos');
@@ -206,6 +207,7 @@ wppconnect.create({
     iniciarMonitorClientesCsv();
     iniciarMonitorVencimentos(client);
     iniciarMonitorSigma(client);
+    iniciarStatusDiario(client);
 
     client.onAnyMessage((message) => {
 
