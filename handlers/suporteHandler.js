@@ -318,7 +318,19 @@ De *1* a *5*, qual nota voce da para este atendimento?
 
         if (!acessos.length) {
 
-            return 'Nao encontrei usuario ativo vinculado a este WhatsApp. Se voce usa outro numero no cadastro, fale com um atendente.';
+            return [
+                '*Nao encontrei usuario ativo neste WhatsApp*',
+                '',
+                'Por seguranca, nao consigo mostrar dados de acesso usando outro numero.',
+                '',
+                'Se o cadastro foi feito em outro WhatsApp ou voce precisa de ajuda, fale com um atendente.',
+                '',
+                '━━━━━━━━━━━━━━',
+                'Escolha uma opcao:',
+                '9️⃣ Falar com atendente',
+                '0️⃣ Voltar ao menu',
+                '━━━━━━━━━━━━━━'
+            ].join('\n');
 
         }
 
@@ -355,11 +367,21 @@ De *1* a *5*, qual nota voce da para este atendimento?
             numero,
             numeroWhatsapp
         );
+        const acessos = assinaturas.filter(assinatura =>
+            assinatura.status !== 'cancelada'
+        );
 
         await client.sendText(
             numero,
-            montarMensagemConsultaAssinaturas(assinaturas)
+            montarMensagemConsultaAssinaturas(acessos)
         );
+
+        if (!acessos.length) {
+
+            sessoes[numero] = 'usuario_nao_encontrado';
+            return;
+
+        }
 
         sessoes[numero] = 'pos_teste';
 
@@ -864,6 +886,44 @@ ${erro.message}`
     // RENOVAÇÃO
 
     // TESTE GRATIS
+
+    if (etapa === 'usuario_nao_encontrado') {
+
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Usuario nao encontrado',
+                {
+                    mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                }
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+
+`Nao encontrei usuario ativo neste WhatsApp.
+
+9️⃣ Falar com atendente
+0️⃣ Voltar ao menu`
+        );
+
+    }
 
     if (etapa === 'teste_ja_usado') {
 

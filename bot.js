@@ -361,6 +361,7 @@ wppconnect.create({
                 case 'pacote_6':
                 case 'teste_gratis':
                 case 'teste_ja_usado':
+                case 'usuario_nao_encontrado':
                 case 'pos_teste':
                 case 'ajuda_config':
                 case 'checkout_nome':
