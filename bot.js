@@ -126,6 +126,12 @@ function idsAtendimentoSaida(message) {
 function registrarAtendimentoManual(message) {
 
     if (!message?.fromMe) return;
+    if (message?.isStatusV3) return;
+    if (
+        message?.from === 'status@broadcast' ||
+        message?.to === 'status@broadcast' ||
+        message?.chatId === 'status@broadcast'
+    ) return;
 
     const destinos = [...new Set(idsAtendimentoSaida(message))];
     const textoEnviado = obterTextoMensagem(message);
@@ -231,10 +237,12 @@ wppconnect.create({
         try {
 
             if (message.isGroupMsg) return;
+            if (message.isStatusV3) return;
 
             if (
                 message.from?.endsWith('@g.us') ||
-                message.from?.endsWith('@newsletter')
+                message.from?.endsWith('@newsletter') ||
+                message.from === 'status@broadcast'
             ) return;
 
             if (message.fromMe) return;
