@@ -22,9 +22,8 @@ const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
 const {
-    enviarCampanha,
-    statusMarketing
-} = require('./services/marketingCampanha');
+    tratarComandoAdmin
+} = require('./services/adminComandos');
 const {
     atendimentoPausado,
     ehMensagemAutomatica,
@@ -255,6 +254,26 @@ wppconnect.create({
 
             cancelarFollowUp(numero);
 
+            const admin = ehAdmin(
+                numeroWhatsapp,
+                numero
+            );
+
+            if (admin) {
+
+                const tratado = await tratarComandoAdmin({
+                    client,
+                    numero,
+                    texto,
+                    verificarVencimentos: iniciarMonitorVencimentos.verificarVencimentos
+                });
+
+                if (tratado || texto.startsWith('#')) return;
+
+                return;
+
+            }
+
             if (
                 texto === '#bot' ||
                 texto === '/bot' ||
@@ -269,110 +288,6 @@ wppconnect.create({
                 return await menuPrincipal(
                     client,
                     numero
-                );
-
-            }
-
-            if (
-                texto === '#vencimentos' &&
-                ehAdmin(
-                    numeroWhatsapp,
-                    numero
-                )
-            ) {
-
-                await client.sendText(
-                    numero,
-                    'Rodando checagem de vencimentos agora.'
-                );
-
-                await iniciarMonitorVencimentos.verificarVencimentos(client);
-
-                return await client.sendText(
-                    numero,
-                    'Checagem de vencimentos concluida. Veja o log para detalhes.'
-                );
-
-            }
-
-            if (
-                texto === '#marketing status' &&
-                ehAdmin(
-                    numeroWhatsapp,
-                    numero
-                )
-            ) {
-
-                const status = statusMarketing();
-
-                return await client.sendText(
-                    numero,
-
-`📣 *Marketing*
-
-Arquivo:
-${status.arquivo}
-
-Numeros na planilha:
-${status.totalPlanilha}
-
-Cupons criados:
-${status.cupons}
-
-Mensagens enviadas:
-${status.enviados}
-
-Cupons usados:
-${status.usados}
-
-Enviados hoje:
-${status.enviadosHoje}/${status.limiteDiario || 'sem limite'}
-
-Intervalo:
-${Math.round(status.intervaloMs / 1000)} segundos
-
-Campanha rodando:
-${status.rodando ? 'Sim' : 'Nao'}`
-                );
-
-            }
-
-            if (
-                texto === '#marketing enviar' &&
-                ehAdmin(
-                    numeroWhatsapp,
-                    numero
-                )
-            ) {
-
-                await client.sendText(
-                    numero,
-                    'Iniciando campanha de marketing. Vou enviar com intervalo entre mensagens e ignorar numeros que ja receberam.'
-                );
-
-                const resultado = await enviarCampanha(client);
-
-                return await client.sendText(
-                    numero,
-
-`📣 *Campanha finalizada*
-
-Total na planilha:
-${resultado.total}
-
-Enviados:
-${resultado.enviados}
-
-Ignorados:
-${resultado.ignorados}
-
-Erros:
-${resultado.erros}
-
-Enviados hoje:
-${resultado.enviadosHoje}/${resultado.limiteDiario || 'sem limite'}
-
-${resultado.pausadoPorLimite ? 'Pausado porque atingiu o limite diario. Rode novamente amanha para continuar.' : 'Campanha concluida para este ciclo.'}`
                 );
 
             }

@@ -157,6 +157,18 @@ function liberarAtendimento(numero) {
 
 }
 
+function limparPausasAtendimento() {
+
+    for (const numero of Object.keys(pausas)) {
+
+        delete pausas[numero];
+
+    }
+
+    salvarPausas();
+
+}
+
 function atendimentoPausado(numero) {
 
     limparAntigas();
@@ -195,6 +207,7 @@ module.exports = {
     ehMensagemAutomatica,
     instalarRegistroAutomatico,
     liberarAtendimento,
+    limparPausasAtendimento,
     pausarAtendimento,
     registrarMensagemAutomatica
 };
