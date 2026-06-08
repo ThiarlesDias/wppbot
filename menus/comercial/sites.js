@@ -1,23 +1,17 @@
 module.exports = async function sites(client, numero) {
 
+    return await client.sendText(
+        numero,
 
-await client.sendText(
-    numero,
+`*Desenvolvimento de Sites*
 
+Criamos sites profissionais para empresas que precisam vender melhor, apresentar seus servicos e passar mais confianca para o cliente.
 
-`🌐 DESENVOLVIMENTO DE SITES
+Veja detalhes e solicite atendimento:
+https://toptecdigital.com/servicos/desenvolvimento-sites/
 
-✔️ Sites Institucionais
-✔️ Landing Pages
-✔️ E-commerce
-✔️ Sistemas Web
-✔️ Hospedagem
-
-Para solicitar um orçamento:
-
-9️⃣ Atendimento Humano
-
-0️⃣ Voltar`
-);
+9 - Atendimento Humano
+0 - Voltar`
+    );
 
 };

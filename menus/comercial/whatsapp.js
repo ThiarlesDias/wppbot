@@ -1,21 +1,17 @@
 module.exports = async function whatsapp(client, numero) {
 
+    return await client.sendText(
+        numero,
 
-await client.sendText(
-    numero,
+`*Automacao WhatsApp*
 
+Automatizamos atendimento, respostas, vendas, notificacoes e integracoes para reduzir trabalho manual e responder mais rapido.
 
-`🤖 AUTOMAÇÃO WHATSAPP
+Veja detalhes e solicite atendimento:
+https://toptecdigital.com/servicos/automacao-whatsapp/
 
-✔️ Chatbots
-✔️ Atendimento Automático
-✔️ Integração com CRM
-✔️ Integração Mercado Pago
-✔️ API Oficial
-
-9️⃣ Atendimento Humano
-
-0️⃣ Voltar`
-);
+9 - Atendimento Humano
+0 - Voltar`
+    );
 
 };

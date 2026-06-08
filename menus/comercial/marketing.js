@@ -1,21 +1,17 @@
 module.exports = async function marketing(client, numero) {
 
+    return await client.sendText(
+        numero,
 
-await client.sendText(
-    numero,
+`*Marketing Digital*
 
+Ajudamos sua empresa a aparecer melhor, atrair clientes e organizar campanhas com mais clareza.
 
-`📢 MARKETING DIGITAL
+Veja detalhes e solicite atendimento:
+https://toptecdigital.com/servicos/marketing-digital/
 
-✔️ Google Ads
-✔️ Facebook Ads
-✔️ Instagram Ads
-✔️ SEO
-✔️ Gestão de Redes Sociais
-
-9️⃣ Atendimento Humano
-
-0️⃣ Voltar`
-);
+9 - Atendimento Humano
+0 - Voltar`
+    );
 
 };

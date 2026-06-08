@@ -1,25 +1,17 @@
-module.exports = async function infraestrutura(
-client,
-numero
-) {
+module.exports = async function infraestrutura(client, numero) {
 
+    return await client.sendText(
+        numero,
 
-await client.sendText(
-    numero,
+`*Infraestrutura de TI*
 
+Montamos, organizamos e damos suporte para redes, computadores, sistemas, equipamentos e ambientes de trabalho.
 
-`🖥️ INFRAESTRUTURA DE TI
+Veja detalhes e solicite atendimento:
+https://toptecdigital.com/servicos/infraestrutura-ti/
 
-✔️ Redes Corporativas
-✔️ Servidores
-✔️ Firewall
-✔️ Monitoramento
-✔️ Cabeamento Estruturado
-✔️ Wi-Fi Corporativo
-
-9️⃣ Atendimento Humano
-
-0️⃣ Voltar`
-);
+9 - Atendimento Humano
+0 - Voltar`
+    );
 
 };

@@ -1,25 +1,17 @@
-module.exports = async function consultoria(
-client,
-numero
-) {
+module.exports = async function consultoria(client, numero) {
 
+    return await client.sendText(
+        numero,
 
-await client.sendText(
-    numero,
+`*Consultoria em TI*
 
+Analisamos seu cenario, indicamos melhorias e ajudamos a escolher solucoes mais seguras, simples e eficientes.
 
-`🎯 CONSULTORIA EM TI
+Veja detalhes e solicite atendimento:
+https://toptecdigital.com/servicos/consultoria-ti/
 
-✔️ Planejamento Tecnológico
-✔️ Redução de Custos
-✔️ Segurança da Informação
-✔️ Automação de Processos
-✔️ Transformação Digital
-✔️ Projetos de Tecnologia
-
-9️⃣ Atendimento Humano
-
-0️⃣ Voltar`
-);
+9 - Atendimento Humano
+0 - Voltar`
+    );
 
 };
