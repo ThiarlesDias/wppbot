@@ -49,6 +49,79 @@ function limparNumero(numero) {
 
 }
 
+function idsMensagem(message) {
+
+    return [
+        message?.from,
+        message?.to,
+        message?.chatId,
+        message?.sender?.id,
+        message?.id?.remote
+    ].filter(id => typeof id === 'string' && id);
+
+}
+
+function idsIgnoradosConfigurados() {
+
+    const padrao = [
+        'status@broadcast',
+        '0@c.us',
+        '16505361212@c.us'
+    ];
+
+    const env = String(process.env.WHATSAPP_IGNORE_IDS || '')
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean);
+
+    return new Set([...padrao, ...env]);
+
+}
+
+function textosContatoMensagem(message) {
+
+    return [
+        message?.sender?.pushname,
+        message?.sender?.name,
+        message?.sender?.formattedName,
+        message?.notifyName,
+        message?.chat?.name,
+        message?.chat?.contact?.name,
+        message?.chat?.contact?.pushname,
+        message?.verifiedName
+    ].filter(valor => typeof valor === 'string' && valor);
+
+}
+
+function ehContatoIgnorado(message) {
+
+    if (!message) return true;
+    if (message.isStatusV3) return true;
+    if (message.isGroupMsg) return true;
+
+    const ids = idsMensagem(message);
+
+    if (ids.some(id =>
+        id === 'status@broadcast' ||
+        id.endsWith('@g.us') ||
+        id.endsWith('@newsletter') ||
+        idsIgnoradosConfigurados().has(id)
+    )) return true;
+
+    const textoContato = textosContatoMensagem(message)
+        .join(' ')
+        .toLowerCase();
+
+    if (
+        textoContato.includes('whatsapp support') ||
+        textoContato.includes('suporte do whatsapp') ||
+        textoContato.includes('conta oficial do suporte')
+    ) return true;
+
+    return false;
+
+}
+
 function ehAdmin(numeroWhatsapp, numero) {
 
     const admin = limparNumero(
@@ -126,12 +199,7 @@ function idsAtendimentoSaida(message) {
 function registrarAtendimentoManual(message) {
 
     if (!message?.fromMe) return;
-    if (message?.isStatusV3) return;
-    if (
-        message?.from === 'status@broadcast' ||
-        message?.to === 'status@broadcast' ||
-        message?.chatId === 'status@broadcast'
-    ) return;
+    if (ehContatoIgnorado(message)) return;
 
     const destinos = [...new Set(idsAtendimentoSaida(message))];
     const textoEnviado = obterTextoMensagem(message);
@@ -236,14 +304,7 @@ wppconnect.create({
 
         try {
 
-            if (message.isGroupMsg) return;
-            if (message.isStatusV3) return;
-
-            if (
-                message.from?.endsWith('@g.us') ||
-                message.from?.endsWith('@newsletter') ||
-                message.from === 'status@broadcast'
-            ) return;
+            if (ehContatoIgnorado(message)) return;
 
             if (message.fromMe) return;
 
