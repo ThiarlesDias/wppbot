@@ -182,6 +182,10 @@ function textoResumoTestes() {
     const encerrados = testes.filter(teste =>
         String(teste.status || '').toLowerCase() === 'encerrado'
     ).length;
+    const sairam = testes.filter(teste =>
+        String(teste.status || '').toLowerCase() === 'saiu' ||
+        String(teste.saiu_em || '').trim()
+    ).length;
     const info = arquivoInfo(arquivo);
 
     return [
@@ -192,6 +196,7 @@ function textoResumoTestes() {
         `Total: ${testes.length}`,
         `Ativos: ${ativos}`,
         `Encerrados: ${encerrados}`,
+        `Sairam dos avisos: ${sairam}`,
         `Atualizado: ${formatarData(info.atualizadoEm)}`
     ].join('\n');
 

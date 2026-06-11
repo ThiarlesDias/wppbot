@@ -4,8 +4,10 @@ const {
 } = require('./whatsappNumero');
 const {
     caminhoTestesCsv,
+    marcarAvisoContratacao,
     marcarTesteEncerrado,
-    testesParaAvisar
+    testesParaAvisar,
+    testesParaAvisoContratacao
 } = require('./testesCsv');
 
 function numeroEnv(nome, padrao) {
@@ -28,6 +30,25 @@ function mensagemTesteEncerrado(teste) {
         '',
         '1 - Contratar agora',
         '9 - Falar com atendente',
+        '8 - Nao quero receber avisos',
+        '0 - Voltar ao menu'
+    ].join('\n');
+
+}
+
+function mensagemConviteContratacao(teste) {
+
+    return [
+        '*Ainda quer continuar com seu acesso?*',
+        '',
+        `Usuario do teste: ${teste.usuario || 'Nao informado'}`,
+        `Teste venceu em: ${teste.vencimento || 'Nao informado'}`,
+        '',
+        'Com o pacote ativo voce continua assistindo sem precisar criar outro teste.',
+        '',
+        '1 - Contratar agora',
+        '9 - Falar com atendente',
+        '8 - Nao quero receber avisos',
         '0 - Voltar ao menu'
     ].join('\n');
 
@@ -39,34 +60,75 @@ async function verificarTestesEncerrados(client) {
 
     if (!vencidos.length) {
         console.log('TESTES VENCIDOS PARA AVISAR 0');
+    } else {
+
+        console.log(`TESTES VENCIDOS PARA AVISAR ${vencidos.length}`);
+
+        for (const teste of vencidos) {
+
+            const destino = montarWidTelefone(teste.telefone);
+
+            if (!destino) {
+                console.log('TESTE VENCIDO SEM TELEFONE VALIDO', teste.usuario);
+                marcarTesteEncerrado(teste.usuario);
+                continue;
+            }
+
+            try {
+                sessoes[destino] = 'teste_encerrado';
+                sessoes[`${destino}_teste_usuario`] = teste.usuario;
+
+                await client.sendText(
+                    destino,
+                    mensagemTesteEncerrado(teste)
+                );
+
+                marcarTesteEncerrado(teste.usuario);
+                console.log('AVISO TESTE ENCERRADO', destino, teste.usuario);
+            } catch (erro) {
+                console.log(
+                    'ERRO AVISO TESTE ENCERRADO',
+                    teste.usuario,
+                    erro.message
+                );
+            }
+
+        }
+    }
+
+    const pendentesContratacao = testesParaAvisoContratacao();
+
+    if (!pendentesContratacao.length) {
+        console.log('TESTES PARA CONVITE CONTRATACAO 0');
         return;
     }
 
-    console.log(`TESTES VENCIDOS PARA AVISAR ${vencidos.length}`);
+    console.log(`TESTES PARA CONVITE CONTRATACAO ${pendentesContratacao.length}`);
 
-    for (const teste of vencidos) {
+    for (const teste of pendentesContratacao) {
 
         const destino = montarWidTelefone(teste.telefone);
 
         if (!destino) {
-            console.log('TESTE VENCIDO SEM TELEFONE VALIDO', teste.usuario);
-            marcarTesteEncerrado(teste.usuario);
+            console.log('TESTE CONVITE SEM TELEFONE VALIDO', teste.usuario);
+            marcarAvisoContratacao(teste.usuario);
             continue;
         }
 
         try {
-            sessoes[destino] = 'teste_encerrado';
+            sessoes[destino] = 'teste_convite';
+            sessoes[`${destino}_teste_usuario`] = teste.usuario;
 
             await client.sendText(
                 destino,
-                mensagemTesteEncerrado(teste)
+                mensagemConviteContratacao(teste)
             );
 
-            marcarTesteEncerrado(teste.usuario);
-            console.log('AVISO TESTE ENCERRADO', destino, teste.usuario);
+            marcarAvisoContratacao(teste.usuario);
+            console.log('AVISO CONTRATACAO TESTE', destino, teste.usuario);
         } catch (erro) {
             console.log(
-                'ERRO AVISO TESTE ENCERRADO',
+                'ERRO AVISO CONTRATACAO TESTE',
                 teste.usuario,
                 erro.message
             );

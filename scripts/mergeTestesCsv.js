@@ -17,7 +17,9 @@ const CAMPOS = [
     'vencimento_iso',
     'horas',
     'status',
-    'avisado_em'
+    'avisado_em',
+    'ultimo_aviso_contratacao',
+    'saiu_em'
 ];
 
 function caminhoPadraoEstado(arquivoLocal) {
@@ -153,7 +155,9 @@ function mesclarCampos(usuario, base, local, remoto, conflitos) {
 
         const usarLocal = [
             'status',
-            'avisado_em'
+            'avisado_em',
+            'ultimo_aviso_contratacao',
+            'saiu_em'
         ].includes(campo);
 
         linha[campo] = usarLocal ? valorLocal : valorRemoto;

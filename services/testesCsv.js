@@ -14,7 +14,9 @@ const CABECALHOS = [
     'vencimento_iso',
     'horas',
     'status',
-    'avisado_em'
+    'avisado_em',
+    'ultimo_aviso_contratacao',
+    'saiu_em'
 ];
 
 function caminhoTestesCsv() {
@@ -176,6 +178,29 @@ function formatarData(valor) {
 
 }
 
+function diaSaoPaulo(valor = new Date()) {
+
+    const data = dataValida(valor) || new Date();
+    const partes = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }
+    ).formatToParts(data).reduce(
+        (acc, parte) => {
+            acc[parte.type] = parte.value;
+            return acc;
+        },
+        {}
+    );
+
+    return `${partes.year}-${partes.month}-${partes.day}`;
+
+}
+
 function lerTestesCsv(arquivo = caminhoTestesCsv()) {
 
     if (!fs.existsSync(arquivo)) return [];
@@ -255,7 +280,9 @@ function linhaDoTeste({
         vencimento_iso: dataVencimento.toISOString(),
         horas: String(horas || 6),
         status: 'ativo',
-        avisado_em: ''
+        avisado_em: '',
+        ultimo_aviso_contratacao: '',
+        saiu_em: ''
     };
 
 }
@@ -304,6 +331,24 @@ function testesParaAvisar(agora = new Date(), arquivo = caminhoTestesCsv()) {
 
 }
 
+function testesParaAvisoContratacao(agora = new Date(), arquivo = caminhoTestesCsv()) {
+
+    const hoje = diaSaoPaulo(agora);
+
+    return lerTestesCsv(arquivo).filter(teste => {
+        const status = String(teste.status || '').toLowerCase();
+
+        if (!['ativo', 'encerrado'].includes(status)) return false;
+        if (String(teste.saiu_em || '').trim()) return false;
+        if (String(teste.ultimo_aviso_contratacao || '').trim() === hoje) return false;
+
+        const vencimento = dataValida(teste.vencimento_iso || teste.vencimento);
+
+        return vencimento && vencimento <= agora;
+    });
+
+}
+
 function marcarTesteEncerrado(usuario, arquivo = caminhoTestesCsv()) {
 
     const linhas = lerTestesCsv(arquivo);
@@ -316,7 +361,8 @@ function marcarTesteEncerrado(usuario, arquivo = caminhoTestesCsv()) {
     linhas[indice] = {
         ...linhas[indice],
         status: 'encerrado',
-        avisado_em: formatarData(new Date())
+        avisado_em: formatarData(new Date()),
+        ultimo_aviso_contratacao: linhas[indice].ultimo_aviso_contratacao || diaSaoPaulo()
     };
 
     salvarTestesCsv(
@@ -328,11 +374,84 @@ function marcarTesteEncerrado(usuario, arquivo = caminhoTestesCsv()) {
 
 }
 
+function marcarAvisoContratacao(usuario, arquivo = caminhoTestesCsv()) {
+
+    const linhas = lerTestesCsv(arquivo);
+    const indice = linhas.findIndex(item =>
+        String(item.usuario || '').trim() === String(usuario || '').trim()
+    );
+
+    if (indice === -1) return null;
+
+    linhas[indice] = {
+        ...linhas[indice],
+        ultimo_aviso_contratacao: diaSaoPaulo()
+    };
+
+    salvarTestesCsv(
+        linhas,
+        arquivo
+    );
+
+    return linhas[indice];
+
+}
+
+function marcarSaidaContratacao(valor, arquivo = caminhoTestesCsv()) {
+
+    const telefone = limparTelefone(valor);
+    const usuario = String(valor || '').trim();
+    const linhas = lerTestesCsv(arquivo);
+    let alterou = false;
+
+    for (const linha of linhas) {
+        const mesmaLinha =
+            (telefone && limparTelefone(linha.telefone) === telefone) ||
+            (usuario && String(linha.usuario || '').trim() === usuario);
+
+        if (!mesmaLinha) continue;
+
+        linha.status = 'saiu';
+        linha.saiu_em = formatarData(new Date());
+        alterou = true;
+    }
+
+    if (alterou) {
+        salvarTestesCsv(
+            linhas,
+            arquivo
+        );
+    }
+
+    return alterou;
+
+}
+
+function telefoneSaiuContratacao(valor, arquivo = caminhoTestesCsv()) {
+
+    const telefone = limparTelefone(valor);
+
+    if (!telefone) return false;
+
+    return lerTestesCsv(arquivo).some(teste =>
+        limparTelefone(teste.telefone) === telefone &&
+        (
+            String(teste.status || '').toLowerCase() === 'saiu' ||
+            String(teste.saiu_em || '').trim()
+        )
+    );
+
+}
+
 module.exports = {
     caminhoTestesCsv,
     lerTestesCsv,
+    marcarAvisoContratacao,
+    marcarSaidaContratacao,
     marcarTesteEncerrado,
     registrarTesteCsv,
     salvarTestesCsv,
-    testesParaAvisar
+    telefoneSaiuContratacao,
+    testesParaAvisar,
+    testesParaAvisoContratacao
 };

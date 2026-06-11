@@ -453,6 +453,7 @@ wppconnect.create({
                 case 'teste_gratis':
                 case 'teste_ja_usado':
                 case 'teste_encerrado':
+                case 'teste_convite':
                 case 'usuario_nao_encontrado':
                 case 'pos_teste':
                 case 'ajuda_config':

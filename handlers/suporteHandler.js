@@ -41,7 +41,9 @@ const {
     agendarFollowUp
 } = require('../services/followUpFunil');
 const {
-    registrarTesteCsv
+    registrarTesteCsv,
+    marcarSaidaContratacao,
+    telefoneSaiuContratacao
 } = require('../services/testesCsv');
 const {
     validarCupom
@@ -59,8 +61,20 @@ module.exports = async function suporteHandler(
     const chaveAguardandoTelefone = `${numero}_aguardando_telefone_teste`;
     const chaveCheckout = `${numero}_checkout`;
     const chaveForcarRenovacao = `${numero}_forcar_renovacao`;
+    const chaveTesteUsuario = `${numero}_teste_usuario`;
 
     async function criarTeste(numeroParaTeste) {
+
+        if (telefoneSaiuContratacao(numeroParaTeste)) {
+
+            sessoes[numero] = 'teste_ja_usado';
+
+            return await testeJaUsado(
+                client,
+                numero
+            );
+
+        }
 
         const controle = iniciarTeste(numeroParaTeste);
 
@@ -1639,7 +1653,32 @@ Se nao quiser responder, envie *0* para pular.`
 
     }
 
-    if (etapa === 'teste_encerrado') {
+    async function sairDosAvisosTeste() {
+
+        const usuarioTeste = sessoes[chaveTesteUsuario];
+        const telefoneReferencia = numeroWhatsapp || numero;
+
+        marcarSaidaContratacao(usuarioTeste || telefoneReferencia);
+        marcarSaidaContratacao(telefoneReferencia);
+
+        sessoes[numero] = 'teste_ja_usado';
+
+        return await client.sendText(
+            numero,
+            [
+                'Tudo bem, parei os avisos sobre esse teste.',
+                '',
+                'O teste gratis continua registrado como ja utilizado. Se quiser voltar, voce pode contratar um pacote ou falar com um atendente.',
+                '',
+                '1 - Contratar agora',
+                '9 - Falar com atendente',
+                '0 - Voltar ao menu'
+            ].join('\n')
+        );
+
+    }
+
+    if (etapa === 'teste_encerrado' || etapa === 'teste_convite') {
 
         if (texto === '1') {
 
@@ -1666,6 +1705,12 @@ Se nao quiser responder, envie *0* para pular.`
 
         }
 
+        if (texto === '8') {
+
+            return await sairDosAvisosTeste();
+
+        }
+
         if (texto === '0') {
 
             sessoes[numero] = 'menu';
@@ -1684,6 +1729,7 @@ Se nao quiser responder, envie *0* para pular.`
                 '',
                 '1 - Contratar agora',
                 '9 - Falar com atendente',
+                '8 - Nao quero receber avisos',
                 '0 - Voltar ao menu'
             ].join('\n')
         );

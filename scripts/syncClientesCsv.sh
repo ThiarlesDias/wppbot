@@ -56,7 +56,7 @@ else
     if [ -f "$TESTES_LOCAL" ]; then
         cp "$TESTES_LOCAL" "$TESTES_REMOTE_TMP"
     else
-        printf 'telefone;usuario;senha;dns;m3u;criado_em;vencimento;vencimento_iso;horas;status;avisado_em\n' > "$TESTES_REMOTE_TMP"
+        printf 'telefone;usuario;senha;dns;m3u;criado_em;vencimento;vencimento_iso;horas;status;avisado_em;ultimo_aviso_contratacao;saiu_em\n' > "$TESTES_REMOTE_TMP"
     fi
 fi
 
