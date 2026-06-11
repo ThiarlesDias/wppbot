@@ -7,7 +7,8 @@
     "importar:clientes": "node scripts/importarAssinaturas.js",
     "importar:assinaturas": "node scripts/importarAssinaturas.js",
     "exportar:clientes": "node scripts/exportarClientesCsv.js",
-    "merge:clientes": "node scripts/mergeClientesCsv.js"
+    "merge:clientes": "node scripts/mergeClientesCsv.js",
+    "merge:testes": "node scripts/mergeTestesCsv.js"
   },
   "dependencies": {
     "@wppconnect-team/wppconnect": "^1.37.5",

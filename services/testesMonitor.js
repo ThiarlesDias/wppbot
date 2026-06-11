@@ -1,0 +1,106 @@
+const sessoes = require('./sessions');
+const {
+    montarWidTelefone
+} = require('./whatsappNumero');
+const {
+    caminhoTestesCsv,
+    marcarTesteEncerrado,
+    testesParaAvisar
+} = require('./testesCsv');
+
+function numeroEnv(nome, padrao) {
+
+    const numero = Number(process.env[nome]);
+
+    return Number.isFinite(numero) && numero > 0 ? numero : padrao;
+
+}
+
+function mensagemTesteEncerrado(teste) {
+
+    return [
+        '*Seu teste gratis foi encerrado*',
+        '',
+        `Usuario testado: ${teste.usuario || 'Nao informado'}`,
+        `Vencimento: ${teste.vencimento || 'Nao informado'}`,
+        '',
+        'Se o sistema funcionou bem para voce, agora e o melhor momento para ativar seu pacote e continuar usando sem interrupcao.',
+        '',
+        '1 - Contratar agora',
+        '9 - Falar com atendente',
+        '0 - Voltar ao menu'
+    ].join('\n');
+
+}
+
+async function verificarTestesEncerrados(client) {
+
+    const vencidos = testesParaAvisar();
+
+    if (!vencidos.length) {
+        console.log('TESTES VENCIDOS PARA AVISAR 0');
+        return;
+    }
+
+    console.log(`TESTES VENCIDOS PARA AVISAR ${vencidos.length}`);
+
+    for (const teste of vencidos) {
+
+        const destino = montarWidTelefone(teste.telefone);
+
+        if (!destino) {
+            console.log('TESTE VENCIDO SEM TELEFONE VALIDO', teste.usuario);
+            marcarTesteEncerrado(teste.usuario);
+            continue;
+        }
+
+        try {
+            sessoes[destino] = 'teste_encerrado';
+
+            await client.sendText(
+                destino,
+                mensagemTesteEncerrado(teste)
+            );
+
+            marcarTesteEncerrado(teste.usuario);
+            console.log('AVISO TESTE ENCERRADO', destino, teste.usuario);
+        } catch (erro) {
+            console.log(
+                'ERRO AVISO TESTE ENCERRADO',
+                teste.usuario,
+                erro.message
+            );
+        }
+
+    }
+
+}
+
+function iniciarMonitorTestes(client) {
+
+    const intervalo = numeroEnv(
+        'TESTES_MONITOR_INTERVAL_MS',
+        5 * 60 * 1000
+    );
+    const delayInicial = numeroEnv(
+        'TESTES_MONITOR_START_DELAY_MS',
+        15000
+    );
+
+    console.log(`MONITOR TESTES ATIVO ${Math.round(intervalo / 1000)}s ${caminhoTestesCsv()}`);
+
+    setTimeout(
+        () => verificarTestesEncerrados(client),
+        delayInicial
+    );
+
+    setInterval(
+        () => verificarTestesEncerrados(client),
+        intervalo
+    );
+
+}
+
+iniciarMonitorTestes.verificarTestesEncerrados = verificarTestesEncerrados;
+
+module.exports = iniciarMonitorTestes;

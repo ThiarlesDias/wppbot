@@ -12,6 +12,11 @@ const {
     limparPausasAtendimento
 } = require('./pausaAtendimento');
 const statusDiario = require('./statusDiario');
+const iniciarMonitorTestes = require('./testesMonitor');
+const {
+    caminhoTestesCsv,
+    lerTestesCsv
+} = require('./testesCsv');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
@@ -72,6 +77,8 @@ function menuAdmin() {
         '#marketing enviar - disparar campanha com limite/intervalo',
         '#status imagens - ver imagens do status diario',
         '#status postar - postar uma imagem aleatoria agora',
+        '#testes - resumo da planilha de testes',
+        '#testes verificar - avisar testes vencidos agora',
         '#vencimentos - rodar checagem de vencimentos agora',
         '#pausas limpar - liberar todos os atendimentos pausados',
         '#restart - reiniciar somente o bot',
@@ -161,6 +168,31 @@ function textoMarketingStatus() {
         `Enviados hoje: ${status.enviadosHoje}/${status.limiteDiario || 'sem limite'}`,
         `Intervalo: ${Math.round(status.intervaloMs / 1000)} segundos`,
         `Campanha rodando: ${status.rodando ? 'Sim' : 'Nao'}`
+    ].join('\n');
+
+}
+
+function textoResumoTestes() {
+
+    const arquivo = caminhoTestesCsv();
+    const testes = lerTestesCsv(arquivo);
+    const ativos = testes.filter(teste =>
+        String(teste.status || '').toLowerCase() === 'ativo'
+    ).length;
+    const encerrados = testes.filter(teste =>
+        String(teste.status || '').toLowerCase() === 'encerrado'
+    ).length;
+    const info = arquivoInfo(arquivo);
+
+    return [
+        '*Testes gratis*',
+        '',
+        `Arquivo: ${arquivo}`,
+        `Existe: ${info.existe ? 'sim' : 'nao'}`,
+        `Total: ${testes.length}`,
+        `Ativos: ${ativos}`,
+        `Encerrados: ${encerrados}`,
+        `Atualizado: ${formatarData(info.atualizadoEm)}`
     ].join('\n');
 
 }
@@ -290,6 +322,24 @@ async function tratarComandoAdmin({
             );
 
         }
+
+    }
+
+    if (texto === '#testes') {
+
+        return await client.sendText(numero, textoResumoTestes());
+
+    }
+
+    if (texto === '#testes verificar') {
+
+        await client.sendText(numero, 'Rodando checagem de testes vencidos agora.');
+        await iniciarMonitorTestes.verificarTestesEncerrados(client);
+
+        return await client.sendText(
+            numero,
+            'Checagem de testes vencidos concluida. Veja o log para detalhes.'
+        );
 
     }
 

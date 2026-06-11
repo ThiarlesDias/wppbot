@@ -41,6 +41,9 @@ const {
     agendarFollowUp
 } = require('../services/followUpFunil');
 const {
+    registrarTesteCsv
+} = require('../services/testesCsv');
+const {
     validarCupom
 } = require('../services/marketingCampanha');
 
@@ -146,6 +149,21 @@ Credenciais do Sigma ainda nao configuradas.`
                     credenciais: credenciaisTeste,
                     expiresAt: vencimentoTeste
                 });
+
+                try {
+                    registrarTesteCsv({
+                        telefone: numeroParaTeste,
+                        credenciais: credenciaisTeste,
+                        criadoEm,
+                        vencimento: vencimentoTeste,
+                        horas: Number(process.env.SIGMA_TRIAL_HOURS || 6)
+                    });
+                } catch (erroCsv) {
+                    console.log(
+                        'ERRO REGISTRAR TESTE CSV',
+                        erroCsv.message
+                    );
+                }
 
             }
 
@@ -1617,6 +1635,57 @@ Se nao quiser responder, envie *0* para pular.`
             client,
             numero,
             numeroWhatsapp
+        );
+
+    }
+
+    if (etapa === 'teste_encerrado') {
+
+        if (texto === '1') {
+
+            sessoes[numero] = 'pacote';
+
+            return await pacote(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Teste gratis encerrado',
+                {
+                    mensagem: 'Encaminhei seu atendimento para nossa equipe. Aguarde nosso retorno.'
+                }
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            [
+                'Seu teste ja foi encerrado.',
+                '',
+                '1 - Contratar agora',
+                '9 - Falar com atendente',
+                '0 - Voltar ao menu'
+            ].join('\n')
         );
 
     }

@@ -22,6 +22,7 @@ const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
 const iniciarStatusDiario = require('./services/statusDiario');
+const iniciarMonitorTestes = require('./services/testesMonitor');
 const {
     tratarComandoAdmin
 } = require('./services/adminComandos');
@@ -282,6 +283,7 @@ wppconnect.create({
     iniciarMonitorVencimentos(client);
     iniciarMonitorSigma(client);
     iniciarStatusDiario(client);
+    iniciarMonitorTestes(client);
 
     client.onAnyMessage((message) => {
 
@@ -350,6 +352,24 @@ wppconnect.create({
                 texto === '/bot' ||
                 texto === 'reativar bot'
             ) {
+
+                liberarAtendimento(numero);
+                liberarAtendimento(numeroWhatsapp);
+                liberarAtendimento(`${limparNumero(numeroWhatsapp)}@c.us`);
+                sessoes[numero] = 'menu';
+
+                return await menuPrincipal(
+                    client,
+                    numero
+                );
+
+            }
+
+            if (texto === '0' && (
+                atendimentoPausado(numero) ||
+                atendimentoPausado(numeroWhatsapp) ||
+                atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
+            )) {
 
                 liberarAtendimento(numero);
                 liberarAtendimento(numeroWhatsapp);
@@ -432,6 +452,7 @@ wppconnect.create({
                 case 'pacote_6':
                 case 'teste_gratis':
                 case 'teste_ja_usado':
+                case 'teste_encerrado':
                 case 'usuario_nao_encontrado':
                 case 'pos_teste':
                 case 'ajuda_config':
