@@ -62,6 +62,7 @@ module.exports = async function suporteHandler(
     const chaveCheckout = `${numero}_checkout`;
     const chaveForcarRenovacao = `${numero}_forcar_renovacao`;
     const chaveTesteUsuario = `${numero}_teste_usuario`;
+    const chavePacoteOutro = `${numero}_pacote_outro`;
 
     async function criarTeste(numeroParaTeste) {
 
@@ -578,6 +579,14 @@ ${resumoAssinaturas(assinaturas)}`
 
     }
 
+    function valorValidoPersonalizado(valor) {
+
+        const numeroValor = valorNumero(valor);
+
+        return Number.isFinite(numeroValor) && numeroValor >= 1;
+
+    }
+
     function formatarValorMoeda(valor) {
 
         return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -631,6 +640,33 @@ Se nao quiser informar agora, digite *0* para pular.`
 
     }
 
+    async function solicitarValorPersonalizado() {
+
+        sessoes[numero] = 'pacote_outro_valor';
+        agendarFollowUp(
+            client,
+            numero,
+            'compra'
+        );
+
+        return await client.sendText(
+            numero,
+
+`*Outro valor*
+
+Digite o valor combinado para gerar o pagamento.
+
+Exemplos:
+35
+35,00
+R$ 35,00
+
+8 - Encerrar atendimento
+0 - Voltar`
+        );
+
+    }
+
     async function solicitarCupomOpcionalCheckout() {
 
         sessoes[numero] = 'checkout_cupom';
@@ -666,7 +702,10 @@ Se nao tiver cupom, digite *0* para continuar.`
             const assinaturaRenovavel = assinaturasRenovaveis.length === 1 ?
                 assinaturasRenovaveis[0] :
                 null;
-            const tipoVenda = assinaturaRenovavel ? 'renovacao' : 'nova';
+            const vendaPersonalizada = String(plano || '').toLowerCase().includes('outro valor');
+            const tipoVenda = vendaPersonalizada ?
+                'solicitacao_manual' :
+                (assinaturaRenovavel ? 'renovacao' : 'nova');
             const valorOriginal = valorNumero(valor);
             const desconto = cupomInfo?.desconto ? Number(cupomInfo.desconto) : 0;
             const valorFinal = Math.max(
@@ -745,7 +784,7 @@ Forma:
 ${nomeMetodo(metodo)}
 
 Tipo:
-${tipoVenda === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}
+${tipoVenda === 'renovacao' ? 'Renovacao' : (tipoVenda === 'solicitacao_manual' ? 'Solicitacao manual' : 'Nova assinatura')}
 
 WhatsApp:
 ${venda.telefone || 'Nao informado'}
@@ -932,6 +971,20 @@ ${erro.message}`
                     mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
                 }
             );
+
+        }
+
+        if (texto === '4') {
+
+            return await solicitarValorPersonalizado();
+
+        }
+
+        if (texto === '4') {
+
+            sessoes[chaveForcarRenovacao] = true;
+
+            return await solicitarValorPersonalizado();
 
         }
 
@@ -1892,15 +1945,66 @@ Se nao quiser responder, envie *0* para pular.`
 
     }
 
-    const pacoteSelecionado = dadosPacoteEtapa(etapa);
+    if (etapa === 'pacote_outro_valor') {
 
-    if (pacoteSelecionado) {
+        if (texto === '8') {
+
+            return await encerrarComPesquisa();
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'pacote';
+
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        if (!valorValidoPersonalizado(texto)) {
+
+            return await client.sendText(
+                numero,
+                'Digite um valor valido a partir de R$ 1,00. Exemplo: *35,00*.'
+            );
+
+        }
+
+        const valorPersonalizado = formatarValorMoeda(valorNumero(texto));
+
+        sessoes[chavePacoteOutro] = {
+            plano: 'Outro valor',
+            valor: valorPersonalizado
+        };
+        sessoes[numero] = 'pacote_outro_pagamento';
+        agendarFollowUp(
+            client,
+            numero,
+            'compra'
+        );
+
+        return await pacotePagamento(
+            client,
+            numero,
+            'Outro valor',
+            valorPersonalizado
+        );
+
+    }
+
+    const pacoteSelecionado = dadosPacoteEtapa(etapa);
+    const pacoteOutroSelecionado = etapa === 'pacote_outro_pagamento' ?
+        sessoes[chavePacoteOutro] :
+        null;
+    const pacoteParaPagamento = pacoteSelecionado || pacoteOutroSelecionado;
+
+    if (pacoteParaPagamento) {
 
         if (texto === '1') {
 
             return await solicitarEmailCheckout(
-                pacoteSelecionado.plano,
-                pacoteSelecionado.valor,
+                pacoteParaPagamento.plano,
+                pacoteParaPagamento.valor,
                 'pix'
             );
 
@@ -1909,8 +2013,8 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '2') {
 
             return await solicitarEmailCheckout(
-                pacoteSelecionado.plano,
-                pacoteSelecionado.valor,
+                pacoteParaPagamento.plano,
+                pacoteParaPagamento.valor,
                 'cartao'
             );
 
@@ -1919,8 +2023,8 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '3') {
 
             return await solicitarEmailCheckout(
-                pacoteSelecionado.plano,
-                pacoteSelecionado.valor,
+                pacoteParaPagamento.plano,
+                pacoteParaPagamento.valor,
                 'boleto'
             );
 
@@ -1943,8 +2047,8 @@ Se nao quiser responder, envie *0* para pular.`
         return await pacotePagamento(
             client,
             numero,
-            pacoteSelecionado.plano,
-            pacoteSelecionado.valor
+            pacoteParaPagamento.plano,
+            pacoteParaPagamento.valor
         );
 
     }

@@ -414,6 +414,97 @@ ${erro.message}`
 
 }
 
+async function registrarPagamentoSolicitacaoManual(client, venda, pagamento, pagador) {
+
+    const atualizada = atualizarVenda(
+        venda.reference,
+        {
+            status: 'approved_manual_request',
+            payment_id: pagamento.id,
+            payment_status: pagamento.status,
+            payment_status_detail: pagamento.status_detail,
+            paid_at: new Date().toISOString(),
+            payer_email: pagador.email,
+            customer_email: venda.email || '',
+            customer_name: venda.nome || '',
+            payer_name: pagador.nome,
+            activation_status: 'manual_request'
+        }
+    );
+
+    if (venda.cupom) {
+
+        marcarCupomAplicado(
+            venda.cupom,
+            venda.reference
+        );
+
+    }
+
+    await client.sendText(
+        venda.numero,
+
+`✅ *Pagamento recebido!*
+
+Plano: ${venda.plano}
+Valor: ${formatarValor(venda.valor)}
+Forma: ${descricaoMetodo(venda.metodo)}
+
+Seu pagamento foi aprovado.`
+    );
+
+    await client.sendText(
+        venda.numero,
+
+`📌 *Solicitacao realizada*
+
+Recebemos sua solicitacao com valor personalizado.
+Nossa equipe ja foi avisada e vai finalizar o atendimento conforme o combinado.`
+    );
+
+    await notificar(
+        client,
+        'PAGAMENTO APROVADO - SOLICITACAO MANUAL',
+
+`Cliente:
+${venda.numero}
+
+WhatsApp:
+${venda.telefone || 'Nao informado'}
+
+Nome:
+${venda.nome || 'Nao informado'}
+
+Plano:
+${venda.plano}
+
+Valor:
+${formatarValor(venda.valor)}
+
+Forma:
+${descricaoMetodo(venda.metodo)}
+
+Pagador:
+${pagador.nome || 'Nao informado'}
+
+Email:
+${pagador.email || 'Nao informado'}
+
+Referencia:
+${venda.reference}
+
+Pagamento Mercado Pago:
+${pagamento.id}`
+    );
+
+    console.log(
+        'PAGAMENTO APROVADO SOLICITACAO MANUAL',
+        atualizada?.reference || venda.reference,
+        pagamento.id
+    );
+
+}
+
 function montarCredenciaisVenda(venda, pagamento) {
 
     if (venda.tipo === 'renovacao' && venda.assinatura_id) {
@@ -461,6 +552,17 @@ async function verificarVenda(client, venda) {
 
         const pagador = dadosPagador(pagamento);
         let resultadoAcesso;
+
+        if (venda.tipo === 'solicitacao_manual') {
+
+            return await registrarPagamentoSolicitacaoManual(
+                client,
+                venda,
+                pagamento,
+                pagador
+            );
+
+        }
 
         try {
 

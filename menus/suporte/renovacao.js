@@ -32,6 +32,11 @@ module.exports = async function renovacao(
                     descricao: 'Melhor custo por mes.'
                 },
                 {
+                    id: '4',
+                    titulo: 'Outro valor',
+                    descricao: 'Gerar pagamento em valor combinado.'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar',
                     descricao: 'Retornar ao menu Sistema de TV.'

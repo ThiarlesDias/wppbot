@@ -29,6 +29,11 @@ async function pacote(client, numero) {
                     descricao: 'Acesso por 180 dias.'
                 },
                 {
+                    id: '4',
+                    titulo: 'Outro valor',
+                    descricao: 'Gerar pagamento em valor combinado.'
+                },
+                {
                     id: '8',
                     titulo: 'Encerrar atendimento',
                     descricao: 'Finalizar sem contratar agora.'

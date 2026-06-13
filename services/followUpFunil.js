@@ -100,7 +100,7 @@ function dadosTipo(tipo) {
         etapa: 'followup_compra',
         mensagem: mensagemCompra(),
         delay: numeroEnv('FUNIL_FOLLOWUP_COMPRA_MS', 30 * 60 * 1000),
-        etapas: ['pacote', 'pacote_1', 'pacote_3', 'pacote_6', 'followup_compra']
+        etapas: ['pacote', 'pacote_1', 'pacote_3', 'pacote_6', 'pacote_outro_valor', 'pacote_outro_pagamento', 'followup_compra']
     };
 
 }
