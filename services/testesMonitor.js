@@ -142,7 +142,7 @@ function iniciarMonitorTestes(client) {
 
     const intervalo = numeroEnv(
         'TESTES_MONITOR_INTERVAL_MS',
-        5 * 60 * 1000
+        6 * 60 * 60 * 1000
     );
     const delayInicial = numeroEnv(
         'TESTES_MONITOR_START_DELAY_MS',
