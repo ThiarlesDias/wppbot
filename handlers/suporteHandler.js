@@ -60,6 +60,7 @@ module.exports = async function suporteHandler(
     const chaveTelefoneTeste = `${numero}_telefone_teste`;
     const chaveAguardandoTelefone = `${numero}_aguardando_telefone_teste`;
     const chaveCheckout = `${numero}_checkout`;
+    const chaveUltimoCheckout = `${numero}_ultimo_checkout`;
     const chaveForcarRenovacao = `${numero}_forcar_renovacao`;
     const chaveTesteUsuario = `${numero}_teste_usuario`;
     const chavePacoteOutro = `${numero}_pacote_outro`;
@@ -715,6 +716,14 @@ Se nao tiver cupom, digite *0* para continuar.`
             const valorCheckout = desconto > 0 ?
                 formatarValorMoeda(valorFinal) :
                 valor;
+            const dadosUltimoCheckout = {
+                plano,
+                valor,
+                metodo,
+                nome,
+                email,
+                cupomInfo
+            };
 
             const venda = await criarCheckoutVenda({
                 numero,
@@ -732,6 +741,7 @@ Se nao tiver cupom, digite *0* para continuar.`
             });
 
             delete sessoes[chaveForcarRenovacao];
+            sessoes[chaveUltimoCheckout] = dadosUltimoCheckout;
 
             if (metodo === 'pix') {
 
@@ -1227,7 +1237,25 @@ ${erro.message}`
 
         if (texto === '1') {
 
-            sessoes[numero] = 'pacote';
+            const ultimoCheckout = sessoes[chaveUltimoCheckout];
+
+            if (ultimoCheckout?.plano && ultimoCheckout?.valor && ultimoCheckout?.metodo) {
+
+                await client.sendText(
+                    numero,
+                    `Vou gerar um novo ${ultimoCheckout.metodo === 'pix' ? 'PIX' : 'link de pagamento'} para voce.`
+                );
+
+                return await enviarCheckoutPacote(
+                    ultimoCheckout.plano,
+                    ultimoCheckout.valor,
+                    ultimoCheckout.metodo,
+                    ultimoCheckout.nome || '',
+                    ultimoCheckout.email || '',
+                    ultimoCheckout.cupomInfo || null
+                );
+
+            }
 
             return await enviarMenuPacoteComFollowUp();
 

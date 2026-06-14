@@ -149,6 +149,7 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         '_teste_usuario',
         '_pacote_outro',
         '_checkout',
+        '_ultimo_checkout',
         '_forcar_renovacao',
         '_telefone_teste',
         '_aguardando_telefone_teste'
