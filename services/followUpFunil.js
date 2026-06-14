@@ -36,6 +36,7 @@ function mensagemCompra() {
         'Ainda posso te ajudar a finalizar seu atendimento.',
         '',
         '1 - Adquirir agora',
+        '4 - Outro valor',
         '9 - Falar com atendente',
         '8 - Encerrar atendimento',
         '0 - Voltar ao menu'

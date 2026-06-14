@@ -974,20 +974,6 @@ ${erro.message}`
 
         }
 
-        if (texto === '4') {
-
-            return await solicitarValorPersonalizado();
-
-        }
-
-        if (texto === '4') {
-
-            sessoes[chaveForcarRenovacao] = true;
-
-            return await solicitarValorPersonalizado();
-
-        }
-
         if (texto === '0') {
 
             sessoes[numero] = 'menu';
@@ -1210,6 +1196,12 @@ ${erro.message}`
         if (texto === '8') {
 
             return await encerrarComPesquisa();
+
+        }
+
+        if (texto === '4') {
+
+            return await solicitarValorPersonalizado();
 
         }
 
@@ -1818,6 +1810,14 @@ Se nao quiser responder, envie *0* para pular.`
 
         }
 
+        if (texto === '4') {
+
+            sessoes[chaveForcarRenovacao] = true;
+
+            return await solicitarValorPersonalizado();
+
+        }
+
         if (texto === '0') {
 
             sessoes[numero] = 'suporte';
@@ -1924,6 +1924,12 @@ Se nao quiser responder, envie *0* para pular.`
                 '6 Meses',
                 'R$ 110,00'
             );
+
+        }
+
+        if (texto === '4') {
+
+            return await solicitarValorPersonalizado();
 
         }
 

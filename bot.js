@@ -140,6 +140,33 @@ function ehAdmin(numeroWhatsapp, numero) {
 
 }
 
+function sincronizarSessaoNumero(numero, numeroWhatsapp) {
+
+    if (!numero || !numeroWhatsapp || numero === numeroWhatsapp) return;
+
+    const sufixos = [
+        '',
+        '_teste_usuario',
+        '_pacote_outro',
+        '_checkout',
+        '_forcar_renovacao',
+        '_telefone_teste',
+        '_aguardando_telefone_teste'
+    ];
+
+    for (const sufixo of sufixos) {
+
+        const chaveNumero = `${numero}${sufixo}`;
+        const chaveWhatsapp = `${numeroWhatsapp}${sufixo}`;
+
+        if (sessoes[chaveNumero] === undefined && sessoes[chaveWhatsapp] !== undefined) {
+            sessoes[chaveNumero] = sessoes[chaveWhatsapp];
+        }
+
+    }
+
+}
+
 function limparTravasChrome() {
     const pastas = [
         path.join(__dirname, 'tokens', 'bot'),
@@ -320,6 +347,10 @@ wppconnect.create({
             const numeroWhatsapp = await resolverNumeroMensagem(
                 client,
                 message
+            );
+            sincronizarSessaoNumero(
+                numero,
+                numeroWhatsapp
             );
             const texto = obterTextoMensagem(message);
 
