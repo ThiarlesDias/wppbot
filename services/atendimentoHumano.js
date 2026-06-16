@@ -4,6 +4,9 @@ const notificar = require('./notificador');
 const {
     pausarAtendimento
 } = require('./pausaAtendimento');
+const {
+    avisoAtendenteForaHorario
+} = require('./horarioAtendimento');
 
 function limparNumero(numero) {
 
@@ -53,9 +56,14 @@ ${origem || 'Menu'}`
 
     if (opcoes.mensagem) {
 
+        const mensagem = [
+            opcoes.mensagem,
+            avisoAtendenteForaHorario()
+        ].filter(Boolean).join('\n\n');
+
         return await client.sendText(
             numero,
-            opcoes.mensagem
+            mensagem
         );
 
     }

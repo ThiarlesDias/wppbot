@@ -1,6 +1,9 @@
 const {
     enviarMenu
 } = require('../../services/menuInterativo');
+const {
+    avisoAtendenteForaHorario
+} = require('../../services/horarioAtendimento');
 
 module.exports = async function humano(
     client,
@@ -12,7 +15,10 @@ module.exports = async function humano(
         numero,
         {
             titulo: 'Atendimento humano',
-            descricao: 'Seu atendimento foi encaminhado. Aguarde nosso retorno.',
+            descricao: [
+                'Seu atendimento foi encaminhado. Aguarde nosso retorno.',
+                avisoAtendenteForaHorario()
+            ].filter(Boolean).join('\n\n'),
             botao: 'Opcoes',
             secao: 'Atendimento',
             opcoes: [

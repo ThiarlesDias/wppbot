@@ -1,6 +1,9 @@
 const {
     enviarMenu
 } = require('../services/menuInterativo');
+const {
+    avisoForaHorario
+} = require('../services/horarioAtendimento');
 
 async function menuPrincipal(client, numero) {
 
@@ -9,7 +12,10 @@ async function menuPrincipal(client, numero) {
         numero,
         {
             titulo: 'TopTec Digital',
-            descricao: 'Como podemos te ajudar hoje?',
+            descricao: [
+                avisoForaHorario(),
+                'Como podemos te ajudar hoje?'
+            ].filter(Boolean).join('\n\n'),
             botao: 'Abrir menu',
             secao: 'Atendimento',
             opcoes: [
