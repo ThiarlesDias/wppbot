@@ -31,7 +31,7 @@ async function pacote(client, numero) {
                 {
                     id: '4',
                     titulo: 'Personalizado',
-                    descricao: 'Gerar pagamento em valor combinado.'
+                    descricao: 'Ver opcoes com 2 telas.'
                 },
                 {
                     id: '8',

@@ -4,6 +4,7 @@ const renovacao = require('../menus/suporte/renovacao');
 const renovacaoPersonalizada = require('../menus/suporte/renovacaoPersonalizada');
 const semSinal = require('../menus/suporte/semSinal');
 const pacote = require('../menus/suporte/pacote');
+const pacotePersonalizado = require('../menus/suporte/pacotePersonalizado');
 const pacotePagamento = require('../menus/suporte/pacotePagamento');
 const emAnalise = require('../menus/suporte/emAnalise');
 const testeGratis = require('../menus/suporte/testeGratis');
@@ -1239,7 +1240,14 @@ ${erro.message}`
 
         if (texto === '4') {
 
-            return await solicitarValorPersonalizado();
+            sessoes[numero] = 'pacote_personalizado';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
+
+            return await pacotePersonalizado(client, numero);
 
         }
 
@@ -2032,7 +2040,14 @@ Se nao quiser responder, envie *0* para pular.`
 
         if (texto === '4') {
 
-            return await solicitarValorPersonalizado();
+            sessoes[numero] = 'pacote_personalizado';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
+
+            return await pacotePersonalizado(client, numero);
 
         }
 
@@ -2051,6 +2066,74 @@ Se nao quiser responder, envie *0* para pular.`
         }
 
         return await enviarMenuPacoteComFollowUp();
+
+    }
+
+    if (etapa === 'pacote_personalizado') {
+
+        if (texto === '5') {
+
+            sessoes[numero] = 'pacote_1_2telas';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
+
+            return await pacotePagamento(
+                client,
+                numero,
+                '1 Mes - 2 telas',
+                'R$ 50,00'
+            );
+
+        }
+
+        if (texto === '6') {
+
+            sessoes[numero] = 'pacote_3_2telas';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
+
+            return await pacotePagamento(
+                client,
+                numero,
+                '3 Meses - 2 telas',
+                'R$ 120,00'
+            );
+
+        }
+
+        if (texto === '7') {
+
+            sessoes[numero] = 'pacote_6_2telas';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
+
+            return await pacotePagamento(
+                client,
+                numero,
+                '6 Meses - 2 telas',
+                'R$ 220,00'
+            );
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'pacote';
+
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        return await pacotePersonalizado(client, numero);
 
     }
 

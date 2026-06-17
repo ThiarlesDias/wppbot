@@ -598,6 +598,7 @@ wppconnect.create({
                 case 'sem_sinal':
                 case 'em_analise':
                 case 'pacote':
+                case 'pacote_personalizado':
                 case 'pacote_1':
                 case 'pacote_3':
                 case 'pacote_6':

@@ -103,6 +103,7 @@ function dadosTipo(tipo) {
         delay: numeroEnv('FUNIL_FOLLOWUP_COMPRA_MS', 30 * 60 * 1000),
         etapas: [
             'pacote',
+            'pacote_personalizado',
             'pacote_1',
             'pacote_3',
             'pacote_6',
