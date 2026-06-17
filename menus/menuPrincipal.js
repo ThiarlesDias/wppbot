@@ -4,10 +4,13 @@ const {
 const {
     avisoForaHorario
 } = require('../services/horarioAtendimento');
+const {
+    agendarRetomadaMenu
+} = require('../services/retomadaMenu');
 
 async function menuPrincipal(client, numero) {
 
-    return await enviarMenu(
+    const resultado = await enviarMenu(
         client,
         numero,
         {
@@ -42,6 +45,13 @@ async function menuPrincipal(client, numero) {
             ]
         }
     );
+
+    agendarRetomadaMenu(
+        client,
+        numero
+    );
+
+    return resultado;
 
 }
 

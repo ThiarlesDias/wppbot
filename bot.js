@@ -41,6 +41,10 @@ const {
 const {
     cancelarFollowUp
 } = require('./services/followUpFunil');
+const {
+    cancelarRetomadaMenu
+} = require('./services/retomadaMenu');
+const encaminharAtendente = require('./services/atendimentoHumano');
 
 console.log('INICIANDO BOT...');
 
@@ -358,6 +362,7 @@ wppconnect.create({
             if (!texto) return;
 
             cancelarFollowUp(numero);
+            cancelarRetomadaMenu(numero);
 
             const admin = ehAdmin(
                 numeroWhatsapp,
@@ -466,6 +471,32 @@ wppconnect.create({
             switch (etapa) {
 
                 case 'menu':
+                case 'retomada_menu':
+
+                    if (etapa === 'retomada_menu' && texto === '0') {
+
+                        return await encaminharAtendente(
+                            client,
+                            numero,
+                            numeroWhatsapp,
+                            'Retomada do menu',
+                            {
+                                mensagem: 'Atendimento encaminhado para nossa equipe. Aguarde nosso retorno.'
+                            }
+                        );
+
+                    }
+
+                    if (etapa === 'retomada_menu' && texto === '8') {
+
+                        sessoes[numero] = 'menu';
+
+                        return await client.sendText(
+                            numero,
+                            'Atendimento encerrado. Quando precisar, e so mandar uma mensagem por aqui.'
+                        );
+
+                    }
 
                     return await menuHandler(
                         client,
