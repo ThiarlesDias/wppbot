@@ -17,7 +17,10 @@ Recebi sua solicitacao e vou verificar pelo WhatsApp deste atendimento.
 
 ${linhasAcessos.length ? `Acesso localizado:\n${linhasAcessos.join('\n')}` : 'Nao encontrei usuario cadastrado neste WhatsApp.'}
 
-Nossa equipe foi avisada e vai continuar o suporte por aqui.`
+Nossa equipe foi avisada e vai continuar o suporte por aqui.
+
+Se voce escolheu essa opcao por engano, digite *0* para voltar.
+Se quiser falar com atendente, digite *9*.`
     );
 
 }
