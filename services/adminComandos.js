@@ -351,11 +351,25 @@ async function tratarComandoAdmin({
     if (texto === '#vencimentos') {
 
         await client.sendText(numero, 'Rodando checagem de vencimentos agora.');
-        await verificarVencimentos(client);
+        const resumo = await verificarVencimentos(client);
 
         return await client.sendText(
             numero,
-            'Checagem de vencimentos concluida. Veja o log para detalhes.'
+            [
+                'Checagem de vencimentos concluida.',
+                '',
+                `Hoje: ${resumo?.hoje ?? 0}`,
+                `Amanha: ${resumo?.amanha ?? 0}`,
+                `Enviados: ${resumo?.enviados ?? 0}`,
+                `Erros: ${resumo?.erros?.length ?? 0}`,
+                ...(resumo?.erros?.length ?
+                    [
+                        '',
+                        'Primeiros erros:',
+                        ...resumo.erros.slice(0, 3)
+                    ] :
+                    [])
+            ].join('\n')
         );
 
     }

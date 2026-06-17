@@ -8,6 +8,9 @@ const {
     enviarAvisoVencimentoCliente
 } = require('./resend');
 const notificar = require('./notificador');
+const {
+    enviarTextoSeguro
+} = require('./envioWhatsapp');
 
 const HORA_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_HORA || 10);
 const MINUTO_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_MINUTO || 0);
@@ -142,17 +145,27 @@ function mensagemAviso(assinatura, periodo = 'amanha') {
 
 async function avisarAssinatura(client, assinatura, periodo = 'amanha') {
 
-    if (!assinatura.numero) return;
+    if (!assinatura.numero && !assinatura.telefone) return;
 
-    await client.sendText(
-        assinatura.numero,
+    const envio = await enviarTextoSeguro(
+        client,
+        [
+            assinatura.numero,
+            assinatura.telefone
+        ],
         mensagemAviso(
             assinatura,
             periodo
         )
     );
 
-    sessoes[assinatura.numero] = 'vencimento_aviso';
+    sessoes[envio.destino] = 'vencimento_aviso';
+
+    if (assinatura.numero && assinatura.numero !== envio.destino) {
+
+        sessoes[assinatura.numero] = 'vencimento_aviso';
+
+    }
 
     if (assinatura.email) {
 
@@ -182,6 +195,9 @@ ${assinatura.numero}
 WhatsApp:
 ${assinatura.telefone || 'Nao informado'}
 
+Destino enviado:
+${envio.destino}
+
 Usuario:
 ${assinatura.username}
 
@@ -208,6 +224,12 @@ ${assinatura.email || 'Nao informado'}`
 async function verificarVencimentos(client) {
 
     let grupos;
+    const resumo = {
+        hoje: 0,
+        amanha: 0,
+        enviados: 0,
+        erros: []
+    };
 
     try {
 
@@ -225,7 +247,14 @@ async function verificarVencimentos(client) {
     } catch (erro) {
 
         console.log('ERRO LISTAR VENCIMENTOS', erro.message);
-        return;
+        resumo.erros.push(`listar: ${erro.message}`);
+        return resumo;
+
+    }
+
+    for (const grupo of grupos) {
+
+        resumo[grupo.periodo] = grupo.assinaturas.length;
 
     }
 
@@ -245,6 +274,7 @@ async function verificarVencimentos(client) {
                     assinatura,
                     grupo.periodo
                 );
+                resumo.enviados += 1;
 
             } catch (erro) {
 
@@ -253,12 +283,15 @@ async function verificarVencimentos(client) {
                     assinatura.id,
                     erro.message
                 );
+                resumo.erros.push(`${assinatura.id}: ${erro.message}`);
 
             }
 
         }
 
     }
+
+    return resumo;
 
 }
 
