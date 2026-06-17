@@ -45,6 +45,9 @@ const {
     cancelarRetomadaMenu
 } = require('./services/retomadaMenu');
 const encaminharAtendente = require('./services/atendimentoHumano');
+const {
+    buscarAssinaturasPorNumero
+} = require('./services/assinaturasStore');
 
 console.log('INICIANDO BOT...');
 
@@ -141,6 +144,58 @@ function ehAdmin(numeroWhatsapp, numero) {
         limparNumero(numeroWhatsapp),
         limparNumero(numero)
     ].includes(admin);
+
+}
+
+function chaveDiaSaoPaulo(valor) {
+
+    const data = valor instanceof Date ? valor : new Date(valor);
+
+    if (Number.isNaN(data.getTime())) return '';
+
+    const partes = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }
+    ).formatToParts(data).reduce(
+        (acc, parte) => {
+            acc[parte.type] = parte.value;
+            return acc;
+        },
+        {}
+    );
+
+    return `${partes.year}-${partes.month}-${partes.day}`;
+
+}
+
+function assinaturaComAvisoPendente(numero, numeroWhatsapp) {
+
+    const hoje = chaveDiaSaoPaulo(new Date());
+    const amanha = chaveDiaSaoPaulo(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    const assinaturas = buscarAssinaturasPorNumero(
+        numero,
+        numeroWhatsapp
+    );
+
+    return assinaturas.find(assinatura => {
+        if (assinatura.status !== 'ativa') return false;
+        if (assinatura.origem === 'teste_gratis') return false;
+        if (!assinatura.expiresAt || !assinatura.avisoVencimento) return false;
+
+        const vencimento = new Date(assinatura.expiresAt);
+        const aviso = new Date(assinatura.avisoVencimento);
+
+        if (Number.isNaN(vencimento.getTime())) return false;
+        if (Number.isNaN(aviso.getTime())) return false;
+        if (aviso.toISOString() !== vencimento.toISOString()) return false;
+
+        return [hoje, amanha].includes(chaveDiaSaoPaulo(vencimento));
+    }) || null;
 
 }
 
@@ -425,6 +480,38 @@ wppconnect.create({
                 atendimentoPausado(numeroWhatsapp) ||
                 atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
             ) return;
+
+            if (
+                ['1', '2'].includes(texto) &&
+                !['vencimento_aviso', 'renovacao', 'cancelamento_feedback', 'cancelamento_repescagem'].includes(sessoes[numero])
+            ) {
+
+                const assinaturaAvisada = assinaturaComAvisoPendente(
+                    numero,
+                    numeroWhatsapp
+                );
+
+                if (assinaturaAvisada) {
+
+                    const telefone = limparNumero(assinaturaAvisada.telefone || assinaturaAvisada.numero);
+                    const aliases = [
+                        numero,
+                        numeroWhatsapp,
+                        assinaturaAvisada.numero,
+                        telefone,
+                        telefone ? `${telefone}@c.us` : ''
+                    ].filter(Boolean);
+
+                    for (const alias of [...new Set(aliases)]) {
+
+                        sessoes[alias] = 'vencimento_aviso';
+                        sessoes[`${alias}_iniciado`] = true;
+
+                    }
+
+                }
+
+            }
 
             verificarTimeout(
                 numero

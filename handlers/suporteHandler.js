@@ -1635,7 +1635,7 @@ Se nao quiser responder, envie *0* para pular.`
             const motivo = sessoes[`${numero}_motivo_cancelamento`] || '';
 
             cancelarAssinaturaPorNumero(
-                numero,
+                numeroWhatsapp || numero,
                 motivo
             );
 
