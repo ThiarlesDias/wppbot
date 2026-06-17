@@ -1,9 +1,18 @@
 const fs = require('fs');
 const path = require('path');
+const sessoes = require('./sessions');
 const {
     caminhoCsv,
     lerClientesCsv
 } = require('./clientesCsv');
+const {
+    buscarAssinaturaPorId,
+    buscarAssinaturasPorNumero
+} = require('./assinaturasStore');
+const renovacao = require('../menus/suporte/renovacao');
+const {
+    enviarTextoSeguro
+} = require('./envioWhatsapp');
 const {
     enviarCampanha,
     statusMarketing
@@ -80,6 +89,7 @@ function menuAdmin() {
         '#testes - resumo da planilha de testes',
         '#testes verificar - avisar testes vencidos agora',
         '#vencimentos - rodar checagem de vencimentos agora',
+        '#renovar telefone/usuario - colocar cliente no fluxo de renovacao',
         '#pausas limpar - liberar todos os atendimentos pausados',
         '#restart - reiniciar somente o bot',
         '',
@@ -220,6 +230,60 @@ function textoStatusImagens() {
 
 }
 
+function limparNumero(valor) {
+
+    return String(valor || '').replace(/\D/g, '');
+
+}
+
+function aliasesAssinatura(assinatura, destino = '') {
+
+    const telefone = limparNumero(assinatura?.telefone || assinatura?.numero);
+    const aliases = [
+        destino,
+        assinatura?.numero,
+        telefone,
+        telefone ? `${telefone}@c.us` : ''
+    ].filter(Boolean);
+
+    return [...new Set(aliases)];
+
+}
+
+function colocarEmRenovacao(assinatura, destino = '') {
+
+    for (const alias of aliasesAssinatura(assinatura, destino)) {
+
+        sessoes[alias] = 'renovacao';
+        sessoes[`${alias}_forcar_renovacao`] = true;
+
+    }
+
+}
+
+function buscarAssinaturaAdmin(entrada) {
+
+    const termo = String(entrada || '').trim();
+
+    if (!termo) return null;
+
+    const porId = buscarAssinaturaPorId(termo);
+
+    if (porId) return porId;
+
+    const porTelefone = buscarAssinaturasPorNumero(
+        termo,
+        termo
+    ).find(assinatura => assinatura.status === 'ativa') ||
+        buscarAssinaturasPorNumero(
+            termo,
+            termo
+        )[0];
+
+    return porTelefone || null;
+
+}
+
 async function tratarComandoAdmin({
     client,
     numero,
@@ -230,6 +294,57 @@ async function tratarComandoAdmin({
     if (texto === '#admin' || texto === '#ajuda') {
 
         return await client.sendText(numero, menuAdmin());
+
+    }
+
+    if (texto.startsWith('#renovar ')) {
+
+        const termo = texto.replace(/^#renovar\s+/i, '').trim();
+        const assinatura = buscarAssinaturaAdmin(termo);
+
+        if (!assinatura) {
+
+            return await client.sendText(
+                numero,
+                `Nao encontrei cliente para: ${termo}`
+            );
+
+        }
+
+        const intro = [
+            'Oi! Vamos continuar sua renovacao por aqui.',
+            '',
+            'Escolha o plano desejado na proxima mensagem.'
+        ].join('\n');
+        const envio = await enviarTextoSeguro(
+            client,
+            [
+                assinatura.numero,
+                assinatura.telefone
+            ],
+            intro
+        );
+
+        colocarEmRenovacao(
+            assinatura,
+            envio.destino
+        );
+
+        await renovacao(
+            client,
+            envio.destino
+        );
+
+        return await client.sendText(
+            numero,
+            [
+                'Cliente colocado no fluxo de renovacao.',
+                '',
+                `Nome: ${assinatura.nome || 'Nao informado'}`,
+                `Usuario: ${assinatura.username}`,
+                `Destino: ${envio.destino}`
+            ].join('\n')
+        );
 
     }
 

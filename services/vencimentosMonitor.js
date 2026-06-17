@@ -143,6 +143,30 @@ function mensagemAviso(assinatura, periodo = 'amanha') {
 
 }
 
+function limparNumero(valor) {
+
+    return String(valor || '').replace(/\D/g, '');
+
+}
+
+function marcarSessaoVencimento(assinatura, destino = '') {
+
+    const telefone = limparNumero(assinatura.telefone || assinatura.numero);
+    const aliases = [
+        destino,
+        assinatura.numero,
+        telefone,
+        telefone ? `${telefone}@c.us` : ''
+    ].filter(Boolean);
+
+    for (const alias of [...new Set(aliases)]) {
+
+        sessoes[alias] = 'vencimento_aviso';
+
+    }
+
+}
+
 async function avisarAssinatura(client, assinatura, periodo = 'amanha') {
 
     if (!assinatura.numero && !assinatura.telefone) return;
@@ -159,13 +183,10 @@ async function avisarAssinatura(client, assinatura, periodo = 'amanha') {
         )
     );
 
-    sessoes[envio.destino] = 'vencimento_aviso';
-
-    if (assinatura.numero && assinatura.numero !== envio.destino) {
-
-        sessoes[assinatura.numero] = 'vencimento_aviso';
-
-    }
+    marcarSessaoVencimento(
+        assinatura,
+        envio.destino
+    );
 
     if (assinatura.email) {
 
