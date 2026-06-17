@@ -12,7 +12,7 @@ module.exports = async function renovacao(
         numero,
         {
             titulo: 'Renovacao IPTV',
-            descricao: 'Escolha o plano para renovar.',
+            descricao: 'Escolha o plano para renovar. Para mais opcoes, chame o atendente.',
             botao: 'Ver planos',
             secao: 'Planos',
             opcoes: [
@@ -34,7 +34,7 @@ module.exports = async function renovacao(
                 {
                     id: '4',
                     titulo: 'Personalizado',
-                    descricao: 'Gerar pagamento em valor combinado.'
+                    descricao: 'Para mais opcoes, chame o atendente.'
                 },
                 {
                     id: '5',
