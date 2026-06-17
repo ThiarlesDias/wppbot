@@ -1,6 +1,7 @@
 const sessoes = require('../services/sessions');
 const menuSuporte = require('../menus/suporte');
 const renovacao = require('../menus/suporte/renovacao');
+const renovacaoPersonalizada = require('../menus/suporte/renovacaoPersonalizada');
 const semSinal = require('../menus/suporte/semSinal');
 const pacote = require('../menus/suporte/pacote');
 const pacotePagamento = require('../menus/suporte/pacotePagamento');
@@ -1868,10 +1869,30 @@ Se nao quiser responder, envie *0* para pular.`
         if (texto === '4') {
 
             sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'renovacao_personalizada';
+            agendarFollowUp(
+                client,
+                numero,
+                'compra'
+            );
 
-            return await solicitarValorPersonalizado();
+            return await renovacaoPersonalizada(client, numero);
 
         }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'suporte';
+
+            return await menuSuporte(client, numero);
+
+        }
+
+        return await renovacao(client, numero);
+
+    }
+
+    if (etapa === 'renovacao_personalizada') {
 
         if (texto === '5') {
 
@@ -1902,13 +1923,13 @@ Se nao quiser responder, envie *0* para pular.`
 
         if (texto === '0') {
 
-            sessoes[numero] = 'suporte';
+            sessoes[numero] = 'renovacao';
 
-            return await menuSuporte(client, numero);
+            return await renovacao(client, numero);
 
         }
 
-        return await renovacao(client, numero);
+        return await renovacaoPersonalizada(client, numero);
 
     }
 

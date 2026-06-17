@@ -594,6 +594,7 @@ wppconnect.create({
 
                 case 'suporte':
                 case 'renovacao':
+                case 'renovacao_personalizada':
                 case 'sem_sinal':
                 case 'em_analise':
                 case 'pacote':

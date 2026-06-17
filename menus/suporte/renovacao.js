@@ -34,22 +34,7 @@ module.exports = async function renovacao(
                 {
                     id: '4',
                     titulo: 'Personalizado',
-                    descricao: 'Para mais opcoes, chame o atendente.'
-                },
-                {
-                    id: '5',
-                    titulo: '1 Mes - 2 telas - R$ 50,00',
-                    descricao: 'Plano mensal com duas telas.'
-                },
-                {
-                    id: '6',
-                    titulo: '3 Meses - 2 telas - R$ 120,00',
-                    descricao: 'Trimestre com duas telas.'
-                },
-                {
-                    id: '7',
-                    titulo: '6 Meses - 2 telas - R$ 220,00',
-                    descricao: 'Semestre com duas telas.'
+                    descricao: 'Ver opcoes com 2 telas.'
                 },
                 {
                     id: '0',

@@ -106,6 +106,7 @@ function dadosTipo(tipo) {
             'pacote_1',
             'pacote_3',
             'pacote_6',
+            'renovacao_personalizada',
             'pacote_1_2telas',
             'pacote_3_2telas',
             'pacote_6_2telas',
