@@ -36,7 +36,7 @@ function mensagemCompra() {
         'Ainda posso te ajudar a finalizar seu atendimento.',
         '',
         '1 - Adquirir agora',
-        '4 - Outro valor',
+        '4 - Personalizado',
         '9 - Falar com atendente',
         '8 - Encerrar atendimento',
         '0 - Voltar ao menu'
@@ -101,7 +101,18 @@ function dadosTipo(tipo) {
         etapa: 'followup_compra',
         mensagem: mensagemCompra(),
         delay: numeroEnv('FUNIL_FOLLOWUP_COMPRA_MS', 30 * 60 * 1000),
-        etapas: ['pacote', 'pacote_1', 'pacote_3', 'pacote_6', 'pacote_outro_valor', 'pacote_outro_pagamento', 'followup_compra']
+        etapas: [
+            'pacote',
+            'pacote_1',
+            'pacote_3',
+            'pacote_6',
+            'pacote_1_2telas',
+            'pacote_3_2telas',
+            'pacote_6_2telas',
+            'pacote_outro_valor',
+            'pacote_outro_pagamento',
+            'followup_compra'
+        ]
     };
 
 }

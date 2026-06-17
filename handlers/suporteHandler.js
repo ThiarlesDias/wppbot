@@ -540,7 +540,7 @@ ${resumoAssinaturas(assinaturas)}`
         if (etapaAtual === 'pacote_1') {
 
             return {
-                plano: '1 Mes',
+                plano: '1 Mes - 1 tela',
                 valor: 'R$ 25,00'
             };
 
@@ -549,7 +549,7 @@ ${resumoAssinaturas(assinaturas)}`
         if (etapaAtual === 'pacote_3') {
 
             return {
-                plano: '3 Meses',
+                plano: '3 Meses - 1 tela',
                 valor: 'R$ 60,00'
             };
 
@@ -558,8 +558,35 @@ ${resumoAssinaturas(assinaturas)}`
         if (etapaAtual === 'pacote_6') {
 
             return {
-                plano: '6 Meses',
+                plano: '6 Meses - 1 tela',
                 valor: 'R$ 110,00'
+            };
+
+        }
+
+        if (etapaAtual === 'pacote_1_2telas') {
+
+            return {
+                plano: '1 Mes - 2 telas',
+                valor: 'R$ 50,00'
+            };
+
+        }
+
+        if (etapaAtual === 'pacote_3_2telas') {
+
+            return {
+                plano: '3 Meses - 2 telas',
+                valor: 'R$ 120,00'
+            };
+
+        }
+
+        if (etapaAtual === 'pacote_6_2telas') {
+
+            return {
+                plano: '6 Meses - 2 telas',
+                valor: 'R$ 220,00'
             };
 
         }
@@ -653,7 +680,7 @@ Se nao quiser informar agora, digite *0* para pular.`
         return await client.sendText(
             numero,
 
-`*Outro valor*
+`*Personalizado*
 
 Digite o valor combinado para gerar o pagamento.
 
@@ -1816,7 +1843,7 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
             sessoes[numero] = 'pacote_1';
 
-            return await enviarPagamentoComFollowUp('1 Mes', 'R$ 25,00');
+            return await enviarPagamentoComFollowUp('1 Mes - 1 tela', 'R$ 25,00');
 
         }
 
@@ -1825,7 +1852,7 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
             sessoes[numero] = 'pacote_3';
 
-            return await enviarPagamentoComFollowUp('3 Meses', 'R$ 60,00');
+            return await enviarPagamentoComFollowUp('3 Meses - 1 tela', 'R$ 60,00');
 
         }
 
@@ -1834,7 +1861,7 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
             sessoes[numero] = 'pacote_6';
 
-            return await enviarPagamentoComFollowUp('6 Meses', 'R$ 110,00');
+            return await enviarPagamentoComFollowUp('6 Meses - 1 tela', 'R$ 110,00');
 
         }
 
@@ -1843,6 +1870,33 @@ Se nao quiser responder, envie *0* para pular.`
             sessoes[chaveForcarRenovacao] = true;
 
             return await solicitarValorPersonalizado();
+
+        }
+
+        if (texto === '5') {
+
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'pacote_1_2telas';
+
+            return await enviarPagamentoComFollowUp('1 Mes - 2 telas', 'R$ 50,00');
+
+        }
+
+        if (texto === '6') {
+
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'pacote_3_2telas';
+
+            return await enviarPagamentoComFollowUp('3 Meses - 2 telas', 'R$ 120,00');
+
+        }
+
+        if (texto === '7') {
+
+            sessoes[chaveForcarRenovacao] = true;
+            sessoes[numero] = 'pacote_6_2telas';
+
+            return await enviarPagamentoComFollowUp('6 Meses - 2 telas', 'R$ 220,00');
 
         }
 
@@ -2007,7 +2061,7 @@ Se nao quiser responder, envie *0* para pular.`
         const valorPersonalizado = formatarValorMoeda(valorNumero(texto));
 
         sessoes[chavePacoteOutro] = {
-            plano: 'Outro valor',
+            plano: 'Personalizado',
             valor: valorPersonalizado
         };
         sessoes[numero] = 'pacote_outro_pagamento';
@@ -2020,7 +2074,7 @@ Se nao quiser responder, envie *0* para pular.`
         return await pacotePagamento(
             client,
             numero,
-            'Outro valor',
+            'Personalizado',
             valorPersonalizado
         );
 

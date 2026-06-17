@@ -18,23 +18,38 @@ module.exports = async function renovacao(
             opcoes: [
                 {
                     id: '1',
-                    titulo: '1 Mes - R$ 25,00',
-                    descricao: 'Plano mensal.'
+                    titulo: '1 Mes - 1 tela - R$ 25,00',
+                    descricao: 'Plano mensal com uma tela.'
                 },
                 {
                     id: '2',
-                    titulo: '3 Meses - R$ 60,00',
-                    descricao: 'Economia no trimestre.'
+                    titulo: '3 Meses - 1 tela - R$ 60,00',
+                    descricao: 'Economia no trimestre com uma tela.'
                 },
                 {
                     id: '3',
-                    titulo: '6 Meses - R$ 110,00',
-                    descricao: 'Melhor custo por mes.'
+                    titulo: '6 Meses - 1 tela - R$ 110,00',
+                    descricao: 'Melhor custo por mes com uma tela.'
                 },
                 {
                     id: '4',
-                    titulo: 'Outro valor',
+                    titulo: 'Personalizado',
                     descricao: 'Gerar pagamento em valor combinado.'
+                },
+                {
+                    id: '5',
+                    titulo: '1 Mes - 2 telas - R$ 50,00',
+                    descricao: 'Plano mensal com duas telas.'
+                },
+                {
+                    id: '6',
+                    titulo: '3 Meses - 2 telas - R$ 120,00',
+                    descricao: 'Trimestre com duas telas.'
+                },
+                {
+                    id: '7',
+                    titulo: '6 Meses - 2 telas - R$ 220,00',
+                    descricao: 'Semestre com duas telas.'
                 },
                 {
                     id: '0',

@@ -600,6 +600,9 @@ wppconnect.create({
                 case 'pacote_1':
                 case 'pacote_3':
                 case 'pacote_6':
+                case 'pacote_1_2telas':
+                case 'pacote_3_2telas':
+                case 'pacote_6_2telas':
                 case 'pacote_outro_valor':
                 case 'pacote_outro_pagamento':
                 case 'teste_gratis':
