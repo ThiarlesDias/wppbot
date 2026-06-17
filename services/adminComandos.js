@@ -9,7 +9,16 @@ const {
     buscarAssinaturaPorId,
     buscarAssinaturasPorNumero
 } = require('./assinaturasStore');
+const menuPrincipal = require('../menus/menuPrincipal');
+const menuSuporte = require('../menus/suporte');
+const menuComercial = require('../menus/comercial');
+const menuFinanceiro = require('../menus/financeiro');
+const menuHumano = require('../menus/humano');
+const pacote = require('../menus/suporte/pacote');
 const renovacao = require('../menus/suporte/renovacao');
+const testeGratis = require('../menus/suporte/testeGratis');
+const semSinal = require('../menus/suporte/semSinal');
+const ajudaConfiguracao = require('../menus/suporte/ajudaConfiguracao');
 const {
     enviarTextoSeguro
 } = require('./envioWhatsapp');
@@ -90,6 +99,8 @@ function menuAdmin() {
         '#testes verificar - avisar testes vencidos agora',
         '#vencimentos - rodar checagem de vencimentos agora',
         '#renovar telefone/usuario - colocar cliente no fluxo de renovacao',
+        '#fluxos - listar fluxos disponiveis',
+        '#fluxo telefone/usuario fluxo - colocar cliente em um fluxo',
         '#pausas limpar - liberar todos os atendimentos pausados',
         '#restart - reiniciar somente o bot',
         '',
@@ -261,6 +272,17 @@ function colocarEmRenovacao(assinatura, destino = '') {
 
 }
 
+function colocarEmFluxo(assinatura, destino, fluxo) {
+
+    for (const alias of aliasesAssinatura(assinatura, destino)) {
+
+        sessoes[alias] = fluxo;
+        sessoes[`${alias}_iniciado`] = true;
+
+    }
+
+}
+
 function buscarAssinaturaAdmin(entrada) {
 
     const termo = String(entrada || '').trim();
@@ -284,6 +306,132 @@ function buscarAssinaturaAdmin(entrada) {
 
 }
 
+function fluxoNormalizado(valor) {
+
+    const texto = String(valor || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9_]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+    const aliases = {
+        principal: 'menu',
+        inicio: 'menu',
+        tv: 'suporte',
+        sistema_tv: 'suporte',
+        sistema_de_tv: 'suporte',
+        produtos: 'comercial',
+        servicos: 'comercial',
+        produtos_servicos: 'comercial',
+        produtos_e_servicos: 'comercial',
+        atendente: 'humano',
+        atendimento: 'humano',
+        atendimento_humano: 'humano',
+        adquirir: 'pacote',
+        adquirir_pacote: 'pacote',
+        planos: 'pacote',
+        renovar: 'renovacao',
+        renovacao_plano: 'renovacao',
+        teste_gratis: 'teste',
+        testegratis: 'teste',
+        criar_teste: 'teste',
+        sem_sinal: 'sem_sinal',
+        sinal: 'sem_sinal',
+        configuracao: 'config',
+        ajuda_configuracao: 'config',
+        ajuda_com_configuracao: 'config',
+        cancelar: 'cancelamento',
+        cancelamento_assinatura: 'cancelamento'
+    };
+
+    return aliases[texto] || texto;
+
+}
+
+function textoFluxos() {
+
+    return [
+        '*Fluxos disponiveis*',
+        '',
+        'Use: #fluxo telefone/usuario fluxo',
+        '',
+        'menu - menu principal',
+        'suporte ou tv - Sistema de TV',
+        'renovacao - planos para renovar',
+        'pacote - adquirir pacote',
+        'teste - criar teste gratis',
+        'sem_sinal - atendimento sem sinal',
+        'config - ajuda com configuracao',
+        'financeiro - menu financeiro',
+        'comercial - produtos e servicos',
+        'humano - atendimento humano',
+        'cancelamento - pedir motivo de cancelamento',
+        '',
+        'Exemplos:',
+        '#fluxo 5543998022208 renovacao',
+        '#fluxo 49876165849dna pacote'
+    ].join('\n');
+
+}
+
+function estadoDoFluxo(fluxo) {
+
+    const estados = {
+        teste: 'teste_gratis',
+        config: 'ajuda_config',
+        sem_sinal: 'em_analise',
+        cancelamento: 'cancelamento_feedback'
+    };
+
+    return estados[fluxo] || fluxo;
+
+}
+
+async function abrirFluxoCliente(client, destino, fluxo, assinatura) {
+
+    if (fluxo === 'menu') return await menuPrincipal(client, destino);
+    if (fluxo === 'suporte') return await menuSuporte(client, destino);
+    if (fluxo === 'comercial') return await menuComercial(client, destino);
+    if (fluxo === 'financeiro') return await menuFinanceiro(client, destino);
+    if (fluxo === 'humano') return await menuHumano(client, destino);
+    if (fluxo === 'renovacao') return await renovacao(client, destino);
+    if (fluxo === 'pacote') return await pacote(client, destino);
+    if (fluxo === 'teste') return await testeGratis(client, destino);
+    if (fluxo === 'config') return await ajudaConfiguracao(client, destino);
+
+    if (fluxo === 'sem_sinal') {
+
+        const assinaturas = assinatura ? [assinatura] : [];
+
+        return await semSinal(
+            client,
+            destino,
+            assinaturas
+        );
+
+    }
+
+    if (fluxo === 'cancelamento') {
+
+        return await client.sendText(
+            destino,
+
+`Tudo bem. Antes de cancelar, se puder, conte rapidamente o motivo.
+
+Se nao quiser responder, envie *0* para pular.`
+        );
+
+    }
+
+    return await client.sendText(
+        destino,
+        `Fluxo *${fluxo}* ativado. Envie sua proxima resposta por aqui.`
+    );
+
+}
+
 async function tratarComandoAdmin({
     client,
     numero,
@@ -294,6 +442,106 @@ async function tratarComandoAdmin({
     if (texto === '#admin' || texto === '#ajuda') {
 
         return await client.sendText(numero, menuAdmin());
+
+    }
+
+    if (texto === '#fluxos') {
+
+        return await client.sendText(numero, textoFluxos());
+
+    }
+
+    if (texto.startsWith('#fluxo ')) {
+
+        const partes = texto.split(/\s+/);
+        const termo = partes[1] || '';
+        const fluxoPedido = fluxoNormalizado(partes.slice(2).join(' '));
+
+        if (!termo || !fluxoPedido) {
+
+            return await client.sendText(
+                numero,
+                'Use assim: *#fluxo telefone/usuario fluxo*. Envie *#fluxos* para ver a lista.'
+            );
+
+        }
+
+        const permitidos = new Set([
+            'menu',
+            'suporte',
+            'comercial',
+            'financeiro',
+            'humano',
+            'renovacao',
+            'pacote',
+            'teste',
+            'sem_sinal',
+            'config',
+            'cancelamento'
+        ]);
+
+        if (!permitidos.has(fluxoPedido)) {
+
+            return await client.sendText(
+                numero,
+                `Fluxo nao reconhecido: ${fluxoPedido}\nEnvie *#fluxos* para ver a lista.`
+            );
+
+        }
+
+        const assinatura = buscarAssinaturaAdmin(termo);
+        const destinos = assinatura ?
+            [
+                assinatura.numero,
+                assinatura.telefone
+            ] :
+            [termo];
+        const envio = await enviarTextoSeguro(
+            client,
+            destinos,
+            'Vou te direcionar para o atendimento correto agora.'
+        );
+
+        if (assinatura && fluxoPedido === 'renovacao') {
+
+            colocarEmRenovacao(
+                assinatura,
+                envio.destino
+            );
+
+        } else if (assinatura) {
+
+            colocarEmFluxo(
+                assinatura,
+                envio.destino,
+                estadoDoFluxo(fluxoPedido)
+            );
+
+        } else {
+
+            sessoes[envio.destino] = estadoDoFluxo(fluxoPedido);
+            sessoes[`${envio.destino}_iniciado`] = true;
+
+        }
+
+        await abrirFluxoCliente(
+            client,
+            envio.destino,
+            fluxoPedido,
+            assinatura
+        );
+
+        return await client.sendText(
+            numero,
+            [
+                'Cliente colocado no fluxo.',
+                '',
+                `Destino: ${envio.destino}`,
+                `Fluxo: ${fluxoPedido}`,
+                assinatura ? `Nome: ${assinatura.nome || 'Nao informado'}` : '',
+                assinatura ? `Usuario: ${assinatura.username}` : ''
+            ].filter(Boolean).join('\n')
+        );
 
     }
 
