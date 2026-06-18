@@ -43,7 +43,8 @@ function normalizarUsuario(usuario) {
 
     return String(usuario || '')
         .trim()
-        .replace(/\s+/g, '');
+        .replace(/\s+/g, '')
+        .replace(/dna$/i, '');
 
 }
 
@@ -219,9 +220,7 @@ function salvarEstado(arquivo, linhas) {
 
 function mesclarCampos(usuario, base, local, remoto, conflitos) {
 
-    const linha = {
-        usuario
-    };
+    const linha = {};
 
     for (const campo of CAMPOS) {
 
@@ -253,6 +252,7 @@ function mesclarCampos(usuario, base, local, remoto, conflitos) {
         const usarRemoto = [
             'nome',
             'telefone',
+            'usuario',
             'vencimento'
         ].includes(campo);
 
@@ -268,7 +268,7 @@ function mesclarCampos(usuario, base, local, remoto, conflitos) {
 
     }
 
-    linha.usuario = usuario;
+    if (!linha.usuario) linha.usuario = usuario;
 
     return limparLinha(linha);
 
