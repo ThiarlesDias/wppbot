@@ -330,11 +330,19 @@ function mesclar(localLinhas, remotoLinhas, estado) {
         if (!linhaLocal && !linhaRemoto) continue;
         if (!linhaLocal) {
 
+            const remotoMudou = !linhasIguais(linhaRemoto, linhaBase);
+
+            if (!remotoMudou) continue;
+
             resultado.push(linhaRemoto);
             continue;
 
         }
         if (!linhaRemoto) {
+
+            const localMudou = !linhasIguais(linhaLocal, linhaBase);
+
+            if (!localMudou) continue;
 
             resultado.push(linhaLocal);
             continue;
