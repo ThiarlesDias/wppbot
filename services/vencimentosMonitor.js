@@ -137,6 +137,7 @@ function mensagemAviso(assinatura, periodo = 'amanha') {
         '',
         '1️⃣ Renovar agora',
         '2️⃣ Cancelar minha assinatura',
+        '3️⃣ Ja realizei o pagamento',
         '0️⃣ Voltar ao menu',
         '━━━━━━━━━━━━━━'
     ].filter(Boolean).join('\n');

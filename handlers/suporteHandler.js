@@ -1615,6 +1615,43 @@ Se nao quiser responder, envie *0* para pular.`
 
         }
 
+        if (texto === '3') {
+
+            const assinaturas = buscarAssinaturasPorNumero(
+                numero,
+                numeroWhatsapp
+            ).filter(assinatura =>
+                assinatura.status !== 'cancelada'
+            );
+            const resumo = assinaturas.length ?
+                resumoAssinaturas(assinaturas) :
+                'Nenhum usuario ativo encontrado automaticamente para este WhatsApp.';
+
+            sessoes[numero] = 'menu';
+
+            await notificar(
+                client,
+                'CLIENTE INFORMOU PAGAMENTO',
+
+`Cliente informou que ja realizou o pagamento.
+
+WhatsApp:
+${numeroWhatsapp || 'Nao confirmado'}
+
+Atendimento:
+${numero}
+
+Acessos encontrados:
+${resumo}`
+            );
+
+            return await client.sendText(
+                numero,
+                'Recebi seu aviso de pagamento. Nossa equipe vai conferir e, assim que confirmar, voce recebe a confirmacao por aqui.'
+            );
+
+        }
+
         if (texto === '0') {
 
             sessoes[numero] = 'menu';
@@ -1633,6 +1670,7 @@ Se nao quiser responder, envie *0* para pular.`
 
 1️⃣ Renovar agora
 2️⃣ Cancelar minha assinatura
+3️⃣ Ja realizei o pagamento
 0️⃣ Voltar ao menu`
         );
 
