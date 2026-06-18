@@ -39,24 +39,96 @@ function limparLinha(linha) {
 
 }
 
-function chaveUsuario(linha) {
+function normalizarUsuario(usuario) {
 
-    return String(linha?.usuario || '').trim();
+    return String(usuario || '')
+        .trim()
+        .replace(/\s+/g, '');
 
 }
 
-function mapaPorUsuario(linhas) {
+function normalizarTelefone(telefone) {
+
+    return String(telefone || '').replace(/\D/g, '');
+
+}
+
+function chaveUsuario(linha) {
+
+    return normalizarUsuario(linha?.usuario);
+
+}
+
+function chaveTelefone(linha) {
+
+    return normalizarTelefone(linha?.telefone);
+
+}
+
+function escolherLinhaDuplicada(atual, nova) {
+
+    if (!atual) return nova;
+    if (!nova) return atual;
+
+    const atualCampos = camposPreenchidos(atual);
+    const novaCampos = camposPreenchidos(nova);
+
+    if (novaCampos > atualCampos) return nova;
+    if (atualCampos > novaCampos) return atual;
+
+    return nova;
+
+}
+
+function mapaPorUsuario(linhas, origem = 'csv') {
 
     const mapa = {};
+    const porTelefone = {};
 
     for (const linha of linhas) {
 
         const limpa = limparLinha(linha);
         const usuario = chaveUsuario(limpa);
+        const telefone = chaveTelefone(limpa);
 
-        if (!usuario) continue;
+        if (usuario) {
 
-        mapa[usuario] = limpa;
+            if (mapa[usuario]) {
+
+                console.log(`DUPLICADO ${origem} usuario=${usuario}; mantendo linha mais completa/recente.`);
+
+            }
+
+            mapa[usuario] = escolherLinhaDuplicada(
+                mapa[usuario],
+                limpa
+            );
+            continue;
+
+        }
+
+        if (telefone) {
+
+            if (porTelefone[telefone]) {
+
+                console.log(`DUPLICADO ${origem} telefone=${telefone}; mantendo linha mais completa/recente.`);
+
+            }
+
+            porTelefone[telefone] = escolherLinhaDuplicada(
+                porTelefone[telefone],
+                limpa
+            );
+
+        }
+
+    }
+
+    for (const [telefone, linha] of Object.entries(porTelefone)) {
+
+        const chave = `telefone:${telefone}`;
+
+        if (!mapa[chave]) mapa[chave] = linha;
 
     }
 
@@ -123,7 +195,11 @@ function salvarEstado(arquivo, linhas) {
 
     for (const linha of linhas) {
 
-        clientes[chaveUsuario(linha)] = limparLinha(linha);
+        const chave = chaveUsuario(linha) || `telefone:${chaveTelefone(linha)}`;
+
+        if (!chave) continue;
+
+        clientes[chave] = limparLinha(linha);
 
     }
 
@@ -176,7 +252,8 @@ function mesclarCampos(usuario, base, local, remoto, conflitos) {
 
         const usarRemoto = [
             'nome',
-            'telefone'
+            'telefone',
+            'vencimento'
         ].includes(campo);
 
         linha[campo] = usarRemoto ? valorRemoto : valorLocal;
@@ -218,8 +295,8 @@ function escolherSemBase(usuario, local, remoto, conflitos) {
 
 function mesclar(localLinhas, remotoLinhas, estado) {
 
-    const local = mapaPorUsuario(localLinhas);
-    const remoto = mapaPorUsuario(remotoLinhas);
+    const local = mapaPorUsuario(localLinhas, 'local');
+    const remoto = mapaPorUsuario(remotoLinhas, 'onedrive');
     const base = estado.clientes || {};
     const usuarios = Array.from(new Set([
         ...Object.keys(base),
