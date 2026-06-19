@@ -26,6 +26,9 @@ const ajudaPosTeste = require('../menus/suporte/ajudaPosTeste');
 const {
     marcarCupomAplicado
 } = require('./marketingCampanha');
+const {
+    marcarLeadConvertido
+} = require('./leadsCsv');
 
 const INTERVALO_MS = Number(process.env.MP_MONITOR_INTERVAL_MS || 60000);
 
@@ -629,6 +632,10 @@ async function verificarVenda(client, venda) {
             if (assinatura?.username && assinatura?.password) {
 
                 atualizarClienteCsv(assinatura);
+                marcarLeadConvertido(
+                    venda.telefone || venda.numero,
+                    'cliente'
+                );
 
             }
 

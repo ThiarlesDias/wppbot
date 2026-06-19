@@ -23,6 +23,7 @@ const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
 const iniciarStatusDiario = require('./services/statusDiario');
 const iniciarMonitorTestes = require('./services/testesMonitor');
+const iniciarMonitorLeads = require('./services/leadsMonitor');
 const {
     tratarComandoAdmin
 } = require('./services/adminComandos');
@@ -48,6 +49,13 @@ const encaminharAtendente = require('./services/atendimentoHumano');
 const {
     buscarAssinaturasPorNumero
 } = require('./services/assinaturasStore');
+const {
+    lerTestesCsv
+} = require('./services/testesCsv');
+const {
+    marcarLead,
+    registrarLead
+} = require('./services/leadsCsv');
 
 console.log('INICIANDO BOT...');
 
@@ -196,6 +204,56 @@ function assinaturaComAvisoPendente(numero, numeroWhatsapp) {
 
         return [hoje, amanha].includes(chaveDiaSaoPaulo(vencimento));
     }) || null;
+
+}
+
+function temTesteRegistrado(numero, numeroWhatsapp) {
+
+    const telefones = [
+        limparNumero(numeroWhatsapp),
+        limparNumero(numero)
+    ].filter(Boolean);
+
+    if (!telefones.length) return false;
+
+    return lerTestesCsv().some(teste =>
+        telefones.includes(limparNumero(teste.telefone))
+    );
+
+}
+
+function deveRegistrarLead(numero, numeroWhatsapp) {
+
+    if (
+        buscarAssinaturasPorNumero(
+            numero,
+            numeroWhatsapp
+        ).some(assinatura => assinatura.status !== 'cancelada')
+    ) return false;
+
+    return !temTesteRegistrado(
+        numero,
+        numeroWhatsapp
+    );
+
+}
+
+function nomeMensagem(message) {
+
+    return textosContatoMensagem(message)[0] || '';
+
+}
+
+function registrarLeadAtual(message, numero, numeroWhatsapp, fluxo) {
+
+    if (!deveRegistrarLead(numero, numeroWhatsapp)) return;
+
+    registrarLead({
+        numero,
+        telefone: numeroWhatsapp,
+        nome: nomeMensagem(message),
+        fluxo
+    });
 
 }
 
@@ -371,6 +429,7 @@ wppconnect.create({
     iniciarMonitorSigma(client);
     iniciarStatusDiario(client);
     iniciarMonitorTestes(client);
+    iniciarMonitorLeads(client);
 
     client.onAnyMessage((message) => {
 
@@ -523,6 +582,13 @@ wppconnect.create({
 
                 sessoes[numero] = 'menu';
 
+                registrarLeadAtual(
+                    message,
+                    numero,
+                    numeroWhatsapp,
+                    'menu'
+                );
+
                 await menuPrincipal(
                     client,
                     numero
@@ -548,6 +614,12 @@ wppconnect.create({
                 numero,
                 etapa,
                 texto
+            );
+            registrarLeadAtual(
+                message,
+                numero,
+                numeroWhatsapp,
+                etapa
             );
             console.log(
                 `[${numero}]`,
@@ -577,6 +649,11 @@ wppconnect.create({
                     if (etapa === 'retomada_menu' && texto === '8') {
 
                         sessoes[numero] = 'menu';
+                        marcarLead(
+                            numeroWhatsapp || numero,
+                            'encerrado',
+                            'Cliente encerrou pela retomada do menu.'
+                        );
 
                         return await client.sendText(
                             numero,

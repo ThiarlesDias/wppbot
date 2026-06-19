@@ -35,6 +35,10 @@ const {
     caminhoTestesCsv,
     lerTestesCsv
 } = require('./testesCsv');
+const {
+    caminhoLeadsCsv,
+    lerLeadsCsv
+} = require('./leadsCsv');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
@@ -91,6 +95,8 @@ function menuAdmin() {
         '#status - status rapido do bot',
         '#clientes - resumo da planilha de clientes',
         '#clientes ultimos - ultimos 10 clientes da planilha',
+        '#leads - resumo da planilha de leads',
+        '#leads ultimos - ultimos 10 leads',
         '#marketing status - status da campanha',
         '#marketing enviar - disparar campanha com limite/intervalo',
         '#status imagens - ver imagens do status diario',
@@ -114,9 +120,11 @@ function statusBot() {
     const clientesPath = caminhoCsv();
     const marketingPath = process.env.MARKETING_CSV_PATH ||
         path.join(DATA_DIR, 'marketing.csv');
+    const leadsPath = caminhoLeadsCsv();
     const pausaPath = path.join(DATA_DIR, 'atendimentos-pausados.json');
     const clientesInfo = arquivoInfo(clientesPath);
     const marketingInfo = arquivoInfo(marketingPath);
+    const leadsInfo = arquivoInfo(leadsPath);
     const pausasInfo = arquivoInfo(pausaPath);
 
     return [
@@ -127,6 +135,7 @@ function statusBot() {
         '*Arquivos*',
         `Clientes: ${clientesInfo.existe ? 'OK' : 'Nao encontrado'}`,
         `Atualizado: ${formatarData(clientesInfo.atualizadoEm)}`,
+        `Leads: ${leadsInfo.existe ? 'OK' : 'Nao encontrado'}`,
         `Marketing: ${marketingInfo.existe ? 'OK' : 'Nao encontrado'}`,
         `Pausas: ${pausasInfo.existe ? 'sim' : 'nao'}`,
         '',
@@ -169,6 +178,47 @@ function ultimosClientes() {
             `Tel: ${cliente.telefone || 'nao informado'}`,
             `Usuario: ${cliente.usuario || 'nao informado'}`,
             `Vencimento: ${cliente.vencimento || 'nao informado'}`
+        ].join('\n'))
+    ].join('\n\n');
+
+}
+
+function resumoLeads() {
+
+    const arquivo = caminhoLeadsCsv();
+    const leads = lerLeadsCsv(arquivo);
+    const info = arquivoInfo(arquivo);
+    const ativos = leads.filter(lead =>
+        String(lead.status || '').toLowerCase() === 'lead'
+    ).length;
+
+    return [
+        '*Leads*',
+        '',
+        `Arquivo: ${arquivo}`,
+        `Existe: ${info.existe ? 'sim' : 'nao'}`,
+        `Total: ${leads.length}`,
+        `Ativos: ${ativos}`,
+        `Atualizado: ${formatarData(info.atualizadoEm)}`
+    ].join('\n');
+
+}
+
+function ultimosLeads() {
+
+    const leads = lerLeadsCsv(caminhoLeadsCsv()).slice(-10);
+
+    if (!leads.length) return 'Nenhum lead encontrado na planilha.';
+
+    return [
+        '*Ultimos leads*',
+        '',
+        ...leads.map(lead => [
+            lead.nome || 'Sem nome',
+            `Tel: ${lead.telefone || 'nao informado'}`,
+            `Fluxo: ${lead.fluxo || 'nao informado'}`,
+            `Status: ${lead.status || 'nao informado'}`,
+            `Ultima interacao: ${lead.ultima_interacao || 'nao informado'}`
         ].join('\n'))
     ].join('\n\n');
 
@@ -620,6 +670,18 @@ async function tratarComandoAdmin({
     if (texto === '#clientes ultimos') {
 
         return await client.sendText(numero, ultimosClientes());
+
+    }
+
+    if (texto === '#leads') {
+
+        return await client.sendText(numero, resumoLeads());
+
+    }
+
+    if (texto === '#leads ultimos') {
+
+        return await client.sendText(numero, ultimosLeads());
 
     }
 

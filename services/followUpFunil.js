@@ -2,6 +2,9 @@ const sessoes = require('./sessions');
 const {
     atendimentoPausado
 } = require('./pausaAtendimento');
+const {
+    atualizarTentativaLead
+} = require('./leadsCsv');
 
 const timers = {};
 
@@ -138,6 +141,7 @@ function agendarFollowUp(client, numero, tipo) {
                 if (!etapaValida(numero, dados.etapas)) return;
 
                 sessoes[numero] = dados.etapa;
+                atualizarTentativaLead(numero);
 
                 await client.sendText(
                     numero,

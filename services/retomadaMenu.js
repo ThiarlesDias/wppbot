@@ -2,6 +2,9 @@ const sessoes = require('./sessions');
 const {
     atendimentoPausado
 } = require('./pausaAtendimento');
+const {
+    atualizarTentativaLead
+} = require('./leadsCsv');
 
 const timers = {};
 
@@ -69,6 +72,7 @@ function agendarTentativa(client, numero, tentativa) {
                 if (!etapaPermiteRetomada(numero)) return;
 
                 sessoes[numero] = 'retomada_menu';
+                atualizarTentativaLead(numero);
 
                 await client.sendText(
                     numero,

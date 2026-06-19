@@ -48,6 +48,10 @@ const {
     telefoneSaiuContratacao
 } = require('../services/testesCsv');
 const {
+    marcarLead,
+    marcarLeadConvertido
+} = require('../services/leadsCsv');
+const {
     validarCupom
 } = require('../services/marketingCampanha');
 
@@ -176,6 +180,10 @@ Credenciais do Sigma ainda nao configuradas.`
                         vencimento: vencimentoTeste,
                         horas: Number(process.env.SIGMA_TRIAL_HOURS || 6)
                     });
+                    marcarLeadConvertido(
+                        numeroParaTeste,
+                        'teste'
+                    );
                 } catch (erroCsv) {
                     console.log(
                         'ERRO REGISTRAR TESTE CSV',
@@ -302,6 +310,12 @@ De *1* a *5*, qual nota voce da para este atendimento?
     }
 
     async function encerrarComPesquisa() {
+
+        marcarLead(
+            numeroWhatsapp || numero,
+            'encerrado',
+            'Cliente encerrou o atendimento.'
+        );
 
         await client.sendText(
             numero,
