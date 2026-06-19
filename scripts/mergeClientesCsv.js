@@ -18,6 +18,11 @@ const CAMPOS = [
     'telas',
     'meses'
 ];
+const CAMPOS_MANUAIS_PROTEGIDOS = [
+    'valor',
+    'telas',
+    'meses'
+];
 
 function caminhoPadraoEstado(arquivoLocal) {
 
@@ -230,10 +235,33 @@ function mesclarCampos(usuario, base, local, remoto, conflitos) {
         const valorBase = String(base?.[campo] || '').trim();
         const valorLocal = String(local?.[campo] || '').trim();
         const valorRemoto = String(remoto?.[campo] || '').trim();
+        const protegido = CAMPOS_MANUAIS_PROTEGIDOS.includes(campo);
 
         if (valorLocal === valorRemoto) {
 
             linha[campo] = valorLocal;
+            continue;
+
+        }
+
+        if (protegido) {
+
+            const usado = valorRemoto || valorLocal;
+
+            linha[campo] = usado;
+
+            if (valorLocal && valorRemoto && valorLocal !== valorRemoto) {
+
+                conflitos.push({
+                    usuario,
+                    campo,
+                    local: valorLocal,
+                    onedrive: valorRemoto,
+                    usado: 'onedrive'
+                });
+
+            }
+
             continue;
 
         }

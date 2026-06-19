@@ -27,6 +27,7 @@ fi
 
 if rclone copyto "$REMOTE" "$REMOTE_TMP"; then
     echo "OneDrive baixado: $REMOTE"
+    cp "$REMOTE_TMP" "$BACKUP_DIR/clientes-onedrive-$STAMP.csv"
 else
     echo "Aviso: nao consegui baixar $REMOTE. Vou usar somente o CSV local."
     if [ -f "$LOCAL" ]; then
