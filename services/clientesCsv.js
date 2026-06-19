@@ -11,7 +11,9 @@ const CABECALHOS = [
     'senha',
     'dns',
     'm3u',
-    'vencimento'
+    'vencimento',
+    'valor',
+    'telas'
 ];
 
 function caminhoCsv() {
@@ -237,7 +239,9 @@ function linhaDaAssinatura(assinatura) {
         senha,
         dns,
         m3u,
-        vencimento: formatarData(assinatura.expiresAt || assinatura.vencimento)
+        vencimento: formatarData(assinatura.expiresAt || assinatura.vencimento),
+        valor: assinatura.valor || '',
+        telas: assinatura.telas || ''
     };
 
 }
@@ -261,7 +265,9 @@ function atualizarClienteCsv(assinatura, arquivo = caminhoCsv()) {
 
         linhas[indice] = {
             ...linhas[indice],
-            ...linha
+            ...linha,
+            valor: linha.valor || linhas[indice].valor || '',
+            telas: linha.telas || linhas[indice].telas || ''
         };
 
     } else {

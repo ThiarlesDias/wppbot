@@ -32,6 +32,11 @@ module.exports = async function renovacaoPersonalizada(
                     descricao: 'Semestre com duas telas.'
                 },
                 {
+                    id: '8',
+                    titulo: 'Outro valor',
+                    descricao: 'Digite um valor combinado para renovar.'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar',
                     descricao: 'Retornar aos planos de renovacao.'

@@ -524,6 +524,8 @@ function montarCredenciaisVenda(venda, pagamento) {
             assinatura.id,
             {
                 plano: venda.plano,
+                valor: formatarValor(venda.valor),
+                telas: venda.telas || '',
                 nome: venda.nome,
                 email: venda.email,
                 vendaReference: venda.reference,
@@ -611,6 +613,8 @@ async function verificarVenda(client, venda) {
                 nome: venda.nome,
                 email: venda.email,
                 plano: venda.plano,
+                valor: formatarValor(venda.valor),
+                telas: venda.telas || '',
                 origem: 'pagamento',
                 credenciais,
                 expiresAt: credenciais.expiresAt

@@ -262,6 +262,8 @@ function registrarAssinatura({
     nome,
     email,
     plano,
+    valor,
+    telas,
     origem,
     credenciais,
     expiresAt
@@ -283,6 +285,8 @@ function registrarAssinatura({
         nome: nome || '',
         email: email || '',
         plano: plano || '',
+        valor: valor || '',
+        telas: telas || '',
         origem: origem || 'pagamento',
         status: 'ativa',
         username: credenciais?.username || '',
@@ -353,6 +357,8 @@ function buscarAssinaturasPorNumero(numero, telefone) {
 
 function renovarAssinatura(id, {
     plano,
+    valor,
+    telas,
     nome,
     email,
     vendaReference,
@@ -373,6 +379,8 @@ function renovarAssinatura(id, {
         nome: nome || assinatura.nome || '',
         email: email || assinatura.email || '',
         plano: plano || assinatura.plano,
+        valor: valor || assinatura.valor || '',
+        telas: telas || assinatura.telas || '',
         status: 'ativa',
         expiresAt: novoVencimento.toISOString(),
         avisoVencimento: '',

@@ -670,6 +670,7 @@ wppconnect.create({
                     );
 
                 case 'suporte':
+                case 'renovacao_atual':
                 case 'renovacao':
                 case 'renovacao_personalizada':
                 case 'sem_sinal':

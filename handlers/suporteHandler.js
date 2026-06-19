@@ -68,6 +68,7 @@ module.exports = async function suporteHandler(
     const chaveCheckout = `${numero}_checkout`;
     const chaveUltimoCheckout = `${numero}_ultimo_checkout`;
     const chaveForcarRenovacao = `${numero}_forcar_renovacao`;
+    const chaveRenovacaoAtual = `${numero}_renovacao_atual`;
     const chaveTesteUsuario = `${numero}_teste_usuario`;
     const chavePacoteOutro = `${numero}_pacote_outro`;
 
@@ -637,6 +638,97 @@ ${resumoAssinaturas(assinaturas)}`
 
     }
 
+    function telasDoPlano(plano, telas = '') {
+
+        const informado = String(telas || '').replace(/\D/g, '');
+
+        if (informado) return informado;
+
+        return String(plano || '').toLowerCase().includes('2 telas') ? '2' : '1';
+
+    }
+
+    function valorTextoPlano(valor) {
+
+        if (!valor) return '';
+
+        const numeroValor = valorNumero(valor);
+
+        if (Number.isFinite(numeroValor)) return formatarValorMoeda(numeroValor);
+
+        return String(valor || '').trim();
+
+    }
+
+    function dadosPlanoAtual(assinatura) {
+
+        const valorAtual = valorTextoPlano(assinatura?.valor);
+
+        if (!assinatura || !valorAtual) return null;
+
+        const telas = telasDoPlano(
+            assinatura.plano,
+            assinatura.telas
+        );
+        const planoBaseOriginal = String(assinatura.plano || '').trim();
+        const planoBase = !planoBaseOriginal ||
+            planoBaseOriginal.toLowerCase() === 'importado' ?
+                '1 Mes' :
+                planoBaseOriginal;
+        const plano = planoBase.toLowerCase().includes('tela') ?
+            planoBase :
+            `${planoBase} - ${telas} ${telas === '1' ? 'tela' : 'telas'}`;
+
+        return {
+            assinaturaId: assinatura.id,
+            plano,
+            valor: valorAtual,
+            telas
+        };
+
+    }
+
+    async function mostrarRenovacaoAtual() {
+
+        const assinaturas = buscarAssinaturasPorNumero(
+            numero,
+            numeroWhatsapp
+        ).filter(assinatura =>
+            assinatura.status !== 'cancelada' &&
+            assinatura.username
+        );
+        const assinatura = assinaturas.length === 1 ? assinaturas[0] : null;
+        const atual = dadosPlanoAtual(assinatura);
+
+        if (!atual) {
+
+            sessoes[numero] = 'renovacao';
+
+            return await renovacao(client, numero);
+
+        }
+
+        sessoes[numero] = 'renovacao_atual';
+        sessoes[chaveRenovacaoAtual] = atual;
+
+        return await client.sendText(
+            numero,
+
+`📺 *Renovacao do seu plano*
+
+Seu plano atual:
+${atual.telas === '1' ? '1 tela' : `${atual.telas} telas`} - ${atual.valor}
+
+Renovando igual, voce mantem o mesmo usuario e a validade e somada ao vencimento atual.
+
+1 - Renovar este plano
+2 - Alterar plano
+9 - Falar com atendente
+0 - Voltar`
+        );
+
+    }
+
     async function solicitarEmailCheckout(plano, valor, metodo) {
 
         sessoes[chaveCheckout] = {
@@ -775,6 +867,7 @@ Se nao tiver cupom, digite *0* para continuar.`
                 email,
                 plano,
                 valor: valorCheckout,
+                telas: telasDoPlano(plano),
                 metodo,
                 tipo: tipoVenda,
                 assinatura: assinaturaRenovavel || null,
@@ -958,9 +1051,7 @@ ${erro.message}`
 
         if (texto === '2') {
 
-            sessoes[numero] = 'renovacao';
-
-            return await renovacao(client, numero);
+            return await mostrarRenovacaoAtual();
 
         }
 
@@ -1611,7 +1702,7 @@ ${texto}`
                 'Perfeito. Como voce ja tem usuario ativo, a renovacao vai somar dias no seu vencimento atual apos a confirmacao do pagamento.'
             );
 
-            return await renovacao(client, numero);
+            return await mostrarRenovacaoAtual();
 
         }
 
@@ -1712,9 +1803,8 @@ ${resumo}`
         if (texto === '1') {
 
             sessoes[chaveForcarRenovacao] = true;
-            sessoes[numero] = 'renovacao';
 
-            return await renovacao(client, numero);
+            return await mostrarRenovacaoAtual();
 
         }
 
@@ -1897,6 +1987,53 @@ ${resumo}`
 
     }
 
+    if (etapa === 'renovacao_atual') {
+
+        const atual = sessoes[chaveRenovacaoAtual];
+
+        if (texto === '1' && atual?.plano && atual?.valor) {
+
+            sessoes[chaveForcarRenovacao] = true;
+
+            return await enviarPagamentoComFollowUp(
+                atual.plano,
+                atual.valor
+            );
+
+        }
+
+        if (texto === '2') {
+
+            sessoes[numero] = 'renovacao';
+
+            return await renovacao(client, numero);
+
+        }
+
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Alteracao de plano na renovacao'
+            );
+
+        }
+
+        if (texto === '0') {
+
+            delete sessoes[chaveRenovacaoAtual];
+            sessoes[numero] = 'suporte';
+
+            return await menuSuporte(client, numero);
+
+        }
+
+        return await mostrarRenovacaoAtual();
+
+    }
+
     if (etapa === 'renovacao') {
 
         if (texto === '1') {
@@ -1978,6 +2115,14 @@ ${resumo}`
             sessoes[numero] = 'pacote_6_2telas';
 
             return await enviarPagamentoComFollowUp('6 Meses - 2 telas', 'R$ 220,00');
+
+        }
+
+        if (texto === '8') {
+
+            sessoes[chaveForcarRenovacao] = true;
+
+            return await solicitarValorPersonalizado();
 
         }
 
