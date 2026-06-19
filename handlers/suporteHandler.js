@@ -648,6 +648,21 @@ ${resumoAssinaturas(assinaturas)}`
 
     }
 
+    function mesesDoPlano(plano, meses = '') {
+
+        const informado = String(meses || '').replace(/[^\d]/g, '');
+
+        if (informado) return informado;
+
+        const textoPlano = String(plano || '').toLowerCase();
+
+        if (textoPlano.includes('6')) return '6';
+        if (textoPlano.includes('3')) return '3';
+
+        return '1';
+
+    }
+
     function valorTextoPlano(valor) {
 
         if (!valor) return '';
@@ -670,10 +685,14 @@ ${resumoAssinaturas(assinaturas)}`
             assinatura.plano,
             assinatura.telas
         );
+        const meses = mesesDoPlano(
+            assinatura.plano,
+            assinatura.meses
+        );
         const planoBaseOriginal = String(assinatura.plano || '').trim();
         const planoBase = !planoBaseOriginal ||
             planoBaseOriginal.toLowerCase() === 'importado' ?
-                '1 Mes' :
+                `${meses} ${meses === '1' ? 'Mes' : 'Meses'}` :
                 planoBaseOriginal;
         const plano = planoBase.toLowerCase().includes('tela') ?
             planoBase :
@@ -683,7 +702,8 @@ ${resumoAssinaturas(assinaturas)}`
             assinaturaId: assinatura.id,
             plano,
             valor: valorAtual,
-            telas
+            telas,
+            meses
         };
 
     }
@@ -718,6 +738,7 @@ ${resumoAssinaturas(assinaturas)}`
 
 Seu plano atual:
 ${atual.telas === '1' ? '1 tela' : `${atual.telas} telas`} - ${atual.valor}
+Periodo: ${atual.meses} ${atual.meses === '1' ? 'mes' : 'meses'}
 
 Renovando igual, voce mantem o mesmo usuario e a validade e somada ao vencimento atual.
 
@@ -854,6 +875,7 @@ Se nao tiver cupom, digite *0* para continuar.`
             const dadosUltimoCheckout = {
                 plano,
                 valor,
+                meses: mesesDoPlano(plano),
                 metodo,
                 nome,
                 email,
@@ -868,6 +890,7 @@ Se nao tiver cupom, digite *0* para continuar.`
                 plano,
                 valor: valorCheckout,
                 telas: telasDoPlano(plano),
+                meses: dadosUltimoCheckout.meses,
                 metodo,
                 tipo: tipoVenda,
                 assinatura: assinaturaRenovavel || null,

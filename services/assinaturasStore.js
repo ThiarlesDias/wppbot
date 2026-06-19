@@ -160,7 +160,19 @@ function adicionarDias(data, dias) {
 
 }
 
-function diasDoPlano(plano) {
+function diasDoPlano(plano, meses) {
+
+    const totalMeses = Number(
+        String(meses || '')
+            .replace(',', '.')
+            .replace(/[^\d.]/g, '')
+    );
+
+    if (Number.isFinite(totalMeses) && totalMeses > 0) {
+
+        return Math.round(totalMeses * 30);
+
+    }
 
     const texto = String(plano || '').toLowerCase();
 
@@ -264,6 +276,7 @@ function registrarAssinatura({
     plano,
     valor,
     telas,
+    meses,
     origem,
     credenciais,
     expiresAt
@@ -276,7 +289,7 @@ function registrarAssinatura({
     const vencimento =
         normalizarData(expiresAt) ||
         normalizarData(credenciais?.expiresAt) ||
-        adicionarDias(criadoEm, diasDoPlano(plano));
+        adicionarDias(criadoEm, diasDoPlano(plano, meses));
 
     return salvarAssinatura({
         id,
@@ -287,6 +300,7 @@ function registrarAssinatura({
         plano: plano || '',
         valor: valor || '',
         telas: telas || '',
+        meses: meses || '',
         origem: origem || 'pagamento',
         status: 'ativa',
         username: credenciais?.username || '',
@@ -359,6 +373,7 @@ function renovarAssinatura(id, {
     plano,
     valor,
     telas,
+    meses,
     nome,
     email,
     vendaReference,
@@ -372,7 +387,7 @@ function renovarAssinatura(id, {
     const agora = new Date();
     const vencimentoAtual = normalizarData(assinatura.expiresAt) || agora;
     const base = vencimentoAtual > agora ? vencimentoAtual : agora;
-    const novoVencimento = adicionarDias(base, diasDoPlano(plano));
+    const novoVencimento = adicionarDias(base, diasDoPlano(plano, meses || assinatura.meses));
 
     return salvarAssinatura({
         ...assinatura,
@@ -381,6 +396,7 @@ function renovarAssinatura(id, {
         plano: plano || assinatura.plano,
         valor: valor || assinatura.valor || '',
         telas: telas || assinatura.telas || '',
+        meses: meses || assinatura.meses || '',
         status: 'ativa',
         expiresAt: novoVencimento.toISOString(),
         avisoVencimento: '',

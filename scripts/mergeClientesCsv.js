@@ -15,7 +15,8 @@ const CAMPOS = [
     'm3u',
     'vencimento',
     'valor',
-    'telas'
+    'telas',
+    'meses'
 ];
 
 function caminhoPadraoEstado(arquivoLocal) {
@@ -257,7 +258,8 @@ function mesclarCampos(usuario, base, local, remoto, conflitos) {
             'usuario',
             'vencimento',
             'valor',
-            'telas'
+            'telas',
+            'meses'
         ].includes(campo);
 
         linha[campo] = usarRemoto ? valorRemoto : valorLocal;

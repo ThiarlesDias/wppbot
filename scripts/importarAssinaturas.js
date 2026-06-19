@@ -19,14 +19,14 @@ function uso() {
         'Sem caminho, usa CLIENTES_CSV_PATH ou data/clientes.csv.',
         '',
         'Colunas aceitas:',
-        '  nome, telefone, usuario, senha, dns, m3u, vencimento, valor, telas',
+        '  nome, telefone, usuario, senha, dns, m3u, vencimento, valor, telas, meses',
         '',
         'Colunas opcionais:',
         '  email, plano',
         '',
         'Exemplo CSV/TSV:',
-        '  nome;telefone;usuario;senha;dns;m3u;vencimento;valor;telas',
-        '  Joao Silva;5543999999999;123456;abc123;http://aznxplay1.sbs/;http://aznxplay1.sbs/get.php?...;30/06/2026 23:59:00;25,00;1'
+        '  nome;telefone;usuario;senha;dns;m3u;vencimento;valor;telas;meses',
+        '  Joao Silva;5543999999999;123456;abc123;http://aznxplay1.sbs/;http://aznxplay1.sbs/get.php?...;30/06/2026 23:59:00;25,00;1;1'
     ].join('\n'));
 
 }
@@ -329,6 +329,7 @@ function importarCliente(linha, indice) {
     const plano = textoValor(valor(linha, 'plano', 'pacote')) || 'Importado';
     const valorPlano = textoValor(valor(linha, 'valor', 'preco', 'mensalidade'));
     const telas = textoValor(valor(linha, 'telas', 'conexoes', 'conexoes_simultaneas'));
+    const meses = textoValor(valor(linha, 'meses', 'mes', 'duracao_meses', 'duracao'));
     const linkM3uInformado = textoValor(valor(linha, 'm3u', 'link_m3u', 'link'));
     const senhaM3u = extrairSenhaDoM3u(linkM3uInformado);
 
@@ -398,6 +399,7 @@ function importarCliente(linha, indice) {
         plano,
         valor: valorPlano,
         telas,
+        meses,
         origem: 'importado',
         credenciais: {
             username,

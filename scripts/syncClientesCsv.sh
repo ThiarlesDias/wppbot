@@ -32,7 +32,7 @@ else
     if [ -f "$LOCAL" ]; then
         cp "$LOCAL" "$REMOTE_TMP"
     else
-        printf 'nome;telefone;usuario;senha;dns;m3u;vencimento;valor;telas\n' > "$REMOTE_TMP"
+        printf 'nome;telefone;usuario;senha;dns;m3u;vencimento;valor;telas;meses\n' > "$REMOTE_TMP"
     fi
 fi
 

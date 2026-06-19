@@ -179,7 +179,8 @@ function ultimosClientes() {
             `Usuario: ${cliente.usuario || 'nao informado'}`,
             `Vencimento: ${cliente.vencimento || 'nao informado'}`,
             `Valor: ${cliente.valor || 'nao informado'}`,
-            `Telas: ${cliente.telas || 'nao informado'}`
+            `Telas: ${cliente.telas || 'nao informado'}`,
+            `Meses: ${cliente.meses || 'nao informado'}`
         ].join('\n'))
     ].join('\n\n');
 

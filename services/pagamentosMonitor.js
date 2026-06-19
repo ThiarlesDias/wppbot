@@ -188,7 +188,7 @@ async function gerarCredenciaisVenda(venda) {
     const criadoEm = normalizarData(credenciais.createdAt) || new Date();
     const vencimentoPlano = adicionarDias(
         criadoEm,
-        diasDoPlano(venda.plano)
+        diasDoPlano(venda.plano, venda.meses)
     );
 
     return {
@@ -526,6 +526,7 @@ function montarCredenciaisVenda(venda, pagamento) {
                 plano: venda.plano,
                 valor: formatarValor(venda.valor),
                 telas: venda.telas || '',
+                meses: venda.meses || '',
                 nome: venda.nome,
                 email: venda.email,
                 vendaReference: venda.reference,
@@ -615,6 +616,7 @@ async function verificarVenda(client, venda) {
                 plano: venda.plano,
                 valor: formatarValor(venda.valor),
                 telas: venda.telas || '',
+                meses: venda.meses || '',
                 origem: 'pagamento',
                 credenciais,
                 expiresAt: credenciais.expiresAt
