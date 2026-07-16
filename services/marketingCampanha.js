@@ -1,4 +1,5 @@
 const fs = require('fs');
+const sessoes = require('./sessions');
 const path = require('path');
 const {
     montarWidTelefone,
@@ -211,6 +212,29 @@ function marcarCupomAplicado(codigo, vendaReference) {
 
 }
 
+function marcarSaidaMarketing(valor) {
+
+    const telefone = limparTelefone(valor);
+
+    if (!telefone) return false;
+
+    const store = lerStore();
+    const codigo = store.telefones[telefone]?.codigo;
+
+    if (!codigo || !store.cupons[codigo]) return false;
+
+    store.cupons[codigo] = {
+        ...store.cupons[codigo],
+        status: 'saiu',
+        saiuEm: new Date().toISOString()
+    };
+
+    salvarStore(store);
+
+    return true;
+
+}
+
 function esperar(ms) {
 
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -266,14 +290,17 @@ function listarNumerosMarketing() {
 function montarMensagem(cupom) {
 
     return [
-        '📺 *Oferta especial TopTec Digital*',
+        '*Oferta especial TopTec Digital*',
         '',
-        'Oi! Temos uma condição especial para voce conhecer nosso sistema de TV.',
+        'Oi! Temos uma condicao especial para voce conhecer nosso sistema de TV.',
         '',
-        `🎟️ *Cupom:* ${cupom.codigo}`,
-        `💰 *Desconto:* R$ ${Number(cupom.desconto).toFixed(2).replace('.', ',')}`,
+        `*Cupom:* ${cupom.codigo}`,
+        `*Desconto:* R$ ${Number(cupom.desconto).toFixed(2).replace('.', ',')}`,
         '',
-        'Para contratar, responda esta mensagem ou acesse o menu do atendimento e informe o cupom quando solicitado.',
+        'Para saber o que esta incluso e ver as opcoes disponiveis, responda:',
+        '',
+        '1 - Mais informacoes',
+        '8 - Sair da lista',
         '',
         'Se nao quiser receber este tipo de mensagem, responda *SAIR*.'
     ].join('\n');
@@ -394,7 +421,7 @@ async function enviarCampanha(client) {
             const cupomExistente = existente ? store.cupons[existente] : null;
 
             if (
-                cupomExistente?.status === 'usado' ||
+                ['usado', 'saiu'].includes(cupomExistente?.status) ||
                 enviadoDentroDoCiclo(cupomExistente?.enviadoEm)
             ) {
 
@@ -411,6 +438,9 @@ async function enviarCampanha(client) {
                     item.wid,
                     montarMensagem(cupom)
                 );
+
+                sessoes[item.wid] = 'marketing_info';
+                sessoes[`${item.wid}_marketing_detalhes`] = false;
 
                 const storeAtual = lerStore();
                 storeAtual.cupons[cupom.codigo] = {
@@ -476,6 +506,7 @@ module.exports = {
     enviarCampanha,
     listarNumerosMarketing,
     marcarCupomAplicado,
+    marcarSaidaMarketing,
     obterOuCriarCupom,
     statusMarketing,
     validarCupom

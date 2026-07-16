@@ -56,6 +56,9 @@ const {
     lerTestesCsv
 } = require('./services/testesCsv');
 const {
+    marcarSaidaMarketing
+} = require('./services/marketingCampanha');
+const {
     marcarLead,
     registrarLead
 } = require('./services/leadsCsv');
@@ -276,7 +279,8 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         '_ultimo_checkout',
         '_forcar_renovacao',
         '_telefone_teste',
-        '_aguardando_telefone_teste'
+        '_aguardando_telefone_teste',
+        '_marketing_detalhes'
     ];
 
     for (const sufixo of sufixos) {
@@ -487,6 +491,18 @@ wppconnect.create({
             cancelarFollowUpVencimento(numero);
             cancelarFollowUpVencimento(numeroWhatsapp);
             cancelarFollowUpVencimento(`${limparNumero(numeroWhatsapp)}@c.us`);
+            const respostaMarketing = String(texto || '').trim().toLowerCase();
+
+            if (respostaMarketing === 'sair' && marcarSaidaMarketing(numeroWhatsapp || numero)) {
+
+                console.log('SAIDA MARKETING', numeroWhatsapp || numero);
+
+                return await client.sendText(
+                    numero,
+                    'Tudo bem. Removi este contato da lista de ofertas. Quando precisar, envie uma mensagem por aqui.'
+                );
+
+            }
 
             const admin = ehAdmin(
                 numeroWhatsapp,
@@ -710,6 +726,7 @@ wppconnect.create({
                 case 'followup_configuracao':
                 case 'satisfacao':
                 case 'vencimento_aviso':
+                case 'marketing_info':
                 case 'cancelamento_feedback':
                 case 'cancelamento_repescagem':
 

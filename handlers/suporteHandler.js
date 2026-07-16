@@ -55,7 +55,8 @@ const {
     registrarPagamentoInformado
 } = require('../services/pagamentosInformados');
 const {
-    validarCupom
+    validarCupom,
+    marcarSaidaMarketing
 } = require('../services/marketingCampanha');
 
 module.exports = async function suporteHandler(
@@ -309,6 +310,39 @@ ${erro.message}`
 De *1* a *5*, qual nota voce da para este atendimento?
 
 0 - Nao opinar`
+        );
+
+    }
+
+    function mensagemMarketingInfo() {
+
+        return [
+            '*Mais informacoes*',
+            '',
+            'Nosso sistema de TV entrega uma experiencia completa para assistir conteudos em casa ou no celular.',
+            '',
+            'Voce encontra filmes, series, conteudos das principais plataformas, canais ao vivo, esportes, novelas, desenhos e muito mais em um unico acesso.',
+            '',
+            'Voce pode testar antes de contratar ou usar seu cupom de desconto para ativar um pacote.',
+            '',
+            '1 - Adquirir agora',
+            '2 - Testar gratis',
+            '0 - Ir ao menu principal',
+            '8 - Sair da lista'
+        ].join('\n');
+
+    }
+
+    async function sairMarketing() {
+
+        marcarSaidaMarketing(numeroWhatsapp || numero);
+        marcarSaidaMarketing(numero);
+        sessoes[numero] = 'menu';
+        delete sessoes[`${numero}_marketing_detalhes`];
+
+        return await client.sendText(
+            numero,
+            'Tudo bem. Removi este contato da lista de ofertas. Quando precisar, envie uma mensagem por aqui.'
         );
 
     }
@@ -1066,6 +1100,60 @@ ${erro.message}`
 
         }
 
+
+    }
+
+    if (etapa === 'marketing_info') {
+
+        const resposta = String(texto || '').trim().toLowerCase();
+        const detalhesEnviados = Boolean(sessoes[`${numero}_marketing_detalhes`]);
+
+        if (resposta === 'sair' || resposta === '8') {
+
+            return await sairMarketing();
+
+        }
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+            delete sessoes[`${numero}_marketing_detalhes`];
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        if (texto === '2') {
+
+            sessoes[numero] = 'teste_gratis';
+            delete sessoes[`${numero}_marketing_detalhes`];
+
+            return await testeGratis(
+                client,
+                numero,
+                numeroWhatsapp
+            );
+
+        }
+
+        if (texto === '1' && detalhesEnviados) {
+
+            sessoes[numero] = 'pacote';
+            delete sessoes[`${numero}_marketing_detalhes`];
+
+            return await enviarMenuPacoteComFollowUp();
+
+        }
+
+        sessoes[`${numero}_marketing_detalhes`] = true;
+
+        return await client.sendText(
+            numero,
+            mensagemMarketingInfo()
+        );
 
     }
 
