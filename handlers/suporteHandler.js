@@ -1801,6 +1801,20 @@ ou
 
         }
 
+        if (texto === '9') {
+
+            return await encaminharAtendente(
+                client,
+                numero,
+                numeroWhatsapp,
+                'Aviso de vencimento',
+                {
+                    mensagem: 'Encaminhei seu atendimento para nossa equipe. Aguarde nosso retorno.'
+                }
+            );
+
+        }
+
         if (texto === '0') {
 
             sessoes[numero] = 'menu';

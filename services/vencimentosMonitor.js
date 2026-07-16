@@ -11,6 +11,9 @@ const notificar = require('./notificador');
 const {
     enviarTextoSeguro
 } = require('./envioWhatsapp');
+const {
+    agendarFollowUpVencimento
+} = require('./vencimentoFollowUp');
 
 const HORA_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_HORA || 10);
 const MINUTO_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_MINUTO || 0);
@@ -186,6 +189,10 @@ async function avisarAssinatura(client, assinatura, periodo = 'amanha') {
 
     marcarSessaoVencimento(
         assinatura,
+        envio.destino
+    );
+    agendarFollowUpVencimento(
+        client,
         envio.destino
     );
 

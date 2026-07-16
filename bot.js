@@ -45,6 +45,9 @@ const {
 const {
     cancelarRetomadaMenu
 } = require('./services/retomadaMenu');
+const {
+    cancelarFollowUpVencimento
+} = require('./services/vencimentoFollowUp');
 const encaminharAtendente = require('./services/atendimentoHumano');
 const {
     buscarAssinaturasPorNumero
@@ -481,6 +484,9 @@ wppconnect.create({
 
             cancelarFollowUp(numero);
             cancelarRetomadaMenu(numero);
+            cancelarFollowUpVencimento(numero);
+            cancelarFollowUpVencimento(numeroWhatsapp);
+            cancelarFollowUpVencimento(`${limparNumero(numeroWhatsapp)}@c.us`);
 
             const admin = ehAdmin(
                 numeroWhatsapp,

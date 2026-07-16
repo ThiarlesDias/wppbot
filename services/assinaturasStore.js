@@ -279,10 +279,12 @@ function registrarAssinatura({
     meses,
     origem,
     credenciais,
-    expiresAt
+    expiresAt,
+    avisoVencimento
 }) {
 
     const id = idAssinatura(credenciais);
+    const atual = buscarAssinaturaPorId(id);
     const criadoEm =
         normalizarData(credenciais?.createdAt) ||
         new Date();
@@ -290,6 +292,19 @@ function registrarAssinatura({
         normalizarData(expiresAt) ||
         normalizarData(credenciais?.expiresAt) ||
         adicionarDias(criadoEm, diasDoPlano(plano, meses));
+    const vencimentoIso = vencimento.toISOString();
+    const avisoAtual = normalizarData(atual?.avisoVencimento);
+    const vencimentoAtual = normalizarData(atual?.expiresAt);
+    const avisoImportado = normalizarData(avisoVencimento);
+    const avisoPreservado = avisoImportado ?
+        avisoImportado.toISOString() :
+        (
+            avisoAtual &&
+            vencimentoAtual &&
+            vencimentoAtual.toISOString() === vencimentoIso ?
+                avisoAtual.toISOString() :
+                ''
+        );
 
     return salvarAssinatura({
         id,
@@ -308,8 +323,8 @@ function registrarAssinatura({
         dns: credenciais?.dns || '',
         linkM3u: credenciais?.linkM3u || '',
         createdAt: criadoEm.toISOString(),
-        expiresAt: vencimento.toISOString(),
-        avisoVencimento: ''
+        expiresAt: vencimentoIso,
+        avisoVencimento: avisoPreservado
     });
 
 }
@@ -481,10 +496,22 @@ function marcarAvisoVencimento(id, expiresAt) {
 
     if (!assinatura) return null;
 
-    return salvarAssinatura({
+    const atualizada = salvarAssinatura({
         ...assinatura,
         avisoVencimento: normalizarData(expiresAt)?.toISOString() || String(expiresAt || '')
     });
+
+    try {
+
+        require('./clientesCsv').atualizarClienteCsv(atualizada);
+
+    } catch (erro) {
+
+        console.log('ERRO ATUALIZAR CSV AVISO VENCIMENTO', erro.message);
+
+    }
+
+    return atualizada;
 
 }
 

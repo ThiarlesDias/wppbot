@@ -14,7 +14,8 @@ const CABECALHOS = [
     'vencimento',
     'valor',
     'telas',
-    'meses'
+    'meses',
+    'aviso_vencimento'
 ];
 
 function caminhoCsv() {
@@ -243,7 +244,10 @@ function linhaDaAssinatura(assinatura) {
         vencimento: formatarData(assinatura.expiresAt || assinatura.vencimento),
         valor: assinatura.valor || '',
         telas: assinatura.telas || '',
-        meses: assinatura.meses || ''
+        meses: assinatura.meses || '',
+        aviso_vencimento: assinatura.avisoVencimento ||
+            assinatura.aviso_vencimento ||
+            ''
     };
 
 }
@@ -270,7 +274,10 @@ function atualizarClienteCsv(assinatura, arquivo = caminhoCsv()) {
             ...linha,
             valor: linha.valor || linhas[indice].valor || '',
             telas: linha.telas || linhas[indice].telas || '',
-            meses: linha.meses || linhas[indice].meses || ''
+            meses: linha.meses || linhas[indice].meses || '',
+            aviso_vencimento: linha.aviso_vencimento ||
+                linhas[indice].aviso_vencimento ||
+                ''
         };
 
     } else {
