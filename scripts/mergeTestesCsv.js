@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const {
     caminhoTestesCsv,
+    ehLinhaTesteGratis,
     lerTestesCsv,
     salvarTestesCsv
 } = require('../services/testesCsv');
@@ -58,6 +59,7 @@ function mapaPorUsuario(linhas) {
         const usuario = chave(limpa);
 
         if (!usuario) continue;
+        if (!ehLinhaTesteGratis(limpa)) continue;
 
         mapa[usuario] = limpa;
     }

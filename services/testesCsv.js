@@ -148,6 +148,44 @@ function dataValida(valor) {
 
 }
 
+function numeroHoras(valor) {
+
+    const numero = Number(
+        String(valor || '')
+            .replace(',', '.')
+            .replace(/[^\d.]/g, '')
+    );
+
+    return Number.isFinite(numero) ? numero : 0;
+
+}
+
+function horasEntreDatas(inicio, fim) {
+
+    const dataInicio = dataValida(inicio);
+    const dataFim = dataValida(fim);
+
+    if (!dataInicio || !dataFim) return 0;
+
+    return (dataFim.getTime() - dataInicio.getTime()) / (60 * 60 * 1000);
+
+}
+
+function ehLinhaTesteGratis(teste) {
+
+    const horas = numeroHoras(teste?.horas);
+
+    if (horas > 0) return horas <= 24;
+
+    const duracao = horasEntreDatas(
+        teste?.criado_em,
+        teste?.vencimento_iso || teste?.vencimento
+    );
+
+    return duracao > 0 && duracao <= 24;
+
+}
+
 function formatarData(valor) {
 
     const data = dataValida(valor);
@@ -321,6 +359,7 @@ function registrarTesteCsv(dados, arquivo = caminhoTestesCsv()) {
 function testesParaAvisar(agora = new Date(), arquivo = caminhoTestesCsv()) {
 
     return lerTestesCsv(arquivo).filter(teste => {
+        if (!ehLinhaTesteGratis(teste)) return false;
         if (String(teste.status || '').toLowerCase() !== 'ativo') return false;
         if (String(teste.avisado_em || '').trim()) return false;
 
@@ -336,6 +375,7 @@ function testesVencidosParaReenvio(agora = new Date(), arquivo = caminhoTestesCs
     return lerTestesCsv(arquivo).filter(teste => {
         const status = String(teste.status || '').toLowerCase();
 
+        if (!ehLinhaTesteGratis(teste)) return false;
         if (!['ativo', 'encerrado'].includes(status)) return false;
         if (String(teste.saiu_em || '').trim()) return false;
 
@@ -353,6 +393,7 @@ function testesParaAvisoContratacao(agora = new Date(), arquivo = caminhoTestesC
     return lerTestesCsv(arquivo).filter(teste => {
         const status = String(teste.status || '').toLowerCase();
 
+        if (!ehLinhaTesteGratis(teste)) return false;
         if (!['ativo', 'encerrado'].includes(status)) return false;
         if (String(teste.saiu_em || '').trim()) return false;
         if (String(teste.ultimo_aviso_contratacao || '').trim() === hoje) return false;
@@ -460,6 +501,7 @@ function telefoneSaiuContratacao(valor, arquivo = caminhoTestesCsv()) {
 
 module.exports = {
     caminhoTestesCsv,
+    ehLinhaTesteGratis,
     lerTestesCsv,
     marcarAvisoContratacao,
     marcarSaidaContratacao,
