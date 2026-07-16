@@ -7,7 +7,8 @@ const {
     marcarAvisoContratacao,
     marcarTesteEncerrado,
     testesParaAvisar,
-    testesParaAvisoContratacao
+    testesParaAvisoContratacao,
+    testesVencidosParaReenvio
 } = require('./testesCsv');
 
 function numeroEnv(nome, padrao) {
@@ -54,15 +55,18 @@ function mensagemConviteContratacao(teste) {
 
 }
 
-async function verificarTestesEncerrados(client) {
+async function verificarTestesEncerrados(client, opcoes = {}) {
 
-    const vencidos = testesParaAvisar();
+    const forcar = Boolean(opcoes.forcar);
+    const vencidos = forcar ?
+        testesVencidosParaReenvio() :
+        testesParaAvisar();
 
     if (!vencidos.length) {
         console.log('TESTES VENCIDOS PARA AVISAR 0');
     } else {
 
-        console.log(`TESTES VENCIDOS PARA AVISAR ${vencidos.length}`);
+        console.log(`TESTES VENCIDOS PARA AVISAR ${vencidos.length}${forcar ? ' FORCADO' : ''}`);
 
         for (const teste of vencidos) {
 
@@ -96,7 +100,9 @@ async function verificarTestesEncerrados(client) {
         }
     }
 
-    const pendentesContratacao = testesParaAvisoContratacao();
+    const pendentesContratacao = forcar ?
+        [] :
+        testesParaAvisoContratacao();
 
     if (!pendentesContratacao.length) {
         console.log('TESTES PARA CONVITE CONTRATACAO 0');

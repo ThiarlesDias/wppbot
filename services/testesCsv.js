@@ -331,6 +331,21 @@ function testesParaAvisar(agora = new Date(), arquivo = caminhoTestesCsv()) {
 
 }
 
+function testesVencidosParaReenvio(agora = new Date(), arquivo = caminhoTestesCsv()) {
+
+    return lerTestesCsv(arquivo).filter(teste => {
+        const status = String(teste.status || '').toLowerCase();
+
+        if (!['ativo', 'encerrado'].includes(status)) return false;
+        if (String(teste.saiu_em || '').trim()) return false;
+
+        const vencimento = dataValida(teste.vencimento_iso || teste.vencimento);
+
+        return vencimento && vencimento <= agora;
+    });
+
+}
+
 function testesParaAvisoContratacao(agora = new Date(), arquivo = caminhoTestesCsv()) {
 
     const hoje = diaSaoPaulo(agora);
@@ -453,5 +468,6 @@ module.exports = {
     salvarTestesCsv,
     telefoneSaiuContratacao,
     testesParaAvisar,
-    testesParaAvisoContratacao
+    testesParaAvisoContratacao,
+    testesVencidosParaReenvio
 };

@@ -816,12 +816,17 @@ async function tratarComandoAdmin({
 
     if (texto === '#testes verificar') {
 
-        await client.sendText(numero, 'Rodando checagem de testes vencidos agora.');
-        await iniciarMonitorTestes.verificarTestesEncerrados(client);
+        await client.sendText(numero, 'Reenviando aviso para testes vencidos agora.');
+        await iniciarMonitorTestes.verificarTestesEncerrados(
+            client,
+            {
+                forcar: true
+            }
+        );
 
         return await client.sendText(
             numero,
-            'Checagem de testes vencidos concluida. Veja o log para detalhes.'
+            'Reenvio de aviso de testes vencidos concluido. Veja o log para detalhes.'
         );
 
     }
