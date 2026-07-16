@@ -36,6 +36,10 @@ const {
     lerTestesCsv
 } = require('./testesCsv');
 const {
+    buscarPagamentoInformado,
+    responderPagamentoInformado
+} = require('./pagamentosInformados');
+const {
     caminhoLeadsCsv,
     lerLeadsCsv
 } = require('./leadsCsv');
@@ -103,6 +107,8 @@ function menuAdmin() {
         '#status postar - postar uma imagem aleatoria agora',
         '#testes - resumo da planilha de testes',
         '#testes verificar - avisar testes vencidos agora',
+        '#pgsim CODIGO - confirmar pagamento informado pelo cliente',
+        '#pgnao CODIGO - avisar que pagamento nao foi encontrado',
         '#vencimentos - rodar checagem de vencimentos agora',
         '#renovar telefone/usuario - colocar cliente no fluxo de renovacao',
         '#fluxos - listar fluxos disponiveis',
@@ -501,6 +507,50 @@ async function tratarComandoAdmin({
     if (texto === '#fluxos') {
 
         return await client.sendText(numero, textoFluxos());
+
+    }
+
+    if (/^#pg(sim|nao)\s+/i.test(texto)) {
+
+        const aprovado = /^#pgsim\b/i.test(texto);
+        const codigo = texto.split(/\s+/)[1] || '';
+        const pagamento = buscarPagamentoInformado(codigo);
+
+        if (!pagamento) {
+
+            return await client.sendText(
+                numero,
+                `Nao encontrei pagamento informado com codigo: ${codigo}`
+            );
+
+        }
+
+        const atualizado = responderPagamentoInformado(
+            codigo,
+            aprovado
+        );
+        const destino = pagamento.numero || pagamento.telefone;
+
+        if (destino) {
+
+            await client.sendText(
+                destino,
+                aprovado ?
+                    'Pagamento localizado. Obrigado! Nossa equipe vai finalizar a renovacao e avisar voce por aqui.' :
+                    'Verificamos aqui e ainda nao encontramos esse pagamento. Se voce pagou ha poucos minutos, aguarde um pouco e nos avise novamente. Se preferir, envie o comprovante para um atendente.'
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            [
+                aprovado ? 'Pagamento confirmado para o cliente.' : 'Cliente avisado que o pagamento nao foi encontrado.',
+                '',
+                `Codigo: ${atualizado.codigo}`,
+                `Cliente: ${atualizado.numero || atualizado.telefone || 'nao informado'}`
+            ].join('\n')
+        );
 
     }
 

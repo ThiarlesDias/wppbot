@@ -140,18 +140,22 @@ function ehContatoIgnorado(message) {
 
 function ehAdmin(numeroWhatsapp, numero) {
 
-    const admin = limparNumero(
-        process.env.ADMIN_NOTIFY_WHATSAPP ||
-        process.env.ADMIN_WHATSAPP ||
+    const admins = [
+        process.env.ADMIN_NOTIFY_WHATSAPP,
+        process.env.ADMIN_WHATSAPP,
         process.env.ADMIN_WHATSAPP_ID
-    );
+    ].map(limparNumero).filter(Boolean);
 
-    if (!admin) return false;
+    if (!admins.length) return false;
 
-    return [
+    const candidatos = [
         limparNumero(numeroWhatsapp),
         limparNumero(numero)
-    ].includes(admin);
+    ];
+
+    return candidatos.some(candidato =>
+        admins.includes(candidato)
+    );
 
 }
 

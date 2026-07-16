@@ -52,6 +52,9 @@ const {
     marcarLeadConvertido
 } = require('../services/leadsCsv');
 const {
+    registrarPagamentoInformado
+} = require('../services/pagamentosInformados');
+const {
     validarCupom
 } = require('../services/marketingCampanha');
 
@@ -861,8 +864,8 @@ Se nao tiver cupom, digite *0* para continuar.`
                 null;
             const vendaPersonalizada = String(plano || '').toLowerCase().includes('outro valor');
             const tipoVenda = vendaPersonalizada ?
-                'solicitacao_manual' :
-                (assinaturaRenovavel ? 'renovacao' : 'nova');
+                (assinaturaRenovavel ? 'renovacao_manual' : 'solicitacao_manual') :
+                (assinaturaRenovavel ? 'renovacao_manual' : 'nova');
             const valorOriginal = valorNumero(valor);
             const desconto = cupomInfo?.desconto ? Number(cupomInfo.desconto) : 0;
             const valorFinal = Math.max(
@@ -916,7 +919,9 @@ Se nao tiver cupom, digite *0* para continuar.`
 
 Abra o aplicativo do seu banco, escolha *PIX Copia e Cola* e cole o codigo da proxima mensagem.
 
-Assim que o pagamento for aprovado, vamos enviar aqui a confirmacao do pagamento e, em seguida, os dados do usuario.`
+${tipoVenda === 'renovacao_manual' ?
+    'Assim que o pagamento for aprovado, vamos avisar aqui e nossa equipe vai renovar seu acesso no painel.' :
+    'Assim que o pagamento for aprovado, vamos enviar aqui a confirmacao do pagamento e, em seguida, os dados do usuario.'}`
                 );
 
                 await client.sendText(
@@ -953,7 +958,7 @@ Forma:
 ${nomeMetodo(metodo)}
 
 Tipo:
-${tipoVenda === 'renovacao' ? 'Renovacao' : (tipoVenda === 'solicitacao_manual' ? 'Solicitacao manual' : 'Nova assinatura')}
+${tipoVenda === 'renovacao_manual' ? 'Renovacao manual' : (tipoVenda === 'solicitacao_manual' ? 'Solicitacao manual' : 'Nova assinatura')}
 
 WhatsApp:
 ${venda.telefone || 'Nao informado'}
@@ -982,7 +987,9 @@ ${desconto > 0 ? `Cupom: ${cupomInfo.codigo}\nDesconto: ${formatarValorMoeda(des
 Pague pelo link abaixo:
 ${venda.init_point}
 
-Assim que o pagamento for aprovado, vou avisar aqui e nossa equipe ativa manualmente seu acesso.`
+${tipoVenda === 'renovacao_manual' ?
+    'Assim que o pagamento for aprovado, vou avisar aqui e nossa equipe renova manualmente seu acesso.' :
+    'Assim que o pagamento for aprovado, vou avisar aqui e nossa equipe ativa manualmente seu acesso.'}`
             );
 
             sessoes[numero] = 'followup_pagamento';
@@ -1014,7 +1021,7 @@ Forma:
 ${nomeMetodo(metodo)}
 
 Tipo:
-${tipoVenda === 'renovacao' ? 'Renovacao' : 'Nova assinatura'}
+${tipoVenda === 'renovacao_manual' ? 'Renovacao manual' : (tipoVenda === 'solicitacao_manual' ? 'Solicitacao manual' : 'Nova assinatura')}
 
 WhatsApp:
 ${venda.telefone || 'Nao informado'}
@@ -1757,11 +1764,20 @@ Se nao quiser responder, envie *0* para pular.`
 
             sessoes[numero] = 'menu';
 
+            const pagamentoInformado = registrarPagamentoInformado({
+                numero,
+                telefone: numeroWhatsapp,
+                resumo
+            });
+
             await notificar(
                 client,
                 'CLIENTE INFORMOU PAGAMENTO',
 
 `Cliente informou que ja realizou o pagamento.
+
+Codigo:
+${pagamentoInformado.codigo}
 
 WhatsApp:
 ${numeroWhatsapp || 'Nao confirmado'}
@@ -1770,7 +1786,12 @@ Atendimento:
 ${numero}
 
 Acessos encontrados:
-${resumo}`
+${resumo}
+
+Responda para o bot:
+#pgsim ${pagamentoInformado.codigo}
+ou
+#pgnao ${pagamentoInformado.codigo}`
             );
 
             return await client.sendText(

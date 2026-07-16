@@ -419,10 +419,12 @@ ${erro.message}`
 
 async function registrarPagamentoSolicitacaoManual(client, venda, pagamento, pagador) {
 
+    const renovacaoManual = venda.tipo === 'renovacao_manual' ||
+        venda.tipo === 'renovacao';
     const atualizada = atualizarVenda(
         venda.reference,
         {
-            status: 'approved_manual_request',
+            status: renovacaoManual ? 'approved_renewal_manual' : 'approved_manual_request',
             payment_id: pagamento.id,
             payment_status: pagamento.status,
             payment_status_detail: pagamento.status_detail,
@@ -431,7 +433,7 @@ async function registrarPagamentoSolicitacaoManual(client, venda, pagamento, pag
             customer_email: venda.email || '',
             customer_name: venda.nome || '',
             payer_name: pagador.nome,
-            activation_status: 'manual_request'
+            activation_status: renovacaoManual ? 'renewal_manual' : 'manual_request'
         }
     );
 
@@ -461,13 +463,16 @@ Seu pagamento foi aprovado.`
 
 `📌 *Solicitacao realizada*
 
-Recebemos sua solicitacao com valor personalizado.
-Nossa equipe ja foi avisada e vai finalizar o atendimento conforme o combinado.`
+${renovacaoManual ?
+    'Recebemos seu pagamento de renovacao. Nossa equipe ja foi avisada para renovar seu acesso no painel e vai confirmar por aqui.' :
+    'Recebemos sua solicitacao com valor personalizado. Nossa equipe ja foi avisada e vai finalizar o atendimento conforme o combinado.'}`
     );
 
     await notificar(
         client,
-        'PAGAMENTO APROVADO - SOLICITACAO MANUAL',
+        renovacaoManual ?
+            'PAGAMENTO APROVADO - RENOVAR MANUALMENTE' :
+            'PAGAMENTO APROVADO - SOLICITACAO MANUAL',
 
 `Cliente:
 ${venda.numero}
@@ -477,6 +482,9 @@ ${venda.telefone || 'Nao informado'}
 
 Nome:
 ${venda.nome || 'Nao informado'}
+
+Tipo:
+${renovacaoManual ? 'Renovacao manual' : 'Solicitacao manual'}
 
 Plano:
 ${venda.plano}
@@ -497,11 +505,19 @@ Referencia:
 ${venda.reference}
 
 Pagamento Mercado Pago:
-${pagamento.id}`
+${pagamento.id}
+
+${renovacaoManual ? `Acao necessaria:
+Renovar este usuario no painel e avisar o cliente.
+
+Usuario:
+${venda.assinatura_username || venda.assinatura_id || 'Nao informado'}` : ''}`
     );
 
     console.log(
-        'PAGAMENTO APROVADO SOLICITACAO MANUAL',
+        renovacaoManual ?
+            'PAGAMENTO APROVADO RENOVACAO MANUAL' :
+            'PAGAMENTO APROVADO SOLICITACAO MANUAL',
         atualizada?.reference || venda.reference,
         pagamento.id
     );
@@ -559,7 +575,11 @@ async function verificarVenda(client, venda) {
         const pagador = dadosPagador(pagamento);
         let resultadoAcesso;
 
-        if (venda.tipo === 'solicitacao_manual') {
+        if (
+            venda.tipo === 'solicitacao_manual' ||
+            venda.tipo === 'renovacao_manual' ||
+            venda.tipo === 'renovacao'
+        ) {
 
             return await registrarPagamentoSolicitacaoManual(
                 client,
