@@ -244,8 +244,11 @@ function textoMarketingStatus() {
         `Numeros na planilha: ${status.totalPlanilha}`,
         `Cupons criados: ${status.cupons}`,
         `Mensagens enviadas: ${status.enviados}`,
+        `Enviados neste ciclo: ${status.enviadosNoCiclo}`,
         `Cupons usados: ${status.usados}`,
         `Enviados hoje: ${status.enviadosHoje}/${status.limiteDiario || 'sem limite'}`,
+        `Ciclo: ${status.cicloDias} dias`,
+        `Proximo ciclo: ${formatarData(status.proximoCiclo)}`,
         `Intervalo: ${Math.round(status.intervaloMs / 1000)} segundos`,
         `Campanha rodando: ${status.rodando ? 'Sim' : 'Nao'}`
     ].join('\n');

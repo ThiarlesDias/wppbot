@@ -17,6 +17,8 @@ const STORE_PATH = path.join(DATA_DIR, 'marketing-cupons.json');
 const DESCONTO_PADRAO = Number(process.env.MARKETING_CUPOM_DESCONTO || 10);
 const INTERVALO_ENVIO_MS = Number(process.env.MARKETING_ENVIO_INTERVALO_MS || 15 * 60 * 1000);
 const LIMITE_DIARIO = Number(process.env.MARKETING_LIMITE_DIARIO || 10);
+const CICLO_DIAS = Number(process.env.MARKETING_CICLO_DIAS || 10);
+const UM_DIA_MS = 24 * 60 * 60 * 1000;
 
 let campanhaRodando = false;
 
@@ -300,6 +302,38 @@ function diaSaoPaulo(valor = new Date()) {
 
 }
 
+function dataValida(valor) {
+
+    const data = valor instanceof Date ? valor : new Date(valor);
+
+    return Number.isNaN(data.getTime()) ? null : data;
+
+}
+
+function enviadoDentroDoCiclo(valor, agora = new Date()) {
+
+    const data = dataValida(valor);
+
+    if (!data) return false;
+
+    return agora.getTime() - data.getTime() < Math.max(1, CICLO_DIAS) * UM_DIA_MS;
+
+}
+
+function proximoReinicio(store = lerStore(), agora = new Date()) {
+
+    const cicloMs = Math.max(1, CICLO_DIAS) * UM_DIA_MS;
+    const proximasDatas = Object.values(store.cupons || {})
+        .map(cupom => dataValida(cupom.enviadoEm))
+        .filter(Boolean)
+        .map(data => new Date(data.getTime() + cicloMs))
+        .filter(data => data > agora)
+        .sort((a, b) => a.getTime() - b.getTime());
+
+    return proximasDatas[0] || null;
+
+}
+
 function totalEnviadoHoje(store = lerStore()) {
 
     const hoje = diaSaoPaulo();
@@ -359,7 +393,10 @@ async function enviarCampanha(client) {
             const existente = store.telefones[item.telefone]?.codigo;
             const cupomExistente = existente ? store.cupons[existente] : null;
 
-            if (cupomExistente?.enviadoEm) {
+            if (
+                cupomExistente?.status === 'usado' ||
+                enviadoDentroDoCiclo(cupomExistente?.enviadoEm)
+            ) {
 
                 resultado.ignorados += 1;
                 continue;
@@ -419,8 +456,13 @@ function statusMarketing() {
     return {
         arquivo: MARKETING_PATH,
         totalPlanilha: numeros.length,
+        cicloDias: CICLO_DIAS,
+        proximoCiclo: proximoReinicio(store)?.toISOString() || '',
         cupons: cupons.length,
         enviados: cupons.filter(cupom => cupom.enviadoEm).length,
+        enviadosNoCiclo: cupons.filter(cupom =>
+            enviadoDentroDoCiclo(cupom.enviadoEm)
+        ).length,
         enviadosHoje: totalEnviadoHoje(store),
         limiteDiario: LIMITE_DIARIO,
         intervaloMs: INTERVALO_ENVIO_MS,
