@@ -349,7 +349,7 @@ function colocarEmFluxo(assinatura, destino, fluxo) {
 
 }
 
-function liberarAliasesAvulsos(...valores) {
+function aliasesAvulsos(...valores) {
 
     const aliases = [];
 
@@ -365,9 +365,17 @@ function liberarAliasesAvulsos(...valores) {
 
     }
 
-    for (const alias of [...new Set(aliases.filter(Boolean))]) {
+    return [...new Set(aliases.filter(Boolean))];
+
+}
+
+function colocarEmFluxoAvulso(fluxo, ...valores) {
+
+    for (const alias of aliasesAvulsos(...valores)) {
 
         liberarAtendimento(alias);
+        sessoes[alias] = fluxo;
+        sessoes[`${alias}_iniciado`] = true;
 
     }
 
@@ -653,12 +661,11 @@ async function tratarComandoAdmin({
 
         } else {
 
-            liberarAliasesAvulsos(
+            colocarEmFluxoAvulso(
+                estadoDoFluxo(fluxoPedido),
                 termo,
                 envio.destino
             );
-            sessoes[envio.destino] = estadoDoFluxo(fluxoPedido);
-            sessoes[`${envio.destino}_iniciado`] = true;
 
         }
 

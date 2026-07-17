@@ -374,6 +374,18 @@ De *1* a *5*, qual nota voce da para este atendimento?
 
     }
 
+    function textoEhOpcao(numeroOpcao, ...palavras) {
+
+        const resposta = String(texto || '').trim().toLowerCase();
+
+        if (resposta === String(numeroOpcao)) return true;
+
+        return palavras.some(palavra =>
+            resposta.includes(String(palavra || '').toLowerCase())
+        );
+
+    }
+
     function formatarDataAssinatura(valor) {
 
         if (!valor) return 'Nao informado';
@@ -1333,7 +1345,7 @@ ${erro.message}`
 
     if (etapa === 'ajuda_config') {
 
-        if (texto === '1') {
+        if (textoEhOpcao('1', 'smart')) {
 
             await passosConfiguracao.smartTv(
                 client,
@@ -1348,7 +1360,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '2') {
+        if (textoEhOpcao('2', 'computador', 'notebook')) {
 
             await passosConfiguracao.computador(
                 client,
@@ -1363,7 +1375,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '3') {
+        if (textoEhOpcao('3', 'celular')) {
 
             await passosConfiguracao.celular(
                 client,
@@ -1378,7 +1390,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '4') {
+        if (textoEhOpcao('4', 'outro')) {
 
             await passosConfiguracao.outro(
                 client,
@@ -1393,7 +1405,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '9') {
+        if (textoEhOpcao('9', 'atendente')) {
 
             return await encaminharAtendente(
                 client,
@@ -1407,7 +1419,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '0') {
+        if (textoEhOpcao('0', 'voltar')) {
 
             sessoes[numero] = 'pos_teste';
 
@@ -1418,7 +1430,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '8') {
+        if (textoEhOpcao('8', 'encerrar')) {
 
             return await encerrarComPesquisa();
 
@@ -1433,7 +1445,7 @@ ${erro.message}`
 
     if (etapa === 'followup_compra') {
 
-        if (texto === '1') {
+        if (textoEhOpcao('1', 'adquirir', 'pacote')) {
 
             sessoes[numero] = 'pacote';
 
@@ -1441,7 +1453,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '9') {
+        if (textoEhOpcao('9', 'atendente')) {
 
             return await encaminharAtendente(
                 client,
@@ -1455,13 +1467,13 @@ ${erro.message}`
 
         }
 
-        if (texto === '8') {
+        if (textoEhOpcao('8', 'encerrar')) {
 
             return await encerrarComPesquisa();
 
         }
 
-        if (texto === '4') {
+        if (textoEhOpcao('4', 'personalizado')) {
 
             sessoes[numero] = 'pacote_personalizado';
             agendarFollowUp(
@@ -1474,7 +1486,7 @@ ${erro.message}`
 
         }
 
-        if (texto === '0') {
+        if (textoEhOpcao('0', 'voltar')) {
 
             sessoes[numero] = 'menu';
 
@@ -2327,7 +2339,7 @@ ou
 
     if (etapa === 'pacote') {
 
-        if (texto === '1') {
+        if (textoEhOpcao('1', '1 mes', '1 mês')) {
 
             sessoes[numero] = 'pacote_1';
             agendarFollowUp(
@@ -2345,7 +2357,7 @@ ou
 
         }
 
-        if (texto === '2') {
+        if (textoEhOpcao('2', '3 meses')) {
 
             sessoes[numero] = 'pacote_3';
             agendarFollowUp(
@@ -2363,7 +2375,7 @@ ou
 
         }
 
-        if (texto === '3') {
+        if (textoEhOpcao('3', '6 meses')) {
 
             sessoes[numero] = 'pacote_6';
             agendarFollowUp(
@@ -2381,7 +2393,7 @@ ou
 
         }
 
-        if (texto === '4') {
+        if (textoEhOpcao('4', 'personalizado')) {
 
             sessoes[numero] = 'pacote_personalizado';
             agendarFollowUp(
@@ -2394,7 +2406,7 @@ ou
 
         }
 
-        if (texto === '0') {
+        if (textoEhOpcao('0', 'voltar')) {
 
             sessoes[numero] = 'suporte';
 
@@ -2402,7 +2414,7 @@ ou
 
         }
 
-        if (texto === '8') {
+        if (textoEhOpcao('8', 'encerrar')) {
 
             return await encerrarComPesquisa();
 
