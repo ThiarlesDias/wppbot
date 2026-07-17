@@ -27,6 +27,7 @@ const {
     statusMarketing
 } = require('./marketingCampanha');
 const {
+    liberarAtendimento,
     limparPausasAtendimento
 } = require('./pausaAtendimento');
 const statusDiario = require('./statusDiario');
@@ -327,7 +328,9 @@ function colocarEmRenovacao(assinatura, destino = '') {
 
     for (const alias of aliasesAssinatura(assinatura, destino)) {
 
+        liberarAtendimento(alias);
         sessoes[alias] = 'renovacao';
+        sessoes[`${alias}_iniciado`] = true;
         sessoes[`${alias}_forcar_renovacao`] = true;
 
     }
@@ -338,8 +341,33 @@ function colocarEmFluxo(assinatura, destino, fluxo) {
 
     for (const alias of aliasesAssinatura(assinatura, destino)) {
 
+        liberarAtendimento(alias);
         sessoes[alias] = fluxo;
         sessoes[`${alias}_iniciado`] = true;
+
+    }
+
+}
+
+function liberarAliasesAvulsos(...valores) {
+
+    const aliases = [];
+
+    for (const valor of valores) {
+
+        const telefone = limparNumero(valor);
+
+        aliases.push(
+            valor,
+            telefone,
+            telefone ? `${telefone}@c.us` : ''
+        );
+
+    }
+
+    for (const alias of [...new Set(aliases.filter(Boolean))]) {
+
+        liberarAtendimento(alias);
 
     }
 
@@ -625,6 +653,10 @@ async function tratarComandoAdmin({
 
         } else {
 
+            liberarAliasesAvulsos(
+                termo,
+                envio.destino
+            );
             sessoes[envio.destino] = estadoDoFluxo(fluxoPedido);
             sessoes[`${envio.destino}_iniciado`] = true;
 
