@@ -278,6 +278,8 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         '_checkout',
         '_ultimo_checkout',
         '_forcar_renovacao',
+        '_renovacao_atual',
+        '_motivo_cancelamento',
         '_telefone_teste',
         '_aguardando_telefone_teste',
         '_marketing_detalhes'
@@ -290,6 +292,11 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
 
         if (sessoes[chaveNumero] === undefined && sessoes[chaveWhatsapp] !== undefined) {
             sessoes[chaveNumero] = sessoes[chaveWhatsapp];
+            continue;
+        }
+
+        if (sessoes[chaveWhatsapp] === undefined && sessoes[chaveNumero] !== undefined) {
+            sessoes[chaveWhatsapp] = sessoes[chaveNumero];
         }
 
     }
