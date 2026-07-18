@@ -175,6 +175,11 @@ async function avisarAssinatura(client, assinatura, periodo = 'amanha') {
 
     if (!assinatura.numero && !assinatura.telefone) return;
 
+    marcarAvisoVencimento(
+        assinatura.id,
+        assinatura.expiresAt
+    );
+
     const envio = await enviarTextoSeguro(
         client,
         [
@@ -241,11 +246,6 @@ ${formatarData(assinatura.expiresAt)}
 
 Email:
 ${assinatura.email || 'Nao informado'}`
-    );
-
-    marcarAvisoVencimento(
-        assinatura.id,
-        assinatura.expiresAt
     );
 
 }
