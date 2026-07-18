@@ -273,6 +273,7 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
 
     const sufixos = [
         '',
+        '_iniciado',
         '_teste_usuario',
         '_pacote_outro',
         '_checkout',
