@@ -381,6 +381,39 @@ function colocarEmFluxoAvulso(fluxo, ...valores) {
 
 }
 
+function aplicarFluxoForcado({ assinatura, destino, fluxoPedido, termo }) {
+
+    if (assinatura && fluxoPedido === 'renovacao') {
+
+        colocarEmRenovacao(
+            assinatura,
+            destino
+        );
+
+        return;
+
+    }
+
+    if (assinatura) {
+
+        colocarEmFluxo(
+            assinatura,
+            destino,
+            estadoDoFluxo(fluxoPedido)
+        );
+
+        return;
+
+    }
+
+    colocarEmFluxoAvulso(
+        estadoDoFluxo(fluxoPedido),
+        termo,
+        destino
+    );
+
+}
+
 function buscarAssinaturaAdmin(entrada) {
 
     const termo = String(entrada || '').trim();
@@ -644,30 +677,12 @@ async function tratarComandoAdmin({
             'Vou te direcionar para o atendimento correto agora.'
         );
 
-        if (assinatura && fluxoPedido === 'renovacao') {
-
-            colocarEmRenovacao(
-                assinatura,
-                envio.destino
-            );
-
-        } else if (assinatura) {
-
-            colocarEmFluxo(
-                assinatura,
-                envio.destino,
-                estadoDoFluxo(fluxoPedido)
-            );
-
-        } else {
-
-            colocarEmFluxoAvulso(
-                estadoDoFluxo(fluxoPedido),
-                termo,
-                envio.destino
-            );
-
-        }
+        aplicarFluxoForcado({
+            assinatura,
+            destino: envio.destino,
+            fluxoPedido,
+            termo
+        });
 
         await abrirFluxoCliente(
             client,
@@ -675,6 +690,12 @@ async function tratarComandoAdmin({
             fluxoPedido,
             assinatura
         );
+        aplicarFluxoForcado({
+            assinatura,
+            destino: envio.destino,
+            fluxoPedido,
+            termo
+        });
 
         return await client.sendText(
             numero,
@@ -725,6 +746,10 @@ async function tratarComandoAdmin({
 
         await renovacao(
             client,
+            envio.destino
+        );
+        colocarEmRenovacao(
+            assinatura,
             envio.destino
         );
 

@@ -115,10 +115,18 @@ function ehMensagemAutomatica(numero, texto) {
     limparAntigas();
 
     const textoNormalizado = normalizarTexto(texto);
-    const indice = automaticas.findIndex(item =>
+    let indice = automaticas.findIndex(item =>
         item.numero === numero &&
         item.texto === textoNormalizado
     );
+
+    if (indice === -1) {
+
+        indice = automaticas.findIndex(item =>
+            item.texto === textoNormalizado
+        );
+
+    }
 
     if (indice === -1) return false;
 
