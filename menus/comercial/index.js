@@ -57,6 +57,16 @@ module.exports = async function comercial(
                     descricao: 'Veja nossos servicos digitais.'
                 },
                 {
+                    id: '9',
+                    titulo: 'CRM',
+                    descricao: 'Organize leads, clientes e vendas.'
+                },
+                {
+                    id: '10',
+                    titulo: 'Atendimento Humano',
+                    descricao: 'Falar com nossa equipe.'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar',
                     descricao: 'Retornar ao menu principal.'

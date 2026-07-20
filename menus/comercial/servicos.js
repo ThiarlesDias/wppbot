@@ -25,7 +25,10 @@ https://toptecdigital.com/servicos/infraestrutura-ti/
 6. Consultoria em TI
 https://toptecdigital.com/servicos/consultoria-ti/
 
-9 - Atendimento Humano
+7. CRM
+${process.env.TOPTEC_CRM_URL || 'https://toptecdigital.com/'}
+
+10 - Atendimento Humano
 0 - Voltar`
     );
 

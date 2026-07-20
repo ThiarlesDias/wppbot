@@ -10,6 +10,7 @@ const infraestrutura = require('../menus/comercial/infraestrutura');
 const consultoria = require('../menus/comercial/consultoria');
 const produtos = require('../menus/comercial/produtos');
 const servicos = require('../menus/comercial/servicos');
+const crm = require('../menus/comercial/crm');
 const menuHumano = require('../menus/humano');
 
 module.exports = async function comercialHandler(
@@ -51,7 +52,11 @@ if (texto === '8') {
     return await servicos(client, numero);
 }
 
-if (texto === '9') {
+if (texto === '9' || texto.includes('crm')) {
+    return await crm(client, numero);
+}
+
+if (texto === '10' || texto.includes('atendente') || texto.includes('humano')) {
 
     sessoes[numero] = 'humano';
 
