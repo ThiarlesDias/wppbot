@@ -55,6 +55,30 @@ function mensagemConviteContratacao(teste) {
 
 }
 
+function aliasesTeste(teste, destino = '') {
+
+    const telefone = String(teste.telefone || '').replace(/\D/g, '');
+
+    return [
+        destino,
+        telefone,
+        telefone ? montarWidTelefone(telefone) : ''
+    ].filter(Boolean);
+
+}
+
+function marcarSessaoTeste(teste, destino, etapa) {
+
+    for (const alias of [...new Set(aliasesTeste(teste, destino))]) {
+
+        sessoes[alias] = etapa;
+        sessoes[`${alias}_iniciado`] = true;
+        sessoes[`${alias}_teste_usuario`] = teste.usuario;
+
+    }
+
+}
+
 async function verificarTestesEncerrados(client, opcoes = {}) {
 
     const forcar = Boolean(opcoes.forcar);
@@ -79,8 +103,11 @@ async function verificarTestesEncerrados(client, opcoes = {}) {
             }
 
             try {
-                sessoes[destino] = 'teste_encerrado';
-                sessoes[`${destino}_teste_usuario`] = teste.usuario;
+                marcarSessaoTeste(
+                    teste,
+                    destino,
+                    'teste_encerrado'
+                );
 
                 await client.sendText(
                     destino,
@@ -122,8 +149,11 @@ async function verificarTestesEncerrados(client, opcoes = {}) {
         }
 
         try {
-            sessoes[destino] = 'teste_convite';
-            sessoes[`${destino}_teste_usuario`] = teste.usuario;
+            marcarSessaoTeste(
+                teste,
+                destino,
+                'teste_convite'
+            );
 
             await client.sendText(
                 destino,

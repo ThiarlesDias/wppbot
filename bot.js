@@ -53,7 +53,8 @@ const {
     buscarAssinaturasPorNumero
 } = require('./services/assinaturasStore');
 const {
-    lerTestesCsv
+    lerTestesCsv,
+    marcarSaidaContratacao
 } = require('./services/testesCsv');
 const {
     marcarSaidaMarketing
@@ -229,6 +230,30 @@ function temTesteRegistrado(numero, numeroWhatsapp) {
     return lerTestesCsv().some(teste =>
         telefones.includes(limparNumero(teste.telefone))
     );
+
+}
+
+function marcarSaidaAvisosTeste(numero, numeroWhatsapp) {
+
+    const telefones = [
+        limparNumero(numeroWhatsapp),
+        limparNumero(numero)
+    ].filter(Boolean);
+
+    if (!telefones.length) return false;
+
+    const teste = lerTestesCsv().find(item =>
+        telefones.includes(limparNumero(item.telefone)) &&
+        !String(item.saiu_em || '').trim()
+    );
+
+    if (!teste) return false;
+
+    marcarSaidaContratacao(teste.usuario);
+    marcarSaidaContratacao(teste.telefone);
+    marcarSaidaContratacao(numeroWhatsapp || numero);
+
+    return true;
 
 }
 
@@ -603,6 +628,33 @@ wppconnect.create({
                     }
 
                 }
+
+            }
+
+            if (
+                texto === '8' &&
+                (!sessoes[numero + '_iniciado'] || sessoes[numero] === 'menu') &&
+                marcarSaidaAvisosTeste(
+                    numero,
+                    numeroWhatsapp
+                )
+            ) {
+
+                sessoes[numero + '_iniciado'] = true;
+                sessoes[numero] = 'teste_ja_usado';
+
+                return await client.sendText(
+                    numero,
+                    [
+                        'Tudo bem, parei os avisos sobre esse teste.',
+                        '',
+                        'O teste gratis continua registrado como ja utilizado. Se quiser voltar, voce pode contratar um pacote ou falar com um atendente.',
+                        '',
+                        '1 - Contratar agora',
+                        '9 - Falar com atendente',
+                        '0 - Voltar ao menu'
+                    ].join('\n')
+                );
 
             }
 
