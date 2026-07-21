@@ -62,7 +62,7 @@ module.exports = async function comercial(
                     descricao: 'Organize leads, clientes e vendas.'
                 },
                 {
-                    id: '10',
+                    id: '#',
                     titulo: 'Atendimento Humano',
                     descricao: 'Falar com nossa equipe.'
                 },

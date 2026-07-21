@@ -56,7 +56,7 @@ if (texto === '9' || texto.includes('crm')) {
     return await crm(client, numero);
 }
 
-if (texto === '10' || texto.includes('atendente') || texto.includes('humano')) {
+if (texto === '#' || texto === '10' || texto.includes('atendente') || texto.includes('humano')) {
 
     sessoes[numero] = 'humano';
 
