@@ -208,6 +208,14 @@ function buscarServicoPorChamado(chamado, arquivo = caminhoServicosCsv()) {
 
 }
 
+function linkPortalChamados() {
+
+    return process.env.CHAMADOS_PORTAL_URL ||
+        process.env.TOPTEC_CHAMADOS_URL ||
+        'https://toptecdigital.com/';
+
+}
+
 function formatarServico(servico) {
 
     return [
@@ -225,6 +233,9 @@ function formatarServico(servico) {
         `Status: ${servico.status || 'Nao informado'}`,
         servico.obs ? `Obs: ${servico.obs}` : '',
         '',
+        'Voce tambem pode acompanhar pelo site usando o usuario e senha do cadastro da empresa:',
+        linkPortalChamados(),
+        '',
         '9 - Falar com atendente',
         '0 - Voltar ao menu'
     ].filter(Boolean).join('\n');
@@ -236,6 +247,7 @@ module.exports = {
     buscarServicoPorChamado,
     caminhoServicosCsv,
     formatarServico,
+    linkPortalChamados,
     lerServicosCsv,
     normalizarChamado,
     salvarServicosCsv
