@@ -40,8 +40,9 @@ module.exports = async function chamadoHandler(
 ) {
 
     const etapa = sessoes[numero];
+    const chaveServicoExterno = `${numero}_chamado_externo_servico`;
 
-    if (texto === '0') {
+    if (texto === '0' && etapa !== 'chamado_externo_email') {
 
         sessoes[numero] = 'menu';
 
@@ -127,13 +128,33 @@ module.exports = async function chamadoHandler(
 
         }
 
+        sessoes[chaveServicoExterno] = texto;
+        sessoes[numero] = 'chamado_externo_email';
+
+        return await client.sendText(
+            numero,
+            [
+                'Informe um email para contato, se tiver.',
+                '',
+                'Se nao quiser informar, digite *0* para continuar sem email.'
+            ].join('\n')
+        );
+
+    }
+
+    if (etapa === 'chamado_externo_email') {
+
+        const servicoTexto = sessoes[chaveServicoExterno] || '';
+        const email = texto === '0' ? '' : texto;
         const chamado = registrarChamadoExterno({
             telefone: limparNumero(numeroWhatsapp || numero),
             whatsappNome: nomeContato,
-            servico: texto
+            servico: servicoTexto,
+            email
         });
         const numeroChamado = obterChamado(chamado);
 
+        delete sessoes[chaveServicoExterno];
         sessoes[numero] = 'meu_chamado';
 
         await notificar(
@@ -143,6 +164,7 @@ module.exports = async function chamadoHandler(
                 `Chamado: ${numeroChamado}`,
                 `Cliente: ${chamado.cliente_nome || 'Nao informado'}`,
                 `WhatsApp: ${chamado.telefone}`,
+                chamado.email ? `Email: ${chamado.email}` : '',
                 `Servico: ${chamado.servico}`,
                 `Status: ${chamado.status}`
             ].filter(Boolean).join('\n')

@@ -41,8 +41,8 @@ const DEFINICOES = [
         remoto: 'servicos-google.csv',
         estado: 'servicos-sync-state.json',
         merge: 'merge:servicos',
-        cabecalho: 'chamado_interno;chamado_externo;cliente_nome;telefone;whatsapp_nome;inicio;termino;servico;valor_combinado;tecnico_responsavel;data_prevista_pagamento;status;obs',
-        primeiraLinha: 'OS359;;;;;;;;;;;aguardando atendimento;'
+        cabecalho: 'chamado_interno;chamado_externo;cliente_nome;telefone;whatsapp_nome;email;inicio;termino;servico;valor_combinado;tecnico_responsavel;data_prevista_pagamento;status;obs',
+        primeiraLinha: 'OS359;;;;;;;;;;;;aguardando atendimento;'
     },
     {
         chave: 'marketing',

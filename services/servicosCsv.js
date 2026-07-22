@@ -9,6 +9,7 @@ const CABECALHOS = [
     'cliente_nome',
     'telefone',
     'whatsapp_nome',
+    'email',
     'inicio',
     'termino',
     'servico',
@@ -271,6 +272,7 @@ function registrarChamadoExterno({
     telefone,
     whatsappNome,
     servico,
+    email,
     arquivo = caminhoServicosCsv()
 }) {
 
@@ -282,6 +284,7 @@ function registrarChamadoExterno({
         cliente_nome: whatsappNome || '',
         telefone,
         whatsapp_nome: whatsappNome || '',
+        email,
         inicio: formatarData(new Date()),
         termino: '',
         servico,
@@ -321,6 +324,7 @@ function formatarServico(servico) {
         `Tipo: ${tipo}`,
         `Cliente: ${servico.cliente_nome || servico.whatsapp_nome || 'Nao informado'}`,
         `WhatsApp: ${servico.telefone || 'Nao informado'}`,
+        servico.email ? `Email: ${servico.email}` : '',
         `Inicio: ${servico.inicio || 'Nao informado'}`,
         `Termino: ${servico.termino || 'Em aberto'}`,
         `Servico: ${servico.servico || 'Nao informado'}`,
