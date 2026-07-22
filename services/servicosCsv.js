@@ -9,6 +9,7 @@ const CABECALHOS = [
     'cliente_nome',
     'telefone',
     'whatsapp_nome',
+    'email',
     'inicio',
     'termino',
     'servico',
@@ -208,11 +209,97 @@ function buscarServicoPorChamado(chamado, arquivo = caminhoServicosCsv()) {
 
 }
 
+function formatarData(valor = new Date()) {
+
+    const data = valor instanceof Date ? valor : new Date(valor);
+
+    if (Number.isNaN(data.getTime())) return String(valor || '');
+
+    const partes = new Intl.DateTimeFormat(
+        'pt-BR',
+        {
+            timeZone: 'America/Sao_Paulo',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }
+    ).formatToParts(data).reduce(
+        (acc, parte) => {
+            acc[parte.type] = parte.value;
+            return acc;
+        },
+        {}
+    );
+
+    return `${partes.day}/${partes.month}/${partes.year} ${partes.hour}:${partes.minute}:${partes.second}`;
+
+}
+
+function proximoChamado(linhas) {
+
+    const maior = linhas.reduce(
+        (atual, linha) => {
+            const match = normalizarChamado(linha.chamado).match(/^OS(\d+)$/);
+            const numero = match ? Number(match[1]) : 0;
+
+            return Math.max(
+                atual,
+                numero
+            );
+        },
+        358
+    );
+
+    return `OS${maior + 1}`;
+
+}
+
+function registrarChamadoExterno({
+    telefone,
+    whatsappNome,
+    servico,
+    email,
+    arquivo = caminhoServicosCsv()
+}) {
+
+    const linhas = lerServicosCsv(arquivo);
+    const chamado = proximoChamado(linhas);
+    const linha = limparLinha({
+        tipo_chamado: 'externo',
+        chamado,
+        cliente_nome: whatsappNome || '',
+        telefone,
+        whatsapp_nome: whatsappNome || '',
+        email,
+        inicio: formatarData(new Date()),
+        termino: '',
+        servico,
+        valor_combinado: '',
+        tecnico_responsavel: '',
+        data_prevista_pagamento: '',
+        status: 'aguardando atendimento',
+        obs: 'Aberto pelo WhatsApp'
+    });
+
+    linhas.push(linha);
+    salvarServicosCsv(
+        linhas,
+        arquivo
+    );
+
+    return linha;
+
+}
+
 function linkPortalChamados() {
 
     return process.env.CHAMADOS_PORTAL_URL ||
         process.env.TOPTEC_CHAMADOS_URL ||
-        'https://toptecdigital.com/';
+        'https://toptecdigital.com/chamados/';
 
 }
 
@@ -224,6 +311,7 @@ function formatarServico(servico) {
         `Tipo: ${servico.tipo_chamado || 'Nao informado'}`,
         `Cliente: ${servico.cliente_nome || servico.whatsapp_nome || 'Nao informado'}`,
         `WhatsApp: ${servico.telefone || 'Nao informado'}`,
+        servico.email ? `Email: ${servico.email}` : '',
         `Inicio: ${servico.inicio || 'Nao informado'}`,
         `Termino: ${servico.termino || 'Em aberto'}`,
         `Servico: ${servico.servico || 'Nao informado'}`,
@@ -250,5 +338,6 @@ module.exports = {
     linkPortalChamados,
     lerServicosCsv,
     normalizarChamado,
+    registrarChamadoExterno,
     salvarServicosCsv
 };
