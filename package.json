@@ -9,7 +9,8 @@
     "exportar:clientes": "node scripts/exportarClientesCsv.js",
     "merge:clientes": "node scripts/mergeClientesCsv.js",
     "merge:testes": "node scripts/mergeTestesCsv.js",
-    "merge:leads": "node scripts/mergeLeadsCsv.js"
+    "merge:leads": "node scripts/mergeLeadsCsv.js",
+    "merge:servicos": "node scripts/mergeServicosCsv.js"
   },
   "dependencies": {
     "@wppconnect-team/wppconnect": "^1.37.5",

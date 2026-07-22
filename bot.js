@@ -17,6 +17,7 @@ const suporteHandler = require('./handlers/suporteHandler');
 const financeiroHandler = require('./handlers/financeiroHandler');
 const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
+const chamadoHandler = require('./handlers/chamadoHandler');
 const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
@@ -308,7 +309,8 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         '_motivo_cancelamento',
         '_telefone_teste',
         '_aguardando_telefone_teste',
-        '_marketing_detalhes'
+        '_marketing_detalhes',
+        '_meu_chamado'
     ];
 
     for (const sufixo of sufixos) {
@@ -800,6 +802,15 @@ wppconnect.create({
                 case 'financeiro':
 
                     return await financeiroHandler(
+                        client,
+                        numero,
+                        texto,
+                        numeroWhatsapp
+                    );
+
+                case 'meu_chamado':
+
+                    return await chamadoHandler(
                         client,
                         numero,
                         texto,

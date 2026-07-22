@@ -41,6 +41,11 @@ async function menuPrincipal(client, numero) {
                     id: '4',
                     titulo: 'Atendimento Humano',
                     descricao: 'Falar com nossa equipe.'
+                },
+                {
+                    id: '5',
+                    titulo: 'Meu chamado',
+                    descricao: 'Consultar andamento por numero da OS.'
                 }
             ]
         }
