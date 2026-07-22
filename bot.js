@@ -310,7 +310,8 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         '_telefone_teste',
         '_aguardando_telefone_teste',
         '_marketing_detalhes',
-        '_meu_chamado'
+        '_meu_chamado',
+        '_chamado_externo_servico'
     ];
 
     for (const sufixo of sufixos) {
@@ -809,12 +810,16 @@ wppconnect.create({
                     );
 
                 case 'meu_chamado':
+                case 'chamado_consulta':
+                case 'chamado_externo_servico':
+                case 'chamado_externo_email':
 
                     return await chamadoHandler(
                         client,
                         numero,
                         texto,
-                        numeroWhatsapp
+                        numeroWhatsapp,
+                        nomeMensagem(message)
                     );
 
                 case 'comercial':
