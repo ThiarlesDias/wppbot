@@ -51,7 +51,8 @@ const {
     buscarServicoPorChamado,
     caminhoServicosCsv,
     formatarServico,
-    normalizarChamado
+    normalizarChamado,
+    obterChamado
 } = require('./servicosCsv');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -731,13 +732,14 @@ async function tratarComandoAdmin({
             servico.telefone,
             formatarServico(servico)
         );
+        const numeroChamado = obterChamado(servico);
 
         return await client.sendText(
             numero,
             [
                 'Informacoes do chamado enviadas ao cliente.',
                 '',
-                `Chamado: ${servico.chamado}`,
+                `Chamado: ${numeroChamado}`,
                 `Cliente: ${servico.cliente_nome || servico.whatsapp_nome || 'Nao informado'}`,
                 `Telefone: ${servico.telefone}`,
                 `Destino: ${envio.destino}`,

@@ -4,12 +4,11 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DEFAULT_CSV_PATH = path.join(DATA_DIR, 'servicos.csv');
 const CABECALHOS = [
-    'tipo_chamado',
-    'chamado',
+    'chamado_interno',
+    'chamado_externo',
     'cliente_nome',
     'telefone',
     'whatsapp_nome',
-    'email',
     'inicio',
     'termino',
     'servico',
@@ -141,7 +140,8 @@ function limparLinha(linha) {
         limpa[campo] = String(linha?.[campo] || '').trim();
     }
 
-    limpa.chamado = normalizarChamado(limpa.chamado);
+    limpa.chamado_interno = normalizarChamado(limpa.chamado_interno || linha?.chamado);
+    limpa.chamado_externo = normalizarChamado(limpa.chamado_externo);
 
     return limpa;
 
@@ -171,7 +171,7 @@ function lerServicosCsv(arquivo = caminhoServicosCsv()) {
         });
 
         return limparLinha(item);
-    }).filter(item => item.chamado);
+    }).filter(item => obterChamado(item));
 
 }
 
@@ -203,9 +203,18 @@ function buscarServicoPorChamado(chamado, arquivo = caminhoServicosCsv()) {
 
     if (!alvo) return null;
 
-    return lerServicosCsv(arquivo).find(item =>
-        normalizarChamado(item.chamado) === alvo
-    ) || null;
+    return lerServicosCsv(arquivo).find(item => [
+        item.chamado_interno,
+        item.chamado_externo
+    ].some(valor => normalizarChamado(valor) === alvo)) || null;
+
+}
+
+function obterChamado(servico) {
+
+    return normalizarChamado(servico?.chamado_interno) ||
+        normalizarChamado(servico?.chamado_externo) ||
+        normalizarChamado(servico?.chamado);
 
 }
 
@@ -243,7 +252,7 @@ function proximoChamado(linhas) {
 
     const maior = linhas.reduce(
         (atual, linha) => {
-            const match = normalizarChamado(linha.chamado).match(/^OS(\d+)$/);
+            const match = obterChamado(linha).match(/^OS(\d+)$/);
             const numero = match ? Number(match[1]) : 0;
 
             return Math.max(
@@ -262,19 +271,17 @@ function registrarChamadoExterno({
     telefone,
     whatsappNome,
     servico,
-    email,
     arquivo = caminhoServicosCsv()
 }) {
 
     const linhas = lerServicosCsv(arquivo);
     const chamado = proximoChamado(linhas);
     const linha = limparLinha({
-        tipo_chamado: 'externo',
-        chamado,
+        chamado_interno: '',
+        chamado_externo: chamado,
         cliente_nome: whatsappNome || '',
         telefone,
         whatsapp_nome: whatsappNome || '',
-        email,
         inicio: formatarData(new Date()),
         termino: '',
         servico,
@@ -305,13 +312,15 @@ function linkPortalChamados() {
 
 function formatarServico(servico) {
 
+    const chamado = obterChamado(servico);
+    const tipo = servico.chamado_externo ? 'externo' : 'interno';
+
     return [
-        `*Chamado ${servico.chamado}*`,
+        `*Chamado ${chamado}*`,
         '',
-        `Tipo: ${servico.tipo_chamado || 'Nao informado'}`,
+        `Tipo: ${tipo}`,
         `Cliente: ${servico.cliente_nome || servico.whatsapp_nome || 'Nao informado'}`,
         `WhatsApp: ${servico.telefone || 'Nao informado'}`,
-        servico.email ? `Email: ${servico.email}` : '',
         `Inicio: ${servico.inicio || 'Nao informado'}`,
         `Termino: ${servico.termino || 'Em aberto'}`,
         `Servico: ${servico.servico || 'Nao informado'}`,
@@ -338,6 +347,7 @@ module.exports = {
     linkPortalChamados,
     lerServicosCsv,
     normalizarChamado,
+    obterChamado,
     registrarChamadoExterno,
     salvarServicosCsv
 };
