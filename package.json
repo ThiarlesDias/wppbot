@@ -10,7 +10,8 @@
     "merge:clientes": "node scripts/mergeClientesCsv.js",
     "merge:testes": "node scripts/mergeTestesCsv.js",
     "merge:leads": "node scripts/mergeLeadsCsv.js",
-    "merge:servicos": "node scripts/mergeServicosCsv.js"
+    "merge:servicos": "node scripts/mergeServicosCsv.js",
+    "sync:google": "node scripts/syncGoogleSheets.js"
   },
   "dependencies": {
     "@wppconnect-team/wppconnect": "^2.2.4",
