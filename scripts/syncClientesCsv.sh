@@ -121,7 +121,7 @@ else
     if [ -f "$SERVICOS_LOCAL" ]; then
         cp "$SERVICOS_LOCAL" "$SERVICOS_REMOTE_TMP"
     else
-        printf 'tipo_chamado;chamado;cliente_nome;telefone;whatsapp_nome;email;inicio;termino;servico;valor_combinado;tecnico_responsavel;data_prevista_pagamento;status;obs\ninterno;OS359;;;;;;;;;;;aguardando atendimento;\n' > "$SERVICOS_REMOTE_TMP"
+        printf 'chamado_interno;chamado_externo;cliente_nome;telefone;whatsapp_nome;inicio;termino;servico;valor_combinado;tecnico_responsavel;data_prevista_pagamento;status;obs\nOS359;;;;;;;;;;;aguardando atendimento;\n' > "$SERVICOS_REMOTE_TMP"
     fi
 fi
 

@@ -4,6 +4,7 @@ const {
     CABECALHOS,
     lerServicosCsv,
     normalizarChamado,
+    obterChamado,
     salvarServicosCsv
 } = require('../services/servicosCsv');
 
@@ -24,7 +25,8 @@ function limparLinha(linha) {
         limpa[campo] = String(linha?.[campo] || '').trim();
     }
 
-    limpa.chamado = normalizarChamado(limpa.chamado);
+    limpa.chamado_interno = normalizarChamado(limpa.chamado_interno || linha?.chamado);
+    limpa.chamado_externo = normalizarChamado(limpa.chamado_externo);
 
     return limpa;
 
@@ -36,7 +38,7 @@ function mapaPorChave(linhas) {
 
     for (const linha of linhas) {
         const limpa = limparLinha(linha);
-        const chave = normalizarChamado(limpa.chamado);
+        const chave = obterChamado(limpa);
 
         if (!chave) continue;
 
@@ -75,7 +77,7 @@ function salvarEstado(arquivo, linhas) {
     const servicos = {};
 
     for (const linha of linhas) {
-        const chave = normalizarChamado(linha.chamado);
+        const chave = obterChamado(linha);
         if (chave) servicos[chave] = limparLinha(linha);
     }
 
@@ -184,7 +186,7 @@ function mesclar(localLinhas, remotoLinhas, estado) {
     }
 
     resultado.sort((a, b) =>
-        String(a.chamado || '').localeCompare(String(b.chamado || ''), 'pt-BR')
+        obterChamado(a).localeCompare(obterChamado(b), 'pt-BR')
     );
 
     return resultado;
