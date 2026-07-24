@@ -198,11 +198,36 @@ function instalarRegistroAutomatico(client) {
             texto
         );
 
-        return await sendTextOriginal(
-            numero,
-            texto,
-            ...args
-        );
+        const previa = normalizarTexto(texto).slice(0, 80);
+
+        try {
+
+            const resposta = await sendTextOriginal(
+                numero,
+                texto,
+                ...args
+            );
+
+            console.log(
+                'ENVIO OK:',
+                numero,
+                previa
+            );
+
+            return resposta;
+
+        } catch (erro) {
+
+            console.log(
+                'ERRO ENVIO:',
+                numero,
+                erro?.message || erro,
+                previa
+            );
+
+            throw erro;
+
+        }
 
     };
 
