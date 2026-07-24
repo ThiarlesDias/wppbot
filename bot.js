@@ -601,11 +601,31 @@ wppconnect.create({
 
             }
 
-            if (
-                atendimentoPausado(numero) ||
-                atendimentoPausado(numeroWhatsapp) ||
-                atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
-            ) return;
+            const pausasAtivas = [
+                {
+                    chave: numero,
+                    pausa: atendimentoPausado(numero)
+                },
+                {
+                    chave: numeroWhatsapp,
+                    pausa: atendimentoPausado(numeroWhatsapp)
+                },
+                {
+                    chave: `${limparNumero(numeroWhatsapp)}@c.us`,
+                    pausa: atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
+                }
+            ].filter(item => item.chave && item.pausa);
+
+            if (pausasAtivas.length) {
+
+                console.log(
+                    'BOT IGNOROU MENSAGEM POR ATENDIMENTO PAUSADO:',
+                    pausasAtivas.map(item => item.chave).join(', ')
+                );
+
+                return;
+
+            }
 
             if (
                 ['1', '2'].includes(texto) &&
