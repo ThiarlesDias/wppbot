@@ -538,7 +538,8 @@ wppconnect.create({
 
             if (message.fromMe) return;
 
-            const numero = message.from;
+            const numeroMensagem = message.from;
+            let numero = numeroMensagem;
 
             console.log(
                 'NUMERO:',
@@ -553,12 +554,29 @@ wppconnect.create({
                 numero,
                 numeroWhatsapp
             );
+
+            if (numeroWhatsapp && numeroWhatsapp !== numero) {
+
+                console.log(
+                    'RESPONDENDO PELO WHATSAPP REAL:',
+                    numero,
+                    '->',
+                    numeroWhatsapp
+                );
+
+                numero = numeroWhatsapp;
+
+            }
+
             const texto = obterTextoMensagem(message);
 
             if (!texto) return;
 
+            cancelarFollowUp(numeroMensagem);
             cancelarFollowUp(numero);
+            cancelarRetomadaMenu(numeroMensagem);
             cancelarRetomadaMenu(numero);
+            cancelarFollowUpVencimento(numeroMensagem);
             cancelarFollowUpVencimento(numero);
             cancelarFollowUpVencimento(numeroWhatsapp);
             cancelarFollowUpVencimento(`${limparNumero(numeroWhatsapp)}@c.us`);
@@ -601,9 +619,11 @@ wppconnect.create({
                 texto === 'reativar bot'
             ) {
 
+                liberarAtendimento(numeroMensagem);
                 liberarAtendimento(numero);
                 liberarAtendimento(numeroWhatsapp);
                 liberarAtendimento(`${limparNumero(numeroWhatsapp)}@c.us`);
+                sessoes[numeroMensagem] = 'menu';
                 sessoes[numero] = 'menu';
 
                 return await menuPrincipal(
@@ -614,14 +634,17 @@ wppconnect.create({
             }
 
             if (texto === '0' && (
+                atendimentoPausado(numeroMensagem) ||
                 atendimentoPausado(numero) ||
                 atendimentoPausado(numeroWhatsapp) ||
                 atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
             )) {
 
+                liberarAtendimento(numeroMensagem);
                 liberarAtendimento(numero);
                 liberarAtendimento(numeroWhatsapp);
                 liberarAtendimento(`${limparNumero(numeroWhatsapp)}@c.us`);
+                sessoes[numeroMensagem] = 'menu';
                 sessoes[numero] = 'menu';
 
                 return await menuPrincipal(
@@ -632,6 +655,10 @@ wppconnect.create({
             }
 
             const pausasAtivas = [
+                {
+                    chave: numeroMensagem,
+                    pausa: atendimentoPausado(numeroMensagem)
+                },
                 {
                     chave: numero,
                     pausa: atendimentoPausado(numero)
