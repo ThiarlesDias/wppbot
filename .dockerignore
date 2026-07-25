@@ -1,8 +1,11 @@
 node_modules
 session
+session-*
+session-bkp-*
 tokens
 data
 logs
 .wwebjs_auth
 .git
 .env
+.env*.save
