@@ -417,6 +417,40 @@ function registrarAtendimentoManual(message) {
 
 }
 
+function aliasesContato(numero, numeroWhatsapp) {
+
+    const telefone = limparNumero(numeroWhatsapp);
+
+    return [
+        numero,
+        numeroWhatsapp,
+        telefone ? `${telefone}@c.us` : ''
+    ].filter(Boolean);
+
+}
+
+function liberarAliasesAtendimento(numero, numeroWhatsapp) {
+
+    for (const alias of aliasesContato(
+        numero,
+        numeroWhatsapp
+    )) {
+
+        liberarAtendimento(alias);
+
+    }
+
+}
+
+function algumAliasPausado(numero, numeroWhatsapp) {
+
+    return aliasesContato(
+        numero,
+        numeroWhatsapp
+    ).some(alias => atendimentoPausado(alias));
+
+}
+
 wppconnect.create({
     session: 'bot',
 
@@ -537,9 +571,10 @@ wppconnect.create({
                 texto === 'reativar bot'
             ) {
 
-                liberarAtendimento(numero);
-                liberarAtendimento(numeroWhatsapp);
-                liberarAtendimento(`${limparNumero(numeroWhatsapp)}@c.us`);
+                liberarAliasesAtendimento(
+                    numero,
+                    numeroWhatsapp
+                );
                 sessoes[numero] = 'menu';
 
                 return await menuPrincipal(
@@ -549,29 +584,41 @@ wppconnect.create({
 
             }
 
-            if (texto === '0' && (
-                atendimentoPausado(numero) ||
-                atendimentoPausado(numeroWhatsapp) ||
-                atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
-            )) {
-
-                liberarAtendimento(numero);
-                liberarAtendimento(numeroWhatsapp);
-                liberarAtendimento(`${limparNumero(numeroWhatsapp)}@c.us`);
-                sessoes[numero] = 'menu';
-
-                return await menuPrincipal(
-                    client,
-                    numero
-                );
-
-            }
+            const comandosRetomar = [
+                '0',
+                'oi',
+                'ola',
+                'olá',
+                'menu',
+                'inicio',
+                'início'
+            ];
 
             if (
-                atendimentoPausado(numero) ||
-                atendimentoPausado(numeroWhatsapp) ||
-                atendimentoPausado(`${limparNumero(numeroWhatsapp)}@c.us`)
-            ) return;
+                comandosRetomar.includes(texto) &&
+                algumAliasPausado(
+                    numero,
+                    numeroWhatsapp
+                )
+            ) {
+
+                liberarAliasesAtendimento(
+                    numero,
+                    numeroWhatsapp
+                );
+                sessoes[numero] = 'menu';
+
+                return await menuPrincipal(
+                    client,
+                    numero
+                );
+
+            }
+
+            if (algumAliasPausado(
+                numero,
+                numeroWhatsapp
+            )) return;
 
             if (
                 ['1', '2'].includes(texto) &&
