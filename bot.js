@@ -349,8 +349,7 @@ function idsAtendimentoSaida(message) {
 
     return [
         message?.to,
-        message?.chatId,
-        message?.from
+        message?.chatId
     ].filter(id =>
         typeof id === 'string' &&
         id &&
