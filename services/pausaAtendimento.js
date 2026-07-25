@@ -11,7 +11,7 @@ const DURACAO_MS = Number(process.env.ATENDIMENTO_MANUAL_PAUSA_MS || 12 * 60 * 6
 const JANELA_AUTOMATICA_MS = Number(process.env.ATENDIMENTO_AUTO_MATCH_MS || 15000);
 const USAR_DESTINO_RESOLVIDO = process.env.WHATSAPP_SEND_RESOLVED !== '0';
 const DEBUG_ENVIO = process.env.WHATSAPP_SEND_DEBUG === '1';
-const USAR_ENVIO_DIRETO = process.env.WHATSAPP_DIRECT_SEND !== '0';
+const USAR_ENVIO_DIRETO = process.env.WHATSAPP_DIRECT_SEND === '1';
 const TIMEOUT_ENVIO_MS = Number(process.env.WHATSAPP_SEND_TIMEOUT_MS || 12000);
 
 function garantirDiretorio() {
