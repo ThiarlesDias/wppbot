@@ -14,7 +14,7 @@
     "sync:google": "node scripts/syncGoogleSheets.js"
   },
   "dependencies": {
-    "@wppconnect-team/wppconnect": "^2.2.4",
+    "@wppconnect-team/wppconnect": "^1.37.5",
     "mercadopago": "^3.0.0",
     "xlsx": "^0.18.5"
   }
