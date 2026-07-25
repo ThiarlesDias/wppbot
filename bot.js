@@ -455,19 +455,6 @@ function algumAliasPausado(numero, numeroWhatsapp) {
 
 }
 
-function idMensagem(message) {
-
-    if (!message?.id) return null;
-
-    if (typeof message.id === 'string') return message.id;
-
-    return message.id._serialized ||
-        message.id.serialized ||
-        message.id.id ||
-        null;
-
-}
-
 wppconnect.create({
     session: 'bot',
 
@@ -526,14 +513,6 @@ wppconnect.create({
             if (message.fromMe) return;
 
             const numero = message.from;
-            const quotedMsg = idMensagem(message);
-
-            if (quotedMsg) {
-
-                client.__quotedMessages = client.__quotedMessages || {};
-                client.__quotedMessages[numero] = quotedMsg;
-
-            }
 
             console.log(
                 'NUMERO:',

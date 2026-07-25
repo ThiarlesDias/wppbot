@@ -197,8 +197,6 @@ function instalarRegistroAutomatico(client) {
 
     if (client.__registroAutomaticoInstalado) return;
 
-    client.__quotedMessages = client.__quotedMessages || {};
-
     const sendTextOriginal = client.sendText.bind(client);
 
     client.sendText = async (numero, texto, ...args) => {
@@ -207,39 +205,6 @@ function instalarRegistroAutomatico(client) {
             numero,
             texto
         );
-
-        const opcoes = args[0] && typeof args[0] === 'object' ? args[0] : {};
-        const quotedMsg = client.__quotedMessages[numero];
-
-        if (
-            quotedMsg &&
-            String(numero || '').endsWith('@lid') &&
-            !opcoes.quotedMsg
-        ) {
-
-            try {
-
-                return await sendTextOriginal(
-                    numero,
-                    texto,
-                    {
-                        ...opcoes,
-                        quotedMsg
-                    },
-                    ...args.slice(1)
-                );
-
-            } catch (erro) {
-
-                console.log(
-                    'ENVIO COM RESPOSTA CITADA FALHOU; tentando envio normal',
-                    numero,
-                    erro.message
-                );
-
-            }
-
-        }
 
         return await sendTextOriginal(
             numero,
