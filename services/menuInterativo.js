@@ -13,8 +13,6 @@ const NUMEROS = {
 
 function numeroBonito(id) {
 
-    if (id === '#') return '#';
-
     return NUMEROS[id] || `${id}️⃣`;
 
 }

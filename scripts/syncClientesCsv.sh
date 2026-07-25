@@ -7,19 +7,15 @@ CONTAINER="${CONTAINER:-wppbot}"
 REMOTE="${CLIENTES_SYNC_REMOTE:-onedrive:softs/wpp-bot/clientes.csv}"
 TESTES_REMOTE="${TESTES_SYNC_REMOTE:-onedrive:softs/wpp-bot/testes.csv}"
 LEADS_REMOTE="${LEADS_SYNC_REMOTE:-onedrive:softs/wpp-bot/leads.csv}"
-SERVICOS_REMOTE="${SERVICOS_SYNC_REMOTE:-onedrive:softs/wpp-bot/servicos.csv}"
 LOCAL="$APP_DIR/data/clientes.csv"
 TESTES_LOCAL="$APP_DIR/data/testes.csv"
 LEADS_LOCAL="$APP_DIR/data/leads.csv"
-SERVICOS_LOCAL="$APP_DIR/data/servicos.csv"
 REMOTE_TMP="$APP_DIR/data/clientes-onedrive.csv"
 TESTES_REMOTE_TMP="$APP_DIR/data/testes-onedrive.csv"
 LEADS_REMOTE_TMP="$APP_DIR/data/leads-onedrive.csv"
-SERVICOS_REMOTE_TMP="$APP_DIR/data/servicos-onedrive.csv"
 STATE="$APP_DIR/data/clientes-sync-state.json"
 TESTES_STATE="$APP_DIR/data/testes-sync-state.json"
 LEADS_STATE="$APP_DIR/data/leads-sync-state.json"
-SERVICOS_STATE="$APP_DIR/data/servicos-sync-state.json"
 BACKUP_DIR="$APP_DIR/data/backups"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
@@ -109,34 +105,6 @@ docker run --rm \
 
 rclone copyto "$LEADS_LOCAL" "$LEADS_REMOTE"
 echo "CSV de leads mesclado enviado para: $LEADS_REMOTE"
-
-if [ -f "$SERVICOS_LOCAL" ]; then
-    cp "$SERVICOS_LOCAL" "$BACKUP_DIR/servicos-local-$STAMP.csv"
-fi
-
-if rclone copyto "$SERVICOS_REMOTE" "$SERVICOS_REMOTE_TMP"; then
-    echo "OneDrive baixado: $SERVICOS_REMOTE"
-else
-    echo "Aviso: nao consegui baixar $SERVICOS_REMOTE. Vou usar somente o CSV local."
-    if [ -f "$SERVICOS_LOCAL" ]; then
-        cp "$SERVICOS_LOCAL" "$SERVICOS_REMOTE_TMP"
-    else
-        printf 'chamado_interno;chamado_externo;cliente_nome;telefone;whatsapp_nome;email;inicio;termino;servico;valor_combinado;tecnico_responsavel;data_prevista_pagamento;status;obs\nOS359;;;;;;;;;;;;aguardando atendimento;\n' > "$SERVICOS_REMOTE_TMP"
-    fi
-fi
-
-docker run --rm \
-    --env-file "$APP_DIR/.env" \
-    -v "$APP_DIR/data:/app/data" \
-    "$IMAGE" \
-    npm run merge:servicos -- \
-    /app/data/servicos.csv \
-    /app/data/servicos-onedrive.csv \
-    /app/data/servicos.csv \
-    /app/data/servicos-sync-state.json
-
-rclone copyto "$SERVICOS_LOCAL" "$SERVICOS_REMOTE"
-echo "CSV de servicos mesclado enviado para: $SERVICOS_REMOTE"
 
 if docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
     docker exec "$CONTAINER" npm run importar:clientes || true

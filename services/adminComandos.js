@@ -1,8 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const {
-    exec
-} = require('child_process');
 const sessoes = require('./sessions');
 const {
     caminhoCsv,
@@ -47,13 +44,6 @@ const {
     caminhoLeadsCsv,
     lerLeadsCsv
 } = require('./leadsCsv');
-const {
-    buscarServicoPorChamado,
-    caminhoServicosCsv,
-    formatarServico,
-    normalizarChamado,
-    obterChamado
-} = require('./servicosCsv');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
@@ -112,7 +102,6 @@ function menuAdmin() {
         '#clientes ultimos - ultimos 10 clientes da planilha',
         '#leads - resumo da planilha de leads',
         '#leads ultimos - ultimos 10 leads',
-        '#chamado enviar OS359 - enviar informacoes do chamado ao cliente',
         '#marketing status - status da campanha',
         '#marketing enviar - disparar campanha com limite/intervalo',
         '#status imagens - ver imagens do status diario',
@@ -201,50 +190,6 @@ function ultimosClientes() {
             `Meses: ${cliente.meses || 'nao informado'}`
         ].join('\n'))
     ].join('\n\n');
-
-}
-
-function executarComando(comando, timeoutMs = 120000) {
-
-    return new Promise(resolve => {
-        if (!comando) return resolve({
-            ok: true,
-            ignorado: true,
-            stdout: '',
-            stderr: ''
-        });
-
-        exec(
-            comando,
-            {
-                timeout: timeoutMs,
-                windowsHide: true
-            },
-            (erro, stdout, stderr) => resolve({
-                ok: !erro,
-                ignorado: false,
-                erro,
-                stdout,
-                stderr
-            })
-        );
-    });
-
-}
-
-async function sincronizarServicosAntesEnvio() {
-
-    const comando = process.env.SERVICOS_SYNC_COMMAND || '';
-    const resultado = await executarComando(comando);
-
-    if (!resultado.ok) {
-        console.log(
-            'ERRO SYNC SERVICOS',
-            resultado.erro?.message || resultado.stderr || 'falha desconhecida'
-        );
-    }
-
-    return resultado;
 
 }
 
@@ -676,75 +621,6 @@ async function tratarComandoAdmin({
                 '',
                 `Codigo: ${atualizado.codigo}`,
                 `Cliente: ${atualizado.numero || atualizado.telefone || 'nao informado'}`
-            ].join('\n')
-        );
-
-    }
-
-    if (/^#chamado\s+enviar\s+/i.test(texto)) {
-
-        const chamado = normalizarChamado(texto.replace(/^#chamado\s+enviar\s+/i, ''));
-
-        if (!chamado) {
-
-            return await client.sendText(
-                numero,
-                'Use assim: *#chamado enviar OS359*.'
-            );
-
-        }
-
-        await client.sendText(
-            numero,
-            `Atualizando planilha de servicos antes de enviar o chamado ${chamado}...`
-        );
-
-        const sync = await sincronizarServicosAntesEnvio();
-        const servico = buscarServicoPorChamado(chamado);
-
-        if (!servico) {
-
-            return await client.sendText(
-                numero,
-                [
-                    `Nao encontrei o chamado *${chamado}* em ${caminhoServicosCsv()}.`,
-                    sync.ignorado ? 'Obs: SERVICOS_SYNC_COMMAND nao esta configurado; usei a planilha local da VM.' : '',
-                    !sync.ok ? 'Obs: a sincronizacao falhou; usei a planilha local disponivel.' : ''
-                ].filter(Boolean).join('\n')
-            );
-
-        }
-
-        if (!servico.telefone) {
-
-            return await client.sendText(
-                numero,
-                [
-                    `O chamado *${chamado}* existe, mas esta sem telefone cadastrado.`,
-                    'Preencha a coluna telefone em servicos.csv antes de enviar ao cliente.'
-                ].join('\n')
-            );
-
-        }
-
-        const envio = await enviarTextoSeguro(
-            client,
-            servico.telefone,
-            formatarServico(servico)
-        );
-        const numeroChamado = obterChamado(servico);
-
-        return await client.sendText(
-            numero,
-            [
-                'Informacoes do chamado enviadas ao cliente.',
-                '',
-                `Chamado: ${numeroChamado}`,
-                `Cliente: ${servico.cliente_nome || servico.whatsapp_nome || 'Nao informado'}`,
-                `Telefone: ${servico.telefone}`,
-                `Destino: ${envio.destino}`,
-                `Status: ${servico.status || 'Nao informado'}`,
-                sync.ignorado ? 'Sync: nao configurado; usei a planilha local da VM.' : (sync.ok ? 'Sync: executado antes do envio.' : 'Sync: falhou; usei a planilha local da VM.')
             ].join('\n')
         );
 

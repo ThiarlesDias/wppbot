@@ -5,7 +5,6 @@ const menuSuporte = require('../menus/suporte');
 const menuComercial = require('../menus/comercial');
 const menuFinanceiro = require('../menus/financeiro');
 const encaminharAtendente = require('../services/atendimentoHumano');
-const meuChamado = require('../menus/meuChamado');
 
 module.exports = async function menuHandler(
     client,
@@ -54,17 +53,6 @@ module.exports = async function menuHandler(
             numero,
             numeroWhatsapp,
             'Menu principal'
-        );
-
-    }
-
-    if (texto === '5') {
-
-        sessoes[numero] = 'meu_chamado';
-
-        return await meuChamado(
-            client,
-            numero
         );
 
     }

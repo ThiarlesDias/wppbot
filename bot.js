@@ -17,7 +17,6 @@ const suporteHandler = require('./handlers/suporteHandler');
 const financeiroHandler = require('./handlers/financeiroHandler');
 const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
-const chamadoHandler = require('./handlers/chamadoHandler');
 const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
@@ -54,8 +53,7 @@ const {
     buscarAssinaturasPorNumero
 } = require('./services/assinaturasStore');
 const {
-    lerTestesCsv,
-    marcarSaidaContratacao
+    lerTestesCsv
 } = require('./services/testesCsv');
 const {
     marcarSaidaMarketing
@@ -234,30 +232,6 @@ function temTesteRegistrado(numero, numeroWhatsapp) {
 
 }
 
-function marcarSaidaAvisosTeste(numero, numeroWhatsapp) {
-
-    const telefones = [
-        limparNumero(numeroWhatsapp),
-        limparNumero(numero)
-    ].filter(Boolean);
-
-    if (!telefones.length) return false;
-
-    const teste = lerTestesCsv().find(item =>
-        telefones.includes(limparNumero(item.telefone)) &&
-        !String(item.saiu_em || '').trim()
-    );
-
-    if (!teste) return false;
-
-    marcarSaidaContratacao(teste.usuario);
-    marcarSaidaContratacao(teste.telefone);
-    marcarSaidaContratacao(numeroWhatsapp || numero);
-
-    return true;
-
-}
-
 function deveRegistrarLead(numero, numeroWhatsapp) {
 
     if (
@@ -309,9 +283,7 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         '_motivo_cancelamento',
         '_telefone_teste',
         '_aguardando_telefone_teste',
-        '_marketing_detalhes',
-        '_meu_chamado',
-        '_chamado_externo_servico'
+        '_marketing_detalhes'
     ];
 
     for (const sufixo of sufixos) {
@@ -634,33 +606,6 @@ wppconnect.create({
 
             }
 
-            if (
-                texto === '8' &&
-                (!sessoes[numero + '_iniciado'] || sessoes[numero] === 'menu') &&
-                marcarSaidaAvisosTeste(
-                    numero,
-                    numeroWhatsapp
-                )
-            ) {
-
-                sessoes[numero + '_iniciado'] = true;
-                sessoes[numero] = 'teste_ja_usado';
-
-                return await client.sendText(
-                    numero,
-                    [
-                        'Tudo bem, parei os avisos sobre esse teste.',
-                        '',
-                        'O teste gratis continua registrado como ja utilizado. Se quiser voltar, voce pode contratar um pacote ou falar com um atendente.',
-                        '',
-                        '1 - Contratar agora',
-                        '9 - Falar com atendente',
-                        '0 - Voltar ao menu'
-                    ].join('\n')
-                );
-
-            }
-
             verificarTimeout(
                 numero
             );
@@ -807,19 +752,6 @@ wppconnect.create({
                         numero,
                         texto,
                         numeroWhatsapp
-                    );
-
-                case 'meu_chamado':
-                case 'chamado_consulta':
-                case 'chamado_externo_servico':
-                case 'chamado_externo_email':
-
-                    return await chamadoHandler(
-                        client,
-                        numero,
-                        texto,
-                        numeroWhatsapp,
-                        nomeMensagem(message)
                     );
 
                 case 'comercial':
