@@ -11,6 +11,8 @@ const DURACAO_MS = Number(process.env.ATENDIMENTO_MANUAL_PAUSA_MS || 12 * 60 * 6
 const JANELA_AUTOMATICA_MS = Number(process.env.ATENDIMENTO_AUTO_MATCH_MS || 15000);
 const USAR_DESTINO_RESOLVIDO = process.env.WHATSAPP_SEND_RESOLVED !== '0';
 const DEBUG_ENVIO = process.env.WHATSAPP_SEND_DEBUG === '1';
+const USAR_ENVIO_DIRETO = process.env.WHATSAPP_DIRECT_SEND !== '0';
+const TIMEOUT_ENVIO_MS = Number(process.env.WHATSAPP_SEND_TIMEOUT_MS || 12000);
 
 function garantirDiretorio() {
 
@@ -196,6 +198,173 @@ function resumirTexto(texto) {
 
 }
 
+function criarErroTimeoutEnvio(destino) {
+
+    const erro = new Error(`Timeout aguardando envio WhatsApp para ${destino}.`);
+    erro.code = 'WHATSAPP_SEND_TIMEOUT';
+
+    return erro;
+
+}
+
+async function aguardarComTimeout(promise, destino) {
+
+    let timeout;
+    promise.catch(() => {});
+
+    try {
+
+        return await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+
+                timeout = setTimeout(
+                    () => reject(criarErroTimeoutEnvio(destino)),
+                    TIMEOUT_ENVIO_MS
+                );
+
+            })
+        ]);
+
+    } finally {
+
+        clearTimeout(timeout);
+
+    }
+
+}
+
+function prepararOpcoesEnvio(args) {
+
+    const opcoes = args?.[0];
+
+    if (!opcoes || typeof opcoes !== 'object') return undefined;
+
+    try {
+
+        return JSON.parse(JSON.stringify(opcoes));
+
+    } catch (_) {
+
+        return undefined;
+
+    }
+
+}
+
+async function enviarViaWppDireto(client, destino, texto, args) {
+
+    if (!client?.page?.evaluate) {
+
+        throw new Error('Pagina do WhatsApp indisponivel para envio direto.');
+
+    }
+
+    const opcoes = prepararOpcoesEnvio(args);
+
+    return await client.page.evaluate(
+        async ({ to, content, options }) => {
+
+            const enviar = globalThis.WPP?.chat?.sendTextMessage;
+
+            if (!enviar) {
+
+                throw new Error('WPP.chat.sendTextMessage indisponivel.');
+
+            }
+
+            const resultado = await enviar(
+                to,
+                content,
+                {
+                    ...(options || {}),
+                    waitForAck: false
+                }
+            );
+
+            const id = resultado?.id?._serialized ||
+                resultado?.id ||
+                resultado?.message?.id?._serialized ||
+                null;
+
+            return {
+                ok: true,
+                id: typeof id === 'string' ? id : null
+            };
+
+        },
+        {
+            to: destino,
+            content: texto,
+            options: opcoes
+        }
+    );
+
+}
+
+async function enviarViaOriginal(sendTextOriginal, destino, texto, args) {
+
+    return await aguardarComTimeout(
+        sendTextOriginal(
+            destino,
+            texto,
+            ...args
+        ),
+        destino
+    );
+
+}
+
+async function enviarTextoNoDestino(client, sendTextOriginal, destino, texto, args) {
+
+    if (USAR_ENVIO_DIRETO) {
+
+        try {
+
+            const resultado = await enviarViaWppDireto(
+                client,
+                destino,
+                texto,
+                args
+            );
+
+            if (DEBUG_ENVIO) {
+
+                console.log(
+                    'ENVIO WHATSAPP DIRETO OK',
+                    destino,
+                    resultado?.id || '',
+                    resumirTexto(texto)
+                );
+
+            }
+
+            return resultado;
+
+        } catch (erro) {
+
+            console.log(
+                'ERRO ENVIO WHATSAPP DIRETO',
+                destino,
+                erro.message || erro,
+                resumirTexto(texto)
+            );
+
+            if (erroPermiteDestinoAlternativo(erro)) throw erro;
+
+        }
+
+    }
+
+    return await enviarViaOriginal(
+        sendTextOriginal,
+        destino,
+        texto,
+        args
+    );
+
+}
+
 function ehMensagemAutomatica(numero, texto) {
 
     limparAntigas();
@@ -317,10 +486,12 @@ function instalarRegistroAutomatico(client) {
 
         try {
 
-            return await sendTextOriginal(
+            return await enviarTextoNoDestino(
+                client,
+                sendTextOriginal,
                 destino,
                 texto,
-                ...args
+                args
             );
 
         } catch (erro) {
@@ -361,10 +532,12 @@ function instalarRegistroAutomatico(client) {
                         alternativo
                     );
 
-                    return await sendTextOriginal(
+                    return await enviarTextoNoDestino(
+                        client,
+                        sendTextOriginal,
                         alternativo,
                         texto,
-                        ...args
+                        args
                     );
 
                 }
@@ -380,10 +553,12 @@ function instalarRegistroAutomatico(client) {
                     numero
                 );
 
-                return await sendTextOriginal(
+                return await enviarTextoNoDestino(
+                    client,
+                    sendTextOriginal,
                     numero,
                     texto,
-                    ...args
+                    args
                 );
 
             }
