@@ -430,11 +430,6 @@ function registrarAtendimentoManual(message) {
 
     if (eraAutomatica) return;
 
-    if (destinos.some(destino => ehAdmin(
-        destino,
-        destino
-    ))) return;
-
     for (const destino of destinos) {
 
         pausarAtendimento(

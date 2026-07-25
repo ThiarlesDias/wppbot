@@ -2089,17 +2089,6 @@ ou
 
     if (etapa === 'teste_encerrado' || etapa === 'teste_convite') {
 
-        if (['oi', 'ola', 'olá', 'menu', 'inicio', 'início'].includes(texto)) {
-
-            sessoes[numero] = 'menu';
-
-            return await menuPrincipal(
-                client,
-                numero
-            );
-
-        }
-
         if (texto === '1') {
 
             sessoes[numero] = 'pacote';
