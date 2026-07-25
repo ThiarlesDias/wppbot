@@ -377,7 +377,8 @@ function idsAtendimentoSaida(message) {
 
     return [
         message?.to,
-        message?.chatId
+        message?.chatId,
+        message?.from
     ].filter(id =>
         typeof id === 'string' &&
         id &&
@@ -502,6 +503,8 @@ wppconnect.create({
     client.onAck((message) => {
 
         try {
+
+            if (!message?.fromMe) return;
 
             const id = message?.id?._serialized || message?.id || '';
             const destino = message?.to || message?.chatId || message?.from || '';
