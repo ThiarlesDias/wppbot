@@ -500,36 +500,6 @@ wppconnect.create({
 
     });
 
-    client.onAck((message) => {
-
-        try {
-
-            if (!message?.fromMe) return;
-
-            const id = message?.id?._serialized || message?.id || '';
-            const destino = message?.to || message?.chatId || message?.from || '';
-            const textoAck = String(message?.body || message?.caption || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-            const ack = message?.ack;
-
-            console.log(
-                'ACK WHATSAPP:',
-                `ack=${ack}`,
-                destino,
-                id,
-                textoAck
-            );
-
-        } catch (erro) {
-
-            console.log(
-                'ERRO ACK WHATSAPP',
-                erro.message
-            );
-
-        }
-
-    });
-
     client.onMessage(async (message) => {
 
         try {
