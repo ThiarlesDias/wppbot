@@ -30,9 +30,10 @@ const {
 const {
     atendimentoPausado,
     ehMensagemAutomatica,
-    instalarRegistroAutomatico,
+    instalarRegistroEnvio,
     liberarAtendimento,
-    pausarAtendimento
+    pausarAtendimento,
+    registrarDestinoResolvido
 } = require('./services/pausaAtendimento');
 
 const {
@@ -477,7 +478,7 @@ wppconnect.create({
 
     console.log('BOT ONLINE');
 
-    instalarRegistroAutomatico(client);
+    instalarRegistroEnvio(client);
 
     iniciarMonitorPagamentos(client);
     iniciarMonitorClientesCsv();
@@ -523,6 +524,23 @@ wppconnect.create({
                 client,
                 message
             );
+
+            if (numeroWhatsapp) {
+
+                registrarDestinoResolvido(
+                    numero,
+                    numeroWhatsapp
+                );
+
+            } else if (numero.endsWith('@lid')) {
+
+                console.log(
+                    'LID SEM TELEFONE RESOLVIDO',
+                    numero
+                );
+
+            }
+
             sincronizarSessaoNumero(
                 numero,
                 numeroWhatsapp

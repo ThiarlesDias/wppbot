@@ -5,9 +5,12 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const PAUSAS_PATH = path.join(DATA_DIR, 'atendimentos-pausados.json');
 const pausas = carregarPausas();
 const automaticas = [];
+const destinosResolvidos = new Map();
 
 const DURACAO_MS = Number(process.env.ATENDIMENTO_MANUAL_PAUSA_MS || 12 * 60 * 60 * 1000);
 const JANELA_AUTOMATICA_MS = Number(process.env.ATENDIMENTO_AUTO_MATCH_MS || 15000);
+const USAR_DESTINO_RESOLVIDO = process.env.WHATSAPP_SEND_RESOLVED !== '0';
+const DEBUG_ENVIO = process.env.WHATSAPP_SEND_DEBUG === '1';
 
 function garantirDiretorio() {
 
@@ -110,6 +113,31 @@ function registrarMensagemAutomatica(numero, texto) {
 
 }
 
+function registrarDestinoResolvido(origem, destino) {
+
+    if (!origem || !destino || origem === destino) return;
+
+    destinosResolvidos.set(
+        origem,
+        destino
+    );
+
+}
+
+function resolverDestinoEnvio(numero) {
+
+    if (!USAR_DESTINO_RESOLVIDO || !numero) return numero;
+
+    return destinosResolvidos.get(numero) || numero;
+
+}
+
+function resumirTexto(texto) {
+
+    return normalizarTexto(texto).slice(0, 80);
+
+}
+
 function ehMensagemAutomatica(numero, texto) {
 
     limparAntigas();
@@ -201,16 +229,71 @@ function instalarRegistroAutomatico(client) {
 
     client.sendText = async (numero, texto, ...args) => {
 
+        const destino = resolverDestinoEnvio(numero);
+
         registrarMensagemAutomatica(
             numero,
             texto
         );
 
-        return await sendTextOriginal(
-            numero,
-            texto,
-            ...args
-        );
+        if (destino !== numero) {
+
+            registrarMensagemAutomatica(
+                destino,
+                texto
+            );
+
+            if (DEBUG_ENVIO) {
+
+                console.log(
+                    'ENVIO WHATSAPP DESTINO RESOLVIDO',
+                    numero,
+                    '=>',
+                    destino,
+                    resumirTexto(texto)
+                );
+
+            }
+
+        }
+
+        try {
+
+            return await sendTextOriginal(
+                destino,
+                texto,
+                ...args
+            );
+
+        } catch (erro) {
+
+            console.log(
+                'ERRO ENVIO WHATSAPP',
+                destino,
+                erro.message || erro,
+                resumirTexto(texto)
+            );
+
+            if (destino !== numero) {
+
+                console.log(
+                    'ENVIO WHATSAPP FALLBACK',
+                    destino,
+                    '=>',
+                    numero
+                );
+
+                return await sendTextOriginal(
+                    numero,
+                    texto,
+                    ...args
+                );
+
+            }
+
+            throw erro;
+
+        }
 
     };
 
@@ -218,12 +301,50 @@ function instalarRegistroAutomatico(client) {
 
 }
 
+function instalarDebugAck(client) {
+
+    if (process.env.WHATSAPP_ACK_DEBUG !== '1') return;
+    if (!client || typeof client.onAck !== 'function') return;
+    if (client.__debugAckInstalado) return;
+
+    client.onAck((ack) => {
+
+        try {
+
+            const id = ack?.id?._serialized || ack?.id || '';
+            const para = ack?.to || ack?.chatId || ack?.from || '';
+
+            console.log(
+                'ACK WHATSAPP',
+                ack?.ack,
+                para,
+                id
+            );
+
+        } catch (_) {}
+
+    });
+
+    client.__debugAckInstalado = true;
+
+}
+
+function instalarRegistroEnvio(client) {
+
+    instalarRegistroAutomatico(client);
+    instalarDebugAck(client);
+
+}
+
 module.exports = {
     atendimentoPausado,
     ehMensagemAutomatica,
+    instalarDebugAck,
     instalarRegistroAutomatico,
+    instalarRegistroEnvio,
     liberarAtendimento,
     limparPausasAtendimento,
     pausarAtendimento,
+    registrarDestinoResolvido,
     registrarMensagemAutomatica
 };
