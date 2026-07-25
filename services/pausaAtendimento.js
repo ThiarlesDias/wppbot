@@ -128,6 +128,14 @@ function ehMensagemAutomatica(numero, texto) {
 
     }
 
+    if (indice === -1) {
+
+        indice = automaticas.findIndex(item =>
+            item.numero === numero
+        );
+
+    }
+
     if (indice === -1) return false;
 
     automaticas.splice(

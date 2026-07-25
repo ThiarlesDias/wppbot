@@ -365,7 +365,11 @@ function registrarAtendimentoManual(message) {
     if (!message?.fromMe) return;
     if (ehContatoIgnorado(message)) return;
 
-    const destinos = [...new Set(idsAtendimentoSaida(message))];
+    const destinos = [...new Set(idsAtendimentoSaida(message))]
+        .filter(destino => !ehAdmin(
+            destino,
+            destino
+        ));
     const textoEnviado = obterTextoMensagem(message);
 
     if (!destinos.length) return;
