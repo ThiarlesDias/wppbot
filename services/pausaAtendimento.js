@@ -132,6 +132,64 @@ function resolverDestinoEnvio(numero) {
 
 }
 
+function erroPermiteDestinoAlternativo(erro) {
+
+    const mensagem = String(erro?.message || erro || '');
+
+    return mensagem.includes('No LID') ||
+        mensagem.includes('InvalidWid') ||
+        mensagem.includes('wid error') ||
+        mensagem.includes('invalid wid');
+
+}
+
+function extrairSerializado(valor) {
+
+    if (!valor) return null;
+    if (typeof valor === 'string') return valor;
+    if (typeof valor !== 'object') return null;
+
+    return valor._serialized ||
+        valor.serialized ||
+        (
+            valor.user && valor.server
+                ? `${valor.user}@${valor.server}`
+                : null
+        );
+
+}
+
+async function resolverDestinoAlternativo(client, destino) {
+
+    if (!client || typeof client.getPnLidEntry !== 'function') return null;
+    if (!destino || (!destino.endsWith('@c.us') && !destino.endsWith('@lid'))) return null;
+
+    try {
+
+        const info = await client.getPnLidEntry(destino);
+
+        if (destino.endsWith('@c.us')) {
+
+            return extrairSerializado(info?.lid);
+
+        }
+
+        return extrairSerializado(info?.phoneNumber);
+
+    } catch (erro) {
+
+        console.log(
+            'ERRO RESOLVER DESTINO WHATSAPP',
+            destino,
+            erro.message || erro
+        );
+
+        return null;
+
+    }
+
+}
+
 function resumirTexto(texto) {
 
     return normalizarTexto(texto).slice(0, 80);
@@ -273,6 +331,45 @@ function instalarRegistroAutomatico(client) {
                 erro.message || erro,
                 resumirTexto(texto)
             );
+
+            if (erroPermiteDestinoAlternativo(erro)) {
+
+                const alternativo = await resolverDestinoAlternativo(
+                    client,
+                    destino
+                );
+
+                if (
+                    alternativo &&
+                    alternativo !== destino &&
+                    alternativo !== numero
+                ) {
+
+                    registrarDestinoResolvido(
+                        destino,
+                        alternativo
+                    );
+                    registrarMensagemAutomatica(
+                        alternativo,
+                        texto
+                    );
+
+                    console.log(
+                        'ENVIO WHATSAPP DESTINO ALTERNATIVO',
+                        destino,
+                        '=>',
+                        alternativo
+                    );
+
+                    return await sendTextOriginal(
+                        alternativo,
+                        texto,
+                        ...args
+                    );
+
+                }
+
+            }
 
             if (destino !== numero) {
 
