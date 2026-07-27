@@ -226,6 +226,8 @@ function executarComando(comando, timeoutMs = 120000) {
         exec(
             comando,
             {
+                cwd: path.join(__dirname, '..'),
+                maxBuffer: 1024 * 1024 * 5,
                 timeout: timeoutMs,
                 windowsHide: true
             },
@@ -303,11 +305,20 @@ async function sincronizarPlanilhas(alvo) {
     const comandoBase = process.env.PLANILHAS_SYNC_COMMAND || 'npm run sync:google';
     const timeout = Number(process.env.PLANILHAS_SYNC_TIMEOUT_MS || 300000);
     const comando = alvo ? `${comandoBase} -- ${alvo}` : comandoBase;
-
-    return await executarComando(
+    const resultado = await executarComando(
         comando,
         timeout
     );
+
+    if (!resultado.ok) {
+        console.log(
+            'ERRO SYNC PLANILHAS',
+            alvo || 'todas',
+            resultado.erro?.message || resultado.stderr || resultado.stdout || 'falha desconhecida'
+        );
+    }
+
+    return resultado;
 
 }
 
@@ -333,6 +344,7 @@ function resumoSyncPlanilhas(alvo, sync, importacao) {
 
     const detalhesErro = ultimasLinhas(
         [
+            sync.erro?.message,
             sync.stderr,
             sync.stdout
         ].filter(Boolean).join('\n'),
