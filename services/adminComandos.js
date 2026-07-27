@@ -56,6 +56,13 @@ const {
 } = require('./servicosCsv');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
+const PLANILHAS_ALVOS = [
+    'clientes',
+    'testes',
+    'leads',
+    'marketing',
+    'servicos'
+];
 
 function arquivoInfo(caminho) {
 
@@ -112,6 +119,8 @@ function menuAdmin() {
         '#clientes ultimos - ultimos 10 clientes da planilha',
         '#leads - resumo da planilha de leads',
         '#leads ultimos - ultimos 10 leads',
+        '#planilhas atualizar - sincronizar todas as planilhas agora',
+        '#planilhas atualizar clientes - sincronizar uma planilha especifica',
         '#chamado enviar OS359 - enviar informacoes do chamado ao cliente',
         '#marketing status - status da campanha',
         '#marketing enviar - disparar campanha com limite/intervalo',
@@ -245,6 +254,131 @@ async function sincronizarServicosAntesEnvio() {
     }
 
     return resultado;
+
+}
+
+function textoUsoPlanilhas() {
+
+    return [
+        'Use assim:',
+        '*#planilhas atualizar*',
+        '',
+        'Ou escolha uma planilha:',
+        '*#planilhas atualizar clientes*',
+        '*#planilhas atualizar testes*',
+        '*#planilhas atualizar leads*',
+        '*#planilhas atualizar marketing*',
+        '*#planilhas atualizar servicos*'
+    ].join('\n');
+
+}
+
+function normalizarAlvoPlanilha(valor) {
+
+    const alvo = String(valor || '')
+        .trim()
+        .toLowerCase();
+
+    if (!alvo || ['todas', 'todos', 'all'].includes(alvo)) return '';
+
+    if (PLANILHAS_ALVOS.includes(alvo)) return alvo;
+
+    return null;
+
+}
+
+function ultimasLinhas(texto, limite = 6) {
+
+    return String(texto || '')
+        .split(/\r?\n/)
+        .map(linha => linha.trim())
+        .filter(Boolean)
+        .slice(-limite)
+        .join('\n');
+
+}
+
+async function sincronizarPlanilhas(alvo) {
+
+    const comandoBase = process.env.PLANILHAS_SYNC_COMMAND || 'npm run sync:google';
+    const timeout = Number(process.env.PLANILHAS_SYNC_TIMEOUT_MS || 300000);
+    const comando = alvo ? `${comandoBase} -- ${alvo}` : comandoBase;
+
+    return await executarComando(
+        comando,
+        timeout
+    );
+
+}
+
+async function importarClientesAposSync(alvo) {
+
+    if (alvo && alvo !== 'clientes') {
+        return {
+            ok: true,
+            ignorado: true,
+            stdout: '',
+            stderr: ''
+        };
+    }
+
+    return await executarComando(
+        'npm run importar:clientes',
+        120000
+    );
+
+}
+
+function resumoSyncPlanilhas(alvo, sync, importacao) {
+
+    const detalhesErro = ultimasLinhas(
+        [
+            sync.stderr,
+            sync.stdout
+        ].filter(Boolean).join('\n'),
+        8
+    );
+
+    const linhas = [
+        sync.ok ? '*Planilhas atualizadas*' : '*Falha ao atualizar planilhas*',
+        '',
+        `Alvo: ${alvo || 'todas'}`
+    ];
+
+    if (!sync.ok) {
+        linhas.push(
+            '',
+            'O Google Sheets/CSV nao foi sincronizado.',
+            detalhesErro ? `Detalhes:\n${detalhesErro}` : ''
+        );
+
+        return linhas.filter(Boolean).join('\n');
+    }
+
+    if (importacao.ignorado) {
+        linhas.push('Clientes: nao recarregado para este alvo.');
+    } else {
+        linhas.push(`Clientes: ${importacao.ok ? 'recarregado' : 'falhou ao recarregar'}`);
+    }
+
+    if (!importacao.ok) {
+        const erroImportacao = ultimasLinhas(
+            [
+                importacao.stderr,
+                importacao.stdout
+            ].filter(Boolean).join('\n'),
+            6
+        );
+
+        if (erroImportacao) {
+            linhas.push(
+                '',
+                `Detalhes importacao:\n${erroImportacao}`
+            );
+        }
+    }
+
+    return linhas.join('\n');
 
 }
 
@@ -677,6 +811,46 @@ async function tratarComandoAdmin({
                 `Codigo: ${atualizado.codigo}`,
                 `Cliente: ${atualizado.numero || atualizado.telefone || 'nao informado'}`
             ].join('\n')
+        );
+
+    }
+
+    if (/^#planilhas?\s+atualizar(?:\s+(.+))?$/i.test(texto)) {
+
+        const [, alvoPedido] = texto.match(/^#planilhas?\s+atualizar(?:\s+(.+))?$/i);
+        const alvo = normalizarAlvoPlanilha(alvoPedido);
+
+        if (alvo === null) {
+
+            return await client.sendText(
+                numero,
+                textoUsoPlanilhas()
+            );
+
+        }
+
+        await client.sendText(
+            numero,
+            `Atualizando planilhas agora: ${alvo || 'todas'}...`
+        );
+
+        const sync = await sincronizarPlanilhas(alvo);
+        const importacao = sync.ok ?
+            await importarClientesAposSync(alvo) :
+            {
+                ok: true,
+                ignorado: true,
+                stdout: '',
+                stderr: ''
+            };
+
+        return await client.sendText(
+            numero,
+            resumoSyncPlanilhas(
+                alvo,
+                sync,
+                importacao
+            )
         );
 
     }
