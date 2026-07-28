@@ -131,6 +131,7 @@ function menuAdmin() {
         '#pgsim CODIGO - confirmar pagamento informado pelo cliente',
         '#pgnao CODIGO - avisar que pagamento nao foi encontrado',
         '#vencimentos - rodar checagem de vencimentos agora',
+        '#avaliar telefone/usuario - colocar cliente na avaliacao de atendimento',
         '#renovar telefone/usuario - colocar cliente no fluxo de renovacao',
         '#fluxos - listar fluxos disponiveis',
         '#fluxo telefone/usuario fluxo - colocar cliente em um fluxo',
@@ -674,6 +675,12 @@ function fluxoNormalizado(valor) {
         configuracao: 'config',
         ajuda_configuracao: 'config',
         ajuda_com_configuracao: 'config',
+        avaliar: 'satisfacao',
+        avaliacao: 'satisfacao',
+        pesquisa: 'satisfacao',
+        pesquisa_satisfacao: 'satisfacao',
+        satisfacao: 'satisfacao',
+        atendimento_avaliacao: 'satisfacao',
         cancelar: 'cancelamento',
         cancelamento_assinatura: 'cancelamento'
     };
@@ -699,11 +706,13 @@ function textoFluxos() {
         'financeiro - menu financeiro',
         'comercial - produtos e servicos',
         'humano - atendimento humano',
+        'avaliacao ou satisfacao - pesquisa de atendimento',
         'cancelamento - pedir motivo de cancelamento',
         '',
         'Exemplos:',
         '#fluxo 5543998022208 renovacao',
-        '#fluxo 49876165849dna pacote'
+        '#fluxo 49876165849dna pacote',
+        '#fluxo 5543998022208 avaliacao'
     ].join('\n');
 
 }
@@ -721,6 +730,18 @@ function estadoDoFluxo(fluxo) {
 
 }
 
+function textoAvaliacaoAtendimento() {
+
+    return [
+        'Antes de encerrar, sua opiniao ajuda muito.',
+        '',
+        'De *1* a *5*, qual nota voce da para este atendimento?',
+        '',
+        '0 - Nao opinar'
+    ].join('\n');
+
+}
+
 async function abrirFluxoCliente(client, destino, fluxo, assinatura) {
 
     if (fluxo === 'menu') return await menuPrincipal(client, destino);
@@ -732,6 +753,15 @@ async function abrirFluxoCliente(client, destino, fluxo, assinatura) {
     if (fluxo === 'pacote') return await pacote(client, destino);
     if (fluxo === 'teste') return await testeGratis(client, destino);
     if (fluxo === 'config') return await ajudaConfiguracao(client, destino);
+
+    if (fluxo === 'satisfacao') {
+
+        return await client.sendText(
+            destino,
+            textoAvaliacaoAtendimento()
+        );
+
+    }
 
     if (fluxo === 'sem_sinal') {
 
@@ -936,6 +966,52 @@ async function tratarComandoAdmin({
 
     }
 
+    if (/^#avalia(?:r|cao|ção)\s+/i.test(texto)) {
+
+        const termo = texto.replace(/^#avalia(?:r|cao|ção)\s+/i, '').trim();
+
+        if (!termo) {
+
+            return await client.sendText(
+                numero,
+                'Use assim: *#avaliar telefone/usuario*.'
+            );
+
+        }
+
+        const assinatura = buscarAssinaturaAdmin(termo);
+        const destinos = assinatura ?
+            [
+                assinatura.numero,
+                assinatura.telefone
+            ] :
+            [termo];
+        const envio = await enviarTextoSeguro(
+            client,
+            destinos,
+            textoAvaliacaoAtendimento()
+        );
+
+        aplicarFluxoForcado({
+            assinatura,
+            destino: envio.destino,
+            fluxoPedido: 'satisfacao',
+            termo
+        });
+
+        return await client.sendText(
+            numero,
+            [
+                'Cliente colocado na avaliacao de atendimento.',
+                '',
+                `Destino: ${envio.destino}`,
+                assinatura ? `Nome: ${assinatura.nome || 'Nao informado'}` : '',
+                assinatura ? `Usuario: ${assinatura.username}` : ''
+            ].filter(Boolean).join('\n')
+        );
+
+    }
+
     if (texto.startsWith('#fluxo ')) {
 
         const partes = texto.split(/\s+/);
@@ -962,6 +1038,7 @@ async function tratarComandoAdmin({
             'teste',
             'sem_sinal',
             'config',
+            'satisfacao',
             'cancelamento'
         ]);
 
