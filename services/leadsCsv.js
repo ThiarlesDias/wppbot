@@ -13,6 +13,7 @@ const CABECALHOS = [
     'ultima_interacao',
     'tentativas_retomada',
     'ultimo_remarketing',
+    'remarketing_envios',
     'observacao'
 ];
 
@@ -180,6 +181,26 @@ function diaSaoPaulo(valor = new Date()) {
 
 }
 
+function numeroInteiro(valor, padrao = 0) {
+
+    const numero = Number(
+        String(valor ?? '')
+            .replace(',', '.')
+            .replace(/[^\d.-]/g, '')
+    );
+
+    return Number.isFinite(numero) ? numero : padrao;
+
+}
+
+function limiteRemarketing() {
+
+    const limite = Number(process.env.LEADS_REMARKETING_MAX_DIAS || 2);
+
+    return Number.isFinite(limite) && limite >= 0 ? limite : 2;
+
+}
+
 function lerLeadsCsv(arquivo = caminhoLeadsCsv()) {
 
     if (!fs.existsSync(arquivo)) return [];
@@ -268,6 +289,7 @@ function registrarLead({
         ultima_interacao: agora,
         tentativas_retomada: base.tentativas_retomada || '0',
         ultimo_remarketing: base.ultimo_remarketing || '',
+        remarketing_envios: base.remarketing_envios || '0',
         observacao: String(observacao || base.observacao || '').trim()
     };
 
@@ -357,10 +379,14 @@ function marcarLeadConvertido(valor, tipo = 'cliente') {
 function leadsParaRemarketing(agora = new Date(), arquivo = caminhoLeadsCsv()) {
 
     const hoje = diaSaoPaulo(agora);
+    const limite = limiteRemarketing();
+
+    if (limite <= 0) return [];
 
     return lerLeadsCsv(arquivo).filter(lead => {
         if (String(lead.status || '').toLowerCase() !== 'lead') return false;
         if (String(lead.ultimo_remarketing || '').trim() === hoje) return false;
+        if (numeroInteiro(lead.remarketing_envios, 0) >= limite) return false;
         return true;
     });
 
@@ -377,9 +403,18 @@ function marcarRemarketingEnviado(valor, arquivo = caminhoLeadsCsv()) {
 
     if (indice === -1) return null;
 
+    const total = numeroInteiro(linhas[indice].remarketing_envios, 0) + 1;
+    const limite = limiteRemarketing();
+    const finalizado = limite > 0 && total >= limite;
+
     linhas[indice] = {
         ...linhas[indice],
         ultimo_remarketing: diaSaoPaulo(),
+        remarketing_envios: String(total),
+        status: finalizado ? 'encerrado' : linhas[indice].status,
+        observacao: finalizado ?
+            `Remarketing finalizado apos ${total} envio(s).` :
+            linhas[indice].observacao,
         ultima_interacao: formatarData()
     };
 

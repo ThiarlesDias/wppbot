@@ -93,7 +93,7 @@ else
     if [ -f "$LEADS_LOCAL" ]; then
         cp "$LEADS_LOCAL" "$LEADS_REMOTE_TMP"
     else
-        printf 'telefone;numero;nome;fluxo;status;criado_em;ultima_interacao;tentativas_retomada;ultimo_remarketing;observacao\n' > "$LEADS_REMOTE_TMP"
+        printf 'telefone;numero;nome;fluxo;status;criado_em;ultima_interacao;tentativas_retomada;ultimo_remarketing;remarketing_envios;observacao\n' > "$LEADS_REMOTE_TMP"
     fi
 fi
 

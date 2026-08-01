@@ -33,7 +33,7 @@ const DEFINICOES = [
         remoto: 'leads-google.csv',
         estado: 'leads-sync-state.json',
         merge: 'merge:leads',
-        cabecalho: 'telefone;numero;nome;fluxo;status;criado_em;ultima_interacao;tentativas_retomada;ultimo_remarketing;observacao'
+        cabecalho: 'telefone;numero;nome;fluxo;status;criado_em;ultima_interacao;tentativas_retomada;ultimo_remarketing;remarketing_envios;observacao'
     },
     {
         chave: 'servicos',

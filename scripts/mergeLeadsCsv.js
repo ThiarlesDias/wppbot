@@ -16,6 +16,7 @@ const CAMPOS = [
     'ultima_interacao',
     'tentativas_retomada',
     'ultimo_remarketing',
+    'remarketing_envios',
     'observacao'
 ];
 
