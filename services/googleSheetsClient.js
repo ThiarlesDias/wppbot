@@ -2,7 +2,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
 
 function base64url(valor) {
 
@@ -48,9 +49,10 @@ function carregarCredenciais() {
 
 }
 
-async function obterAccessToken() {
+async function obterAccessToken(scopes = [SHEETS_SCOPE]) {
 
     const credenciais = carregarCredenciais();
+    const escopos = Array.isArray(scopes) ? scopes : [scopes];
     const agora = Math.floor(Date.now() / 1000);
     const header = {
         alg: 'RS256',
@@ -58,7 +60,7 @@ async function obterAccessToken() {
     };
     const payload = {
         iss: credenciais.client_email,
-        scope: SCOPE,
+        scope: escopos.join(' '),
         aud: TOKEN_URL,
         exp: agora + 3600,
         iat: agora
@@ -99,13 +101,13 @@ async function obterAccessToken() {
 
 }
 
-function spreadsheetId() {
+function spreadsheetId(id) {
 
-    const id = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+    const planilhaId = id || process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
-    if (!id) throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID nao configurado.');
+    if (!planilhaId) throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID nao configurado.');
 
-    return id;
+    return planilhaId;
 
 }
 
@@ -122,9 +124,9 @@ function rangeAba(aba) {
 
 }
 
-async function requestGoogle(method, url, body) {
+async function requestGoogle(method, url, body, scopes = [SHEETS_SCOPE]) {
 
-    const token = await obterAccessToken();
+    const token = await obterAccessToken(scopes);
     const resposta = await fetch(
         url,
         {
@@ -145,10 +147,11 @@ async function requestGoogle(method, url, body) {
 
 }
 
-async function garantirAba(chave) {
+async function garantirAba(chave, id) {
 
     const aba = nomeAba(chave);
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId()}?fields=sheets.properties.title`;
+    const planilhaId = spreadsheetId(id);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${planilhaId}?fields=sheets.properties.title`;
     const dados = await requestGoogle('GET', url);
     const existe = (dados.sheets || []).some(sheet =>
         sheet.properties?.title === aba
@@ -158,7 +161,7 @@ async function garantirAba(chave) {
 
     await requestGoogle(
         'POST',
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId()}:batchUpdate`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${planilhaId}:batchUpdate`,
         {
             requests: [
                 {
@@ -174,25 +177,26 @@ async function garantirAba(chave) {
 
 }
 
-async function lerValores(chave) {
+async function lerValores(chave, id) {
 
     const aba = nomeAba(chave);
 
-    await garantirAba(chave);
+    await garantirAba(chave, id);
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId()}/values/${encodeURIComponent(rangeAba(aba))}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId(id)}/values/${encodeURIComponent(rangeAba(aba))}`;
     const dados = await requestGoogle('GET', url);
 
     return dados.values || [];
 
 }
 
-async function escreverValores(chave, valores) {
+async function escreverValores(chave, valores, id) {
 
     const aba = nomeAba(chave);
-    const base = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId()}/values`;
+    const planilhaId = spreadsheetId(id);
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${planilhaId}/values`;
 
-    await garantirAba(chave);
+    await garantirAba(chave, planilhaId);
 
     await requestGoogle(
         'POST',
@@ -214,7 +218,56 @@ async function escreverValores(chave, valores) {
 
 }
 
+async function criarPlanilha(titulo, abas = []) {
+
+    const titulos = Array.from(new Set(
+        abas
+            .map(aba => String(aba || '').trim())
+            .filter(Boolean)
+    ));
+    const dados = await requestGoogle(
+        'POST',
+        'https://sheets.googleapis.com/v4/spreadsheets',
+        {
+            properties: {
+                title: titulo || 'wppbot'
+            },
+            sheets: titulos.map(title => ({
+                properties: {
+                    title
+                }
+            }))
+        }
+    );
+
+    return {
+        spreadsheetId: dados.spreadsheetId,
+        spreadsheetUrl: dados.spreadsheetUrl
+    };
+
+}
+
+async function compartilharPlanilha(id, email) {
+
+    return await requestGoogle(
+        'POST',
+        `https://www.googleapis.com/drive/v3/files/${id}/permissions?sendNotificationEmail=false`,
+        {
+            type: 'user',
+            role: 'writer',
+            emailAddress: email
+        },
+        [
+            SHEETS_SCOPE,
+            DRIVE_SCOPE
+        ]
+    );
+
+}
+
 module.exports = {
+    compartilharPlanilha,
+    criarPlanilha,
     escreverValores,
     lerValores,
     nomeAba

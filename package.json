@@ -11,6 +11,7 @@
     "merge:testes": "node scripts/mergeTestesCsv.js",
     "merge:leads": "node scripts/mergeLeadsCsv.js",
     "merge:servicos": "node scripts/mergeServicosCsv.js",
+    "criar:sheets": "node scripts/criarGoogleSheets.js",
     "sync:google": "node scripts/syncGoogleSheets.js"
   },
   "dependencies": {
