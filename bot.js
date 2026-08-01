@@ -30,7 +30,7 @@ const {
 } = require('./services/adminComandos');
 const {
     atendimentoPausado,
-    ehMensagemAutomatica,
+    consumirMensagemAutomatica,
     instalarRegistroEnvio,
     liberarAtendimento,
     pausarAtendimento,
@@ -269,7 +269,7 @@ function registrarLeadAtual(message, numero, numeroWhatsapp, fluxo) {
 
 }
 
-function sincronizarSessaoNumero(numero, numeroWhatsapp) {
+function sincronizarSessaoNumero(numero, numeroWhatsapp, forcar = false) {
 
     if (!numero || !numeroWhatsapp || numero === numeroWhatsapp) return;
 
@@ -295,6 +295,14 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
         const chaveNumero = `${numero}${sufixo}`;
         const chaveWhatsapp = `${numeroWhatsapp}${sufixo}`;
 
+        if (
+            forcar &&
+            sessoes[chaveWhatsapp] !== undefined
+        ) {
+            sessoes[chaveNumero] = sessoes[chaveWhatsapp];
+            continue;
+        }
+
         if (sessoes[chaveNumero] === undefined && sessoes[chaveWhatsapp] !== undefined) {
             sessoes[chaveNumero] = sessoes[chaveWhatsapp];
             continue;
@@ -302,6 +310,68 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp) {
 
         if (sessoes[chaveWhatsapp] === undefined && sessoes[chaveNumero] !== undefined) {
             sessoes[chaveWhatsapp] = sessoes[chaveNumero];
+        }
+
+    }
+
+}
+
+function destinoWhatsapp(valor) {
+
+    const texto = String(valor || '').trim();
+
+    if (!texto) return '';
+    if (texto.includes('@')) return texto;
+
+    const telefone = limparNumero(texto);
+
+    return telefone ? `${telefone}@c.us` : texto;
+
+}
+
+function sessaoExiste(alias) {
+
+    return alias &&
+        (
+            sessoes[alias] !== undefined ||
+            sessoes[`${alias}_iniciado`] !== undefined
+        );
+
+}
+
+function sincronizarFluxoAutomatico(destinos, mensagemAutomatica) {
+
+    if (!mensagemAutomatica?.numero) return;
+
+    const origem = mensagemAutomatica.numero;
+    const origemWid = destinoWhatsapp(origem);
+    const origemComSessao = sessaoExiste(origem) ? origem :
+        (
+            origemWid !== origem && sessaoExiste(origemWid)
+                ? origemWid
+                : ''
+        );
+
+    if (!origemComSessao) return;
+
+    for (const destino of destinos) {
+
+        sincronizarSessaoNumero(
+            destino,
+            origemComSessao,
+            true
+        );
+        liberarAtendimento(destino);
+
+        const destinoResolvido = destinoWhatsapp(origemComSessao);
+
+        if (destino !== destinoResolvido) {
+
+            registrarDestinoResolvido(
+                destino,
+                destinoResolvido
+            );
+
         }
 
     }
@@ -400,14 +470,29 @@ function registrarAtendimentoManual(message) {
 
     }
 
-    const eraAutomatica = destinos.some(destino =>
-        ehMensagemAutomatica(
+    let mensagemAutomatica = null;
+
+    for (const destino of destinos) {
+
+        mensagemAutomatica = consumirMensagemAutomatica(
             destino,
             textoEnviado
-        )
-    );
+        );
 
-    if (eraAutomatica) return;
+        if (mensagemAutomatica) break;
+
+    }
+
+    if (mensagemAutomatica) {
+
+        sincronizarFluxoAutomatico(
+            destinos,
+            mensagemAutomatica
+        );
+
+        return;
+
+    }
 
     for (const destino of destinos) {
 

@@ -986,6 +986,14 @@ async function tratarComandoAdmin({
                 assinatura.telefone
             ] :
             [termo];
+
+        aplicarFluxoForcado({
+            assinatura,
+            destino: destinos[0],
+            fluxoPedido: 'satisfacao',
+            termo
+        });
+
         const envio = await enviarTextoSeguro(
             client,
             destinos,
@@ -1058,6 +1066,14 @@ async function tratarComandoAdmin({
                 assinatura.telefone
             ] :
             [termo];
+
+        aplicarFluxoForcado({
+            assinatura,
+            destino: destinos[0],
+            fluxoPedido,
+            termo
+        });
+
         const envio = await enviarTextoSeguro(
             client,
             destinos,
@@ -1117,6 +1133,12 @@ async function tratarComandoAdmin({
             '',
             'Escolha o plano desejado na proxima mensagem.'
         ].join('\n');
+
+        colocarEmRenovacao(
+            assinatura,
+            termo
+        );
+
         const envio = await enviarTextoSeguro(
             client,
             [

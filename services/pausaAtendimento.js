@@ -365,7 +365,7 @@ async function enviarTextoNoDestino(client, sendTextOriginal, destino, texto, ar
 
 }
 
-function ehMensagemAutomatica(numero, texto) {
+function consumirMensagemAutomatica(numero, texto) {
 
     limparAntigas();
 
@@ -393,12 +393,21 @@ function ehMensagemAutomatica(numero, texto) {
 
     if (indice === -1) return false;
 
-    automaticas.splice(
+    const [item] = automaticas.splice(
         indice,
         1
     );
 
-    return true;
+    return item || null;
+
+}
+
+function ehMensagemAutomatica(numero, texto) {
+
+    return Boolean(consumirMensagemAutomatica(
+        numero,
+        texto
+    ));
 
 }
 
@@ -610,6 +619,7 @@ function instalarRegistroEnvio(client) {
 
 module.exports = {
     atendimentoPausado,
+    consumirMensagemAutomatica,
     ehMensagemAutomatica,
     instalarDebugAck,
     instalarRegistroAutomatico,
