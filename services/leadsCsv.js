@@ -254,6 +254,38 @@ function chaveLead(dados) {
 
 }
 
+function chavesContato(...valores) {
+
+    const chaves = new Set();
+
+    for (const valor of valores.flat()) {
+        const texto = String(valor || '').trim();
+        const telefone = limparTelefone(texto);
+
+        if (texto) chaves.add(texto);
+        if (telefone) chaves.add(telefone);
+    }
+
+    return chaves;
+
+}
+
+function linhaCombinaContatos(linha, contatos) {
+
+    const chaves = contatos instanceof Set ? contatos : chavesContato(contatos);
+    const linhaChaves = chavesContato(
+        linha?.telefone,
+        linha?.numero
+    );
+
+    for (const chave of linhaChaves) {
+        if (chaves.has(chave)) return true;
+    }
+
+    return false;
+
+}
+
 function registrarLead({
     numero,
     telefone,
@@ -366,6 +398,39 @@ function marcarLead(valor, status, observacao = '', arquivo = caminhoLeadsCsv())
 
 }
 
+function marcarLeadPorContatos(contatos, status, observacao = '', arquivo = caminhoLeadsCsv()) {
+
+    const chaves = chavesContato(contatos);
+    const linhas = lerLeadsCsv(arquivo);
+    const indice = linhas.findIndex(linha => linhaCombinaContatos(
+        linha,
+        chaves
+    ));
+
+    if (indice === -1) return null;
+
+    const statusAtual = String(linhas[indice].status || '')
+        .trim()
+        .toLowerCase();
+
+    if (statusAtual && statusAtual !== 'lead') return null;
+
+    linhas[indice] = {
+        ...linhas[indice],
+        status,
+        observacao: observacao || linhas[indice].observacao || '',
+        ultima_interacao: formatarData()
+    };
+
+    salvarLeadsCsv(
+        linhas,
+        arquivo
+    );
+
+    return linhas[indice];
+
+}
+
 function marcarLeadConvertido(valor, tipo = 'cliente') {
 
     return marcarLead(
@@ -436,6 +501,7 @@ module.exports = {
     lerLeadsCsv,
     marcarLead,
     marcarLeadConvertido,
+    marcarLeadPorContatos,
     marcarRemarketingEnviado,
     registrarLead,
     salvarLeadsCsv

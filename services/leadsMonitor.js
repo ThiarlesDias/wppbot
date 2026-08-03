@@ -13,6 +13,9 @@ const {
 const {
     montarWidTelefone
 } = require('./whatsappNumero');
+const {
+    atendimentoPausado
+} = require('./pausaAtendimento');
 
 const INTERVALO_MS = Number(process.env.LEADS_REMARKETING_INTERVAL_MS || 24 * 60 * 60 * 1000);
 const START_DELAY_MS = Number(process.env.LEADS_REMARKETING_START_DELAY_MS || 2 * 60 * 1000);
@@ -46,6 +49,28 @@ function possuiCliente(telefone, numero) {
     ).some(assinatura =>
         assinatura.status !== 'cancelada'
     );
+
+}
+
+function aliasesLead(lead, telefone, destino) {
+
+    return [...new Set([
+        destino,
+        lead.numero,
+        lead.telefone,
+        telefone,
+        telefone ? montarWidTelefone(telefone) : ''
+    ].filter(Boolean))];
+
+}
+
+function atendimentoPausadoLead(lead, telefone, destino) {
+
+    return aliasesLead(
+        lead,
+        telefone,
+        destino
+    ).some(alias => atendimentoPausado(alias));
 
 }
 
@@ -85,6 +110,14 @@ async function verificarLeads(client) {
 
         if (!telefone || !destino) continue;
 
+        if (atendimentoPausadoLead(
+            lead,
+            telefone,
+            destino
+        )) {
+            continue;
+        }
+
         if (possuiCliente(telefone, destino)) {
 
             marcarLead(
@@ -114,8 +147,15 @@ async function verificarLeads(client) {
                 mensagemRemarketing(lead)
             );
 
-            sessoes[destino] = 'followup_compra';
-            sessoes[`${destino}_iniciado`] = true;
+            for (const alias of aliasesLead(
+                lead,
+                telefone,
+                destino
+            )) {
+                sessoes[alias] = 'followup_compra';
+                sessoes[`${alias}_iniciado`] = true;
+            }
+
             marcarRemarketingEnviado(telefone);
             enviados += 1;
 

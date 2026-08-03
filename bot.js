@@ -62,6 +62,7 @@ const {
 } = require('./services/marketingCampanha');
 const {
     marcarLead,
+    marcarLeadPorContatos,
     registrarLead
 } = require('./services/leadsCsv');
 
@@ -535,6 +536,19 @@ function liberarAliasesAtendimento(numero, numeroWhatsapp) {
 
 }
 
+function contatosLead(numero, numeroWhatsapp) {
+
+    const telefone = limparNumero(numeroWhatsapp);
+
+    return [
+        numero,
+        numeroWhatsapp,
+        telefone,
+        telefone ? `${telefone}@c.us` : ''
+    ].filter(Boolean);
+
+}
+
 function algumAliasPausado(numero, numeroWhatsapp) {
 
     return aliasesContato(
@@ -672,6 +686,34 @@ wppconnect.create({
                 if (tratado || texto.startsWith('#')) return;
 
                 return;
+
+            }
+
+            if (texto === '8') {
+
+                const leadEncerrado = marcarLeadPorContatos(
+                    contatosLead(
+                        numero,
+                        numeroWhatsapp
+                    ),
+                    'encerrado',
+                    'Cliente pediu para encerrar atendimento/remarketing pelo WhatsApp.'
+                );
+
+                if (leadEncerrado) {
+
+                    liberarAliasesAtendimento(
+                        numero,
+                        numeroWhatsapp
+                    );
+                    sessoes[numero] = 'menu';
+
+                    return await client.sendText(
+                        numero,
+                        'Tudo bem. Atendimento encerrado e nao vou enviar novas mensagens de retomada. Quando precisar, e so chamar por aqui.'
+                    );
+
+                }
 
             }
 

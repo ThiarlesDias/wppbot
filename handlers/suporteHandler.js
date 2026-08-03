@@ -49,6 +49,7 @@ const {
 } = require('../services/testesCsv');
 const {
     marcarLead,
+    marcarLeadPorContatos,
     marcarLeadConvertido
 } = require('../services/leadsCsv');
 const {
@@ -349,7 +350,14 @@ De *1* a *5*, qual nota voce da para este atendimento?
 
     async function encerrarComPesquisa() {
 
-        marcarLead(
+        marcarLeadPorContatos(
+            [
+                numeroWhatsapp,
+                numero
+            ],
+            'encerrado',
+            'Cliente encerrou o atendimento.'
+        ) || marcarLead(
             numeroWhatsapp || numero,
             'encerrado',
             'Cliente encerrou o atendimento.'
