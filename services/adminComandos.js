@@ -37,6 +37,7 @@ const statusDiario = require('./statusDiario');
 const iniciarMonitorTestes = require('./testesMonitor');
 const {
     caminhoTestesCsv,
+    encerrarAvisosContratacaoTestes,
     lerTestesCsv
 } = require('./testesCsv');
 const {
@@ -130,6 +131,7 @@ function menuAdmin() {
         '#status postar - postar uma imagem aleatoria agora',
         '#testes - resumo da planilha de testes',
         '#testes verificar - avisar testes vencidos agora',
+        '#testes encerrar avisos - parar convites de contratacao de testes vencidos',
         '#pgsim CODIGO - confirmar pagamento informado pelo cliente',
         '#pgnao CODIGO - avisar que pagamento nao foi encontrado',
         '#vencimentos - rodar checagem de vencimentos agora',
@@ -1328,6 +1330,28 @@ async function tratarComandoAdmin({
         return await client.sendText(
             numero,
             'Reenvio de aviso de testes vencidos concluido. Veja o log para detalhes.'
+        );
+
+    }
+
+    if (
+        texto === '#testes encerrar avisos' ||
+        texto === '#testes parar avisos'
+    ) {
+
+        const resumo = encerrarAvisosContratacaoTestes();
+
+        return await client.sendText(
+            numero,
+            [
+                '*Avisos de testes encerrados*',
+                '',
+                `Arquivo: ${resumo.arquivo}`,
+                `Total na planilha: ${resumo.total}`,
+                `Encerrados agora: ${resumo.encerrados}`,
+                '',
+                'Esses contatos nao vao mais receber convite diario de contratacao do teste.'
+            ].join('\n')
         );
 
     }

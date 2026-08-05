@@ -483,6 +483,41 @@ function marcarSaidaContratacao(valor, arquivo = caminhoTestesCsv()) {
 
 }
 
+function encerrarAvisosContratacaoTestes(arquivo = caminhoTestesCsv()) {
+
+    const linhas = lerTestesCsv(arquivo);
+    const agora = formatarData(new Date());
+    const hoje = diaSaoPaulo();
+    let encerrados = 0;
+
+    for (const linha of linhas) {
+        const status = String(linha.status || '').toLowerCase();
+
+        if (!ehLinhaTesteGratis(linha)) continue;
+        if (!['ativo', 'encerrado'].includes(status)) continue;
+        if (String(linha.saiu_em || '').trim()) continue;
+
+        linha.status = 'saiu';
+        linha.saiu_em = agora;
+        linha.ultimo_aviso_contratacao = hoje;
+        encerrados += 1;
+    }
+
+    if (encerrados) {
+        salvarTestesCsv(
+            linhas,
+            arquivo
+        );
+    }
+
+    return {
+        arquivo,
+        total: linhas.length,
+        encerrados
+    };
+
+}
+
 function telefoneSaiuContratacao(valor, arquivo = caminhoTestesCsv()) {
 
     const telefone = limparTelefone(valor);
@@ -502,6 +537,7 @@ function telefoneSaiuContratacao(valor, arquivo = caminhoTestesCsv()) {
 module.exports = {
     caminhoTestesCsv,
     ehLinhaTesteGratis,
+    encerrarAvisosContratacaoTestes,
     lerTestesCsv,
     marcarAvisoContratacao,
     marcarSaidaContratacao,

@@ -90,6 +90,7 @@ async function verificarTestesEncerrados(client, opcoes = {}) {
                 marcarTesteEncerrado(teste.usuario);
                 console.log('AVISO TESTE ENCERRADO', destino, teste.usuario);
             } catch (erro) {
+                marcarTesteEncerrado(teste.usuario);
                 console.log(
                     'ERRO AVISO TESTE ENCERRADO',
                     teste.usuario,
@@ -133,6 +134,7 @@ async function verificarTestesEncerrados(client, opcoes = {}) {
             marcarAvisoContratacao(teste.usuario);
             console.log('AVISO CONTRATACAO TESTE', destino, teste.usuario);
         } catch (erro) {
+            marcarAvisoContratacao(teste.usuario);
             console.log(
                 'ERRO AVISO CONTRATACAO TESTE',
                 teste.usuario,

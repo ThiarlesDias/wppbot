@@ -13,6 +13,7 @@
     "merge:servicos": "node scripts/mergeServicosCsv.js",
     "criar:sheets": "node scripts/criarGoogleSheets.js",
     "leads:encerrar": "node scripts/encerrarLeads.js",
+    "testes:encerrar-avisos": "node scripts/encerrarAvisosTestes.js",
     "sync:google": "node scripts/syncGoogleSheets.js"
   },
   "dependencies": {
