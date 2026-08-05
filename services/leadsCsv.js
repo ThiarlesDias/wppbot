@@ -431,6 +431,44 @@ function marcarLeadPorContatos(contatos, status, observacao = '', arquivo = cami
 
 }
 
+function encerrarLeadsAtivos(observacao = 'Leads encerrados em lote.', arquivo = caminhoLeadsCsv()) {
+
+    const linhas = lerLeadsCsv(arquivo);
+    const agora = formatarData();
+    let encerrados = 0;
+
+    const atualizadas = linhas.map(linha => {
+        const statusAtual = String(linha.status || '')
+            .trim()
+            .toLowerCase();
+
+        if (statusAtual !== 'lead') return linha;
+
+        encerrados += 1;
+
+        return {
+            ...linha,
+            status: 'encerrado',
+            observacao: observacao || linha.observacao || '',
+            ultima_interacao: agora
+        };
+    });
+
+    if (encerrados) {
+        salvarLeadsCsv(
+            atualizadas,
+            arquivo
+        );
+    }
+
+    return {
+        arquivo,
+        total: linhas.length,
+        encerrados
+    };
+
+}
+
 function marcarLeadConvertido(valor, tipo = 'cliente') {
 
     return marcarLead(
@@ -497,6 +535,7 @@ module.exports = {
     caminhoLeadsCsv,
     chaveLead,
     formatarData,
+    encerrarLeadsAtivos,
     leadsParaRemarketing,
     lerLeadsCsv,
     marcarLead,

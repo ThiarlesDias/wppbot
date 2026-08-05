@@ -45,6 +45,7 @@ const {
 } = require('./pagamentosInformados');
 const {
     caminhoLeadsCsv,
+    encerrarLeadsAtivos,
     lerLeadsCsv
 } = require('./leadsCsv');
 const {
@@ -119,6 +120,7 @@ function menuAdmin() {
         '#clientes ultimos - ultimos 10 clientes da planilha',
         '#leads - resumo da planilha de leads',
         '#leads ultimos - ultimos 10 leads',
+        '#leads encerrar todos - parar remarketing e encerrar leads ativos',
         '#planilhas atualizar - sincronizar todas as planilhas agora',
         '#planilhas atualizar clientes - sincronizar uma planilha especifica',
         '#chamado enviar OS359 - enviar informacoes do chamado ao cliente',
@@ -1211,6 +1213,29 @@ async function tratarComandoAdmin({
     if (texto === '#leads ultimos') {
 
         return await client.sendText(numero, ultimosLeads());
+
+    }
+
+    if (
+        texto === '#leads encerrar todos' ||
+        texto === '#leads parar' ||
+        texto === '#remarketing parar'
+    ) {
+
+        const resumo = encerrarLeadsAtivos('Encerrado pelo admin para parar remarketing.');
+
+        return await client.sendText(
+            numero,
+            [
+                '*Leads encerrados*',
+                '',
+                `Arquivo: ${resumo.arquivo}`,
+                `Total na planilha: ${resumo.total}`,
+                `Encerrados agora: ${resumo.encerrados}`,
+                '',
+                'O remarketing diario nao vai mais enviar para esses leads.'
+            ].join('\n')
+        );
 
     }
 
