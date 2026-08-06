@@ -437,6 +437,7 @@ function idsAtendimentoSaida(message) {
 
 function registrarAtendimentoManual(message) {
 
+    if (process.env.WHATSAPP_MANUAL_PAUSE_ENABLED === '0') return;
     if (!message?.fromMe) return;
     if (ehContatoIgnorado(message)) return;
 
@@ -582,13 +583,21 @@ wppconnect.create({
 
     instalarRegistroEnvio(client);
 
-    iniciarMonitorPagamentos(client);
-    iniciarMonitorClientesCsv();
-    iniciarMonitorVencimentos(client);
-    iniciarMonitorSigma(client);
-    iniciarStatusDiario(client);
-    iniciarMonitorTestes(client);
-    iniciarMonitorLeads(client);
+    if (process.env.BOT_RECOVERY_MODE === '1') {
+
+        console.log('MODO RECUPERACAO ATIVO: monitores automaticos desativados.');
+
+    } else {
+
+        iniciarMonitorPagamentos(client);
+        iniciarMonitorClientesCsv();
+        iniciarMonitorVencimentos(client);
+        iniciarMonitorSigma(client);
+        iniciarStatusDiario(client);
+        iniciarMonitorTestes(client);
+        iniciarMonitorLeads(client);
+
+    }
 
     client.onAnyMessage((message) => {
 

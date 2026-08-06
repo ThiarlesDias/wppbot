@@ -459,6 +459,11 @@ function atendimentoPausado(numero) {
 
 function instalarRegistroAutomatico(client) {
 
+    if (process.env.WHATSAPP_WRAP_SEND === '0') {
+        console.log('ENVIO WHATSAPP: wrapper desativado por WHATSAPP_WRAP_SEND=0.');
+        return;
+    }
+
     if (client.__registroAutomaticoInstalado) return;
 
     const sendTextOriginal = client.sendText.bind(client);
