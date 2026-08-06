@@ -14,6 +14,7 @@
     "criar:sheets": "node scripts/criarGoogleSheets.js",
     "leads:encerrar": "node scripts/encerrarLeads.js",
     "testes:encerrar-avisos": "node scripts/encerrarAvisosTestes.js",
+    "diagnostico:runtime": "node scripts/diagnosticoRuntime.js",
     "sync:google": "node scripts/syncGoogleSheets.js"
   },
   "dependencies": {

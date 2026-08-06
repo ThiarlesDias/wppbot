@@ -68,6 +68,14 @@ const {
 
 console.log('INICIANDO BOT...');
 
+const DEBUG_FLUXO = process.env.BOT_FLOW_DEBUG === '1';
+
+function logFluxo(...args) {
+
+    if (DEBUG_FLUXO) console.log('FLUXO BOT', ...args);
+
+}
+
 function limparNumero(numero) {
 
     return String(numero || '').replace(/\D/g, '');
@@ -658,7 +666,17 @@ wppconnect.create({
             );
             const texto = obterTextoMensagem(message);
 
-            if (!texto) return;
+            if (!texto) {
+                logFluxo('sem texto utilizavel', numero);
+                return;
+            }
+
+            logFluxo(
+                'texto recebido',
+                numero,
+                numeroWhatsapp || '',
+                texto
+            );
 
             cancelarFollowUp(numero);
             cancelarRetomadaMenu(numero);
@@ -684,6 +702,8 @@ wppconnect.create({
             );
 
             if (admin) {
+
+                logFluxo('admin detectado', numero, numeroWhatsapp || '');
 
                 const tratado = await tratarComandoAdmin({
                     client,
@@ -779,7 +799,10 @@ wppconnect.create({
             if (algumAliasPausado(
                 numero,
                 numeroWhatsapp
-            )) return;
+            )) {
+                logFluxo('atendimento pausado', numero, numeroWhatsapp || '');
+                return;
+            }
 
             if (
                 ['1', '2'].includes(texto) &&
@@ -835,6 +858,8 @@ wppconnect.create({
                     numero
                 );
 
+                logFluxo('menu inicial enviado', numero);
+
                 return;
 
             }
@@ -846,6 +871,8 @@ wppconnect.create({
             }
 
             const etapa = sessoes[numero];
+
+            logFluxo('etapa', numero, etapa);
 
             atualizarInteracao(
                 numero

@@ -12,6 +12,8 @@ const JANELA_AUTOMATICA_MS = Number(process.env.ATENDIMENTO_AUTO_MATCH_MS || 150
 const USAR_DESTINO_RESOLVIDO = process.env.WHATSAPP_SEND_RESOLVED === '1';
 const DEBUG_ENVIO = process.env.WHATSAPP_SEND_DEBUG === '1';
 const USAR_ENVIO_DIRETO = process.env.WHATSAPP_DIRECT_SEND === '1';
+const USAR_FALLBACK_DIRETO = process.env.WHATSAPP_DIRECT_FALLBACK !== '0';
+const AGUARDAR_ACK = process.env.WHATSAPP_WAIT_FOR_ACK === '1';
 const TIMEOUT_ENVIO_MS = Number(process.env.WHATSAPP_SEND_TIMEOUT_MS || 12000);
 
 function garantirDiretorio() {
@@ -252,6 +254,18 @@ function prepararOpcoesEnvio(args) {
 
 }
 
+function prepararArgsOriginal(args) {
+
+    const opcoes = prepararOpcoesEnvio(args) || {};
+
+    if (!AGUARDAR_ACK) {
+        opcoes.waitForAck = false;
+    }
+
+    return [opcoes];
+
+}
+
 async function enviarViaWppDireto(client, destino, texto, args) {
 
     if (!client?.page?.evaluate) {
@@ -308,10 +322,34 @@ async function enviarViaOriginal(sendTextOriginal, destino, texto, args) {
         sendTextOriginal(
             destino,
             texto,
-            ...args
+            ...prepararArgsOriginal(args)
         ),
         destino
     );
+
+}
+
+async function enviarDiretoComLog(client, destino, texto, args) {
+
+    const resultado = await enviarViaWppDireto(
+        client,
+        destino,
+        texto,
+        args
+    );
+
+    if (DEBUG_ENVIO) {
+
+        console.log(
+            'ENVIO WHATSAPP DIRETO OK',
+            destino,
+            resultado?.id || '',
+            resumirTexto(texto)
+        );
+
+    }
+
+    return resultado;
 
 }
 
@@ -321,25 +359,12 @@ async function enviarTextoNoDestino(client, sendTextOriginal, destino, texto, ar
 
         try {
 
-            const resultado = await enviarViaWppDireto(
+            return await enviarDiretoComLog(
                 client,
                 destino,
                 texto,
                 args
             );
-
-            if (DEBUG_ENVIO) {
-
-                console.log(
-                    'ENVIO WHATSAPP DIRETO OK',
-                    destino,
-                    resultado?.id || '',
-                    resumirTexto(texto)
-                );
-
-            }
-
-            return resultado;
 
         } catch (erro) {
 
@@ -356,12 +381,63 @@ async function enviarTextoNoDestino(client, sendTextOriginal, destino, texto, ar
 
     }
 
-    return await enviarViaOriginal(
-        sendTextOriginal,
-        destino,
-        texto,
-        args
-    );
+    try {
+
+        const resultado = await enviarViaOriginal(
+            sendTextOriginal,
+            destino,
+            texto,
+            args
+        );
+
+        if (DEBUG_ENVIO) {
+
+            console.log(
+                'ENVIO WHATSAPP ORIGINAL OK',
+                destino,
+                resumirTexto(texto)
+            );
+
+        }
+
+        return resultado;
+
+    } catch (erroOriginal) {
+
+        if (USAR_FALLBACK_DIRETO) {
+
+            console.log(
+                'ENVIO WHATSAPP ORIGINAL FALHOU; tentando direto',
+                destino,
+                erroOriginal.message || erroOriginal,
+                resumirTexto(texto)
+            );
+
+            try {
+
+                return await enviarDiretoComLog(
+                    client,
+                    destino,
+                    texto,
+                    args
+                );
+
+            } catch (erroDireto) {
+
+                console.log(
+                    'ERRO ENVIO WHATSAPP DIRETO FALLBACK',
+                    destino,
+                    erroDireto.message || erroDireto,
+                    resumirTexto(texto)
+                );
+
+            }
+
+        }
+
+        throw erroOriginal;
+
+    }
 
 }
 
