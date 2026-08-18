@@ -805,7 +805,7 @@ wppconnect.create({
             }
 
             if (
-                ['1', '2'].includes(texto) &&
+                ['1', '2', '3'].includes(texto) &&
                 !['vencimento_aviso', 'renovacao', 'cancelamento_feedback', 'cancelamento_repescagem'].includes(sessoes[numero])
             ) {
 

@@ -1904,7 +1904,15 @@ ou
 
             return await client.sendText(
                 numero,
-                'Recebi seu aviso de pagamento. Nossa equipe vai conferir e, assim que confirmar, voce recebe a confirmacao por aqui.'
+                [
+                    'Obrigado por confirmar.',
+                    '',
+                    'Registramos sua informacao de pagamento e vamos validar internamente.',
+                    '',
+                    'Enquanto fazemos essa conferencia, nao vamos enviar novas mensagens automaticas sobre este vencimento.',
+                    '',
+                    'Se estiver tudo certo, nossa equipe confirma por aqui. Se precisarmos de alguma informacao, chamamos voce neste atendimento.'
+                ].join('\n')
             );
 
         }
