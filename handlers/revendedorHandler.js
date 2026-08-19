@@ -9,8 +9,12 @@ const {
     consumirCreditoRevendedor,
     listarChamadosAbertosRevendedor,
     listarClientesRevendedor,
+    obterCreditosRevendedor,
     registrarChamadoRevendedor
 } = require('../services/revendedoresCsv');
+const {
+    criarTesteRevendedor
+} = require('../services/revendedoresTestes');
 
 function limparNumero(valor) {
 
@@ -215,12 +219,9 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
         );
     }
 
-    const credito = consumirCreditoRevendedor(
-        revendedor,
-        1
-    );
+    const creditosAtuais = obterCreditosRevendedor(revendedor);
 
-    if (!credito.ok) {
+    if (creditosAtuais < 1) {
 
         await notificar(
             client,
@@ -228,7 +229,7 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
             [
                 `Revendedor: ${nomeRevendedor(revendedor)}`,
                 `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
-                `Creditos atuais: ${credito.creditos || 0}`,
+                `Creditos atuais: ${creditosAtuais}`,
                 '',
                 `Tentou criar teste ${tipo} para ${dados.nome} (${dados.telefone}).`
             ].join('\n')
@@ -247,17 +248,84 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
 
     }
 
+    let teste;
+
+    try {
+        teste = await criarTesteRevendedor({
+            nome: dados.nome,
+            telefone: dados.telefone,
+            tipo
+        });
+    } catch (erro) {
+
+        await notificar(
+            client,
+            'ERRO TESTE REVENDEDOR',
+            [
+                `Revendedor: ${nomeRevendedor(revendedor)}`,
+                `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                '',
+                `Cliente: ${dados.nome}`,
+                `WhatsApp cliente: ${dados.telefone}`,
+                `Tipo: ${tipo}`,
+                '',
+                `Erro: ${erro.message}`
+            ].join('\n')
+        );
+
+        return await client.sendText(
+            numero,
+            [
+                'Nao consegui criar o teste automaticamente agora.',
+                '',
+                'A TOPTEC foi avisada para verificar o link de criacao. Nenhum credito foi consumido.'
+            ].join('\n')
+        );
+
+    }
+
+    const credito = consumirCreditoRevendedor(
+        revendedor,
+        1
+    );
+
+    if (!credito.ok) {
+        await notificar(
+            client,
+            'CREDITO NAO DESCONTADO - REVENDEDOR',
+            [
+                `Revendedor: ${nomeRevendedor(revendedor)}`,
+                `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                '',
+                `Cliente: ${dados.nome}`,
+                `WhatsApp cliente: ${dados.telefone}`,
+                teste.usuario ? `Usuario teste: ${teste.usuario}` : '',
+                '',
+                `Motivo: ${credito.motivo || 'falha desconhecida'}`
+            ].filter(Boolean).join('\n')
+        );
+
+        return await client.sendText(
+            numero,
+            [
+                'O teste foi criado, mas nao consegui descontar o credito automaticamente.',
+                '',
+                'A TOPTEC foi avisada para ajustar seu saldo.'
+            ].join('\n')
+        );
+    }
+
     const chamado = registrarChamadoRevendedor({
         revendedor,
         clienteNome: dados.nome,
-        usuario: '',
-        descricao: `Criar teste ${tipo} para ${dados.nome} (${dados.telefone})`,
-        observacao: 'Solicitacao criada pelo fluxo de revendedor'
+        usuario: teste.usuario || '',
+        descricao: `Teste ${tipo} criado para ${dados.nome} (${dados.telefone})`,
+        observacao: 'Teste criado automaticamente pelo fluxo de revendedor'
     });
 
     await notificar(
         client,
-        'SOLICITACAO DE TESTE - REVENDEDOR',
+        'TESTE CRIADO - REVENDEDOR',
         [
             `Codigo: ${chamado.codigo}`,
             `Revendedor: ${nomeRevendedor(revendedor)}`,
@@ -266,10 +334,11 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
             `Cliente: ${dados.nome}`,
             `WhatsApp cliente: ${dados.telefone}`,
             `Tipo: ${tipo}`,
+            teste.usuario ? `Usuario teste: ${teste.usuario}` : '',
             `Creditos restantes: ${credito.creditos}`,
             '',
-            'Criar teste no painel e retornar ao revendedor.'
-        ].join('\n')
+            'Teste criado automaticamente pelo link da revenda.'
+        ].filter(Boolean).join('\n')
     );
 
     delete sessoes[chave(numero, 'rev_teste_dados')];
@@ -279,10 +348,10 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
     return await client.sendText(
         numero,
         [
-            `Solicitacao de teste enviada para a TOPTEC. Codigo: ${chamado.codigo}`,
+            'Teste criado com sucesso.',
             `Credito consumido. Restam: ${credito.creditos}`,
             '',
-            'Como o painel fica com a TOPTEC, nossa equipe vai criar o teste e retornar por aqui.'
+            teste.mensagem || 'Dados do teste criados, mas o painel nao retornou uma mensagem pronta.'
         ].join('\n')
     );
 

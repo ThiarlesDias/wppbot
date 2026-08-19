@@ -379,6 +379,39 @@ function parseAddRevenda(texto) {
 
 }
 
+function mensagemBoasVindasRevenda(revenda) {
+
+    return [
+        `Bem-vindo(a), ${revenda.nome}!`,
+        '',
+        'Seu cadastro de revendedor TOPTEC foi ativado.',
+        '',
+        `WhatsApp cadastrado: ${revenda.telefone}`,
+        `Creditos disponiveis: ${revenda.creditos || '0'}`,
+        `Data de fechamento: ${revenda.data_fechamento || 'Nao informada'}`,
+        '',
+        'Como usar o bot de revenda:',
+        '',
+        '1 - Criar teste',
+        'Escolha com adultos ou sem adultos, informe nome e WhatsApp do cliente e o bot cria o teste usando 1 credito.',
+        '',
+        '2 - Renovar cliente',
+        'Liste seus clientes ou informe o usuario do sistema para solicitar renovacao.',
+        '',
+        '3 - Listar clientes',
+        'Mostra somente os clientes vinculados a sua revenda.',
+        '',
+        '4 - Chamados',
+        'Consulte chamados abertos ou abra um chamado para a TOPTEC.',
+        '',
+        '5 - Falar com a TOPTEC',
+        'Encaminha seu atendimento para nossa equipe.',
+        '',
+        'Para abrir o menu, envie qualquer mensagem por aqui.'
+    ].join('\n');
+
+}
+
 async function atualizarRevendedoresGoogle() {
 
     const linhas = lerRevendedoresCsv();
@@ -945,6 +978,22 @@ async function tratarComandoAdmin({
             syncGoogle = `CSV local atualizado. Google Sheets nao atualizado: ${erro.message}`;
         }
 
+        let boasVindas = 'Boas-vindas nao enviadas.';
+
+        try {
+            const envio = await enviarTextoSeguro(
+                client,
+                [
+                    `${revenda.telefone}@c.us`,
+                    revenda.telefone
+                ],
+                mensagemBoasVindasRevenda(revenda)
+            );
+            boasVindas = `Boas-vindas enviada para ${envio.destino}.`;
+        } catch (erro) {
+            boasVindas = `Nao consegui enviar boas-vindas: ${erro.message}`;
+        }
+
         return await client.sendText(
             numero,
             [
@@ -955,7 +1004,8 @@ async function tratarComandoAdmin({
                 `Creditos: ${revenda.creditos}`,
                 `Fechamento: ${revenda.data_fechamento}`,
                 '',
-                syncGoogle
+                syncGoogle,
+                boasVindas
             ].join('\n')
         );
 
