@@ -22,6 +22,29 @@ function limparNumero(valor) {
 
 }
 
+function normalizarTelefoneBrasil(valor) {
+
+    const limpo = limparNumero(valor);
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        return `55${limpo}`;
+    }
+
+    return limpo;
+
+}
+
+function telefoneValido(valor) {
+
+    const limpo = limparNumero(valor);
+
+    return [10, 11, 12, 13].includes(limpo.length);
+
+}
+
 function chave(numero, sufixo) {
 
     return `${numero}_${sufixo}`;
@@ -69,8 +92,8 @@ function resumoClientes(clientes) {
 function extrairNomeTelefone(texto) {
 
     const original = String(texto || '').trim();
-    const matchTelefone = original.match(/(?:\+?55)?\D*(\d[\d\s().-]{9,}\d)/);
-    const telefone = limparNumero(matchTelefone?.[0]);
+    const matchTelefone = original.match(/(?:\+?55)?[\s().-]*(\d[\d\s().-]{8,}\d)/);
+    const telefone = normalizarTelefoneBrasil(matchTelefone?.[0]);
     const nome = telefone ?
         original.replace(matchTelefone[0], '').trim().replace(/\s+/g, ' ') :
         original.trim();
@@ -79,6 +102,57 @@ function extrairNomeTelefone(texto) {
         nome,
         telefone
     };
+
+}
+
+async function pedirNomeTeste(client, numero) {
+
+    return await client.sendText(
+        numero,
+        [
+            'Informe o *nome do cliente* para o teste.',
+            '',
+            'Exemplo: Joao',
+            '',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function pedirTelefoneTeste(client, numero) {
+
+    return await client.sendText(
+        numero,
+        [
+            'Agora informe o *WhatsApp do cliente* com DDD.',
+            '',
+            'Pode enviar com ou sem 55.',
+            'Exemplos:',
+            '42988682052',
+            '5542988682052',
+            '',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function confirmarDadosTeste(client, numero, dados) {
+
+    return await client.sendText(
+        numero,
+        [
+            '*Confirmar solicitacao de teste?*',
+            '',
+            `Cliente: ${dados.nome}`,
+            `WhatsApp: ${dados.telefone}`,
+            `Tipo: ${sessoes[chave(numero, 'rev_teste_tipo')]}`,
+            '',
+            '1 - Confirmar',
+            '0 - Voltar'
+        ].join('\n')
+    );
 
 }
 
@@ -516,23 +590,17 @@ module.exports = async function revendedorHandler(
         sessoes[chave(numero, 'rev_teste_tipo')] = texto === '1' ?
             'com adultos' :
             'sem adultos';
-        sessoes[numero] = 'revendedor_teste_dados';
+        delete sessoes[chave(numero, 'rev_teste_dados')];
+        sessoes[numero] = 'revendedor_teste_nome';
 
-        return await client.sendText(
-            numero,
-            [
-                'Informe o *nome* e o *WhatsApp* do cliente para o teste.',
-                '',
-                'Exemplo:',
-                'Joao 5543999999999',
-                '',
-                '0 - Voltar'
-            ].join('\n')
+        return await pedirNomeTeste(
+            client,
+            numero
         );
 
     }
 
-    if (etapa === 'revendedor_teste_dados') {
+    if (etapa === 'revendedor_teste_nome' || etapa === 'revendedor_teste_dados') {
 
         if (texto === '0') {
             sessoes[numero] = 'revendedor_teste';
@@ -542,30 +610,87 @@ module.exports = async function revendedorHandler(
             );
         }
 
-        const dados = extrairNomeTelefone(texto);
+        const dadosCompletos = extrairNomeTelefone(texto);
 
-        if (!dados.nome || dados.telefone.length < 10) {
-            return await client.sendText(
+        if (
+            dadosCompletos.nome &&
+            telefoneValido(dadosCompletos.telefone)
+        ) {
+            sessoes[chave(numero, 'rev_teste_dados')] = dadosCompletos;
+            sessoes[numero] = 'revendedor_teste_confirmar';
+
+            return await confirmarDadosTeste(
+                client,
                 numero,
-                'Nao consegui identificar nome e WhatsApp. Envie assim: Joao 5543999999999'
+                dadosCompletos
             );
         }
 
-        sessoes[chave(numero, 'rev_teste_dados')] = dados;
+        const nome = String(texto || '').trim();
+
+        if (!nome || nome.length < 2 || /^\d+$/.test(nome)) {
+            return await client.sendText(
+                numero,
+                'Informe apenas o nome do cliente. Exemplo: Joao'
+            );
+        }
+
+        sessoes[chave(numero, 'rev_teste_dados')] = {
+            nome
+        };
+        sessoes[numero] = 'revendedor_teste_telefone';
+
+        return await pedirTelefoneTeste(
+            client,
+            numero
+        );
+
+    }
+
+    if (etapa === 'revendedor_teste_telefone') {
+
+        if (texto === '0') {
+            sessoes[numero] = 'revendedor_teste_nome';
+            return await pedirNomeTeste(
+                client,
+                numero
+            );
+        }
+
+        const dados = sessoes[chave(numero, 'rev_teste_dados')];
+
+        if (!dados?.nome) {
+            sessoes[numero] = 'revendedor_teste_nome';
+            return await pedirNomeTeste(
+                client,
+                numero
+            );
+        }
+
+        if (!telefoneValido(texto)) {
+            return await client.sendText(
+                numero,
+                [
+                    'Nao consegui identificar o WhatsApp.',
+                    '',
+                    'Envie com DDD, com ou sem 55.',
+                    'Exemplo: 42988682052'
+                ].join('\n')
+            );
+        }
+
+        const completos = {
+            ...dados,
+            telefone: normalizarTelefoneBrasil(texto)
+        };
+
+        sessoes[chave(numero, 'rev_teste_dados')] = completos;
         sessoes[numero] = 'revendedor_teste_confirmar';
 
-        return await client.sendText(
+        return await confirmarDadosTeste(
+            client,
             numero,
-            [
-                '*Confirmar solicitacao de teste?*',
-                '',
-                `Cliente: ${dados.nome}`,
-                `WhatsApp: ${dados.telefone}`,
-                `Tipo: ${sessoes[chave(numero, 'rev_teste_tipo')]}`,
-                '',
-                '1 - Confirmar',
-                '0 - Voltar'
-            ].join('\n')
+            completos
         );
 
     }
