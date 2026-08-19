@@ -46,9 +46,146 @@ function urlPorTipo(tipo) {
 
 }
 
+function textoComDadosAcesso(texto) {
+
+    const valor = String(texto || '').trim();
+
+    if (!valor) return '';
+
+    return /usuario|usu[aá]rio|senha|m3u|xciptv|smarters|get\.php|dns/i.test(valor) ?
+        valor :
+        '';
+
+}
+
+function primeiroValor(objeto, campos) {
+
+    for (const campo of campos) {
+        const valor = objeto?.[campo];
+
+        if (valor !== undefined && valor !== null && String(valor).trim()) {
+            return String(valor).trim();
+        }
+    }
+
+    return '';
+
+}
+
+function extrairPayloadTeste(dados, visitados = new Set()) {
+
+    if (!dados) return null;
+
+    if (typeof dados === 'string') {
+        const template = textoComDadosAcesso(dados);
+
+        return template ? { template } : null;
+    }
+
+    if (typeof dados !== 'object') return null;
+
+    if (visitados.has(dados)) return null;
+    visitados.add(dados);
+
+    if (Array.isArray(dados)) {
+        for (const item of dados) {
+            const payload = extrairPayloadTeste(
+                item,
+                visitados
+            );
+
+            if (payload) return payload;
+        }
+
+        return null;
+    }
+
+    const template = textoComDadosAcesso(
+        dados.template ||
+        dados.message ||
+        dados.mensagem ||
+        dados.text ||
+        dados.body
+    );
+    const usuario = primeiroValor(
+        dados,
+        [
+            'username',
+            'usuario',
+            'user',
+            'login',
+            'name'
+        ]
+    );
+    const senha = primeiroValor(
+        dados,
+        [
+            'password',
+            'senha',
+            'pass'
+        ]
+    );
+
+    if (template || (usuario && senha)) {
+        return {
+            ...dados,
+            ...(template ? { template } : {}),
+            username: usuario || dados.username,
+            password: senha || dados.password
+        };
+    }
+
+    const chavesPrioritarias = [
+        'data',
+        'result',
+        'resultado',
+        'teste',
+        'trial',
+        'customer',
+        'cliente',
+        'playlist',
+        'account',
+        'credentials',
+        'response'
+    ];
+
+    for (const chave of chavesPrioritarias) {
+        const payload = extrairPayloadTeste(
+            dados[chave],
+            visitados
+        );
+
+        if (payload) return payload;
+    }
+
+    for (const valor of Object.values(dados)) {
+        const payload = extrairPayloadTeste(
+            valor,
+            visitados
+        );
+
+        if (payload) return payload;
+    }
+
+    return null;
+
+}
+
+function resumirResposta(dados) {
+
+    if (typeof dados === 'string') return dados.slice(0, 500);
+
+    try {
+        return JSON.stringify(dados).slice(0, 500);
+    } catch (_) {
+        return String(dados || '').slice(0, 500);
+    }
+
+}
+
 function montarMensagemTeste(dados) {
 
-    const payload = dados?.data || dados || {};
+    const payload = extrairPayloadTeste(dados) || dados?.data || dados || {};
     const usuario = payload.username || payload.usuario || payload.user || '';
     const senha = payload.password || payload.senha || payload.pass || '';
     const dns = String(payload.dns || payload.server || payload.host || '').replace(/\/$/, '');
@@ -143,12 +280,21 @@ async function criarTesteRevendedor({
         );
     }
 
-    const payload = dados?.data || dados || {};
+    const payload = extrairPayloadTeste(dados);
+
+    if (!payload) {
+        throw new Error(
+            `Chatbot revenda nao retornou dados do teste. Resposta: ${resumirResposta(dados)}`
+        );
+    }
+
     const mensagem = montarMensagemTeste(payload);
     const usuario = payload.username || payload.usuario || payload.user || '';
 
     if (!mensagem && !usuario) {
-        throw new Error('Chatbot revenda nao retornou dados do teste.');
+        throw new Error(
+            `Chatbot revenda nao retornou usuario/senha. Resposta: ${resumirResposta(dados)}`
+        );
     }
 
     return {

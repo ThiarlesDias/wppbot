@@ -344,6 +344,11 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
         });
     } catch (erro) {
 
+        console.error(
+            'ERRO TESTE REVENDEDOR',
+            erro.message
+        );
+
         await notificar(
             client,
             'ERRO TESTE REVENDEDOR',
