@@ -11,6 +11,7 @@
     "merge:testes": "node scripts/mergeTestesCsv.js",
     "merge:leads": "node scripts/mergeLeadsCsv.js",
     "merge:servicos": "node scripts/mergeServicosCsv.js",
+    "merge:revendedores": "node scripts/mergeRevendedoresCsv.js",
     "criar:sheets": "node scripts/criarGoogleSheets.js",
     "leads:encerrar": "node scripts/encerrarLeads.js",
     "testes:encerrar-avisos": "node scripts/encerrarAvisosTestes.js",
