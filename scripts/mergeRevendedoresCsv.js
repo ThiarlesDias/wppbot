@@ -60,12 +60,24 @@ function limparNumero(valor) {
 function normalizarTelefoneBrasil(valor) {
 
     const limpo = limparNumero(valor);
+    let local = limpo;
 
     if (
-        (limpo.length === 10 || limpo.length === 11) &&
-        !limpo.startsWith('55')
+        limpo.startsWith('55') &&
+        (limpo.length === 12 || limpo.length === 13)
     ) {
-        return `55${limpo}`;
+        local = limpo.slice(2);
+    }
+
+    if (local.length === 11 && local[2] === '9') {
+        local = `${local.slice(0, 2)}${local.slice(3)}`;
+    }
+
+    if (
+        (local.length === 10 || local.length === 11) &&
+        !local.startsWith('55')
+    ) {
+        return `55${local}`;
     }
 
     return limpo;

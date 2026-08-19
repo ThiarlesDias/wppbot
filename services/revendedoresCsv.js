@@ -219,6 +219,7 @@ function limparNumero(numero) {
 function variantesTelefone(numero) {
 
     const limpo = limparNumero(numero);
+    const locais = new Set();
     const variantes = new Set();
 
     if (!limpo) return variantes;
@@ -237,6 +238,31 @@ function variantesTelefone(numero) {
         (limpo.length === 12 || limpo.length === 13)
     ) {
         variantes.add(limpo.slice(2));
+        locais.add(limpo.slice(2));
+    }
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        locais.add(limpo);
+    }
+
+    for (const local of Array.from(locais)) {
+
+        if (local.length === 10) {
+            locais.add(`${local.slice(0, 2)}9${local.slice(2)}`);
+        }
+
+        if (local.length === 11 && local[2] === '9') {
+            locais.add(`${local.slice(0, 2)}${local.slice(3)}`);
+        }
+
+    }
+
+    for (const local of locais) {
+        variantes.add(local);
+        variantes.add(`55${local}`);
     }
 
     return variantes;
