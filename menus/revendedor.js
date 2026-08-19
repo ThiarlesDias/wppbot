@@ -1,17 +1,24 @@
 const {
     enviarMenu
 } = require('../services/menuInterativo');
+const {
+    obterCreditosRevendedor
+} = require('../services/revendedoresCsv');
 
 async function menuRevendedor(client, numero, revendedor = {}) {
+
+    const detalhes = [
+        revendedor.nome ? `Ola, ${revendedor.nome}.` : 'Ola.',
+        `Creditos disponiveis: ${obterCreditosRevendedor(revendedor)}`,
+        revendedor.data_fechamento ? `Fechamento: ${revendedor.data_fechamento}` : ''
+    ].filter(Boolean).join('\n');
 
     return await enviarMenu(
         client,
         numero,
         {
             titulo: 'Bem vindo revendedor',
-            descricao: revendedor.nome ?
-                `Ola, ${revendedor.nome}. O que voce precisa fazer agora?` :
-                'O que voce precisa fazer agora?',
+            descricao: `${detalhes}\n\nO que voce precisa fazer agora?`,
             opcoes: [
                 {
                     id: '1',

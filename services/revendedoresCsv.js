@@ -6,7 +6,10 @@ const REVENDEDORES_HEADERS = [
     'telefone',
     'nome',
     'status',
-    'observacao'
+    'observacao',
+    'creditos',
+    'data_fechamento',
+    'aviso_fechamento'
 ];
 const CLIENTES_HEADERS = [
     'revendedor_telefone',
@@ -234,6 +237,157 @@ function lerRevendedoresCsv(arquivo = caminhoRevendedoresCsv()) {
 
 }
 
+function salvarRevendedoresCsv(linhas, arquivo = caminhoRevendedoresCsv()) {
+
+    salvarCsv(
+        arquivo,
+        REVENDEDORES_HEADERS,
+        linhas
+    );
+
+}
+
+function limparRevendedor(revendedor) {
+
+    return {
+        telefone: limparNumero(revendedor?.telefone),
+        nome: String(revendedor?.nome || '').trim(),
+        status: String(revendedor?.status || 'ativo').trim() || 'ativo',
+        observacao: String(revendedor?.observacao || '').trim(),
+        creditos: String(revendedor?.creditos ?? '').trim(),
+        data_fechamento: String(revendedor?.data_fechamento || '').trim(),
+        aviso_fechamento: String(revendedor?.aviso_fechamento || '').trim()
+    };
+
+}
+
+function adicionarOuAtualizarRevendedor({
+    nome,
+    telefone,
+    creditos,
+    dataFechamento,
+    status = 'ativo',
+    observacao
+}) {
+
+    const telefoneLimpo = limparNumero(telefone);
+
+    if (!telefoneLimpo) {
+        throw new Error('WhatsApp do revendedor nao informado.');
+    }
+
+    const linhas = lerRevendedoresCsv();
+    const indice = linhas.findIndex(item =>
+        limparNumero(item.telefone) === telefoneLimpo
+    );
+    const linha = limparRevendedor({
+        ...(indice >= 0 ? linhas[indice] : {}),
+        nome,
+        telefone: telefoneLimpo,
+        creditos,
+        data_fechamento: dataFechamento,
+        status,
+        ...(observacao !== undefined ? { observacao } : {})
+    });
+
+    if (indice >= 0) {
+        linhas[indice] = linha;
+    } else {
+        linhas.push(linha);
+    }
+
+    linhas.sort((a, b) =>
+        String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR') ||
+        String(a.telefone || '').localeCompare(String(b.telefone || ''), 'pt-BR')
+    );
+
+    salvarRevendedoresCsv(linhas);
+
+    return linha;
+
+}
+
+function obterCreditosRevendedor(revendedor) {
+
+    const creditos = Number(String(revendedor?.creditos ?? '').replace(',', '.'));
+
+    if (!Number.isFinite(creditos)) return 0;
+
+    return Math.max(
+        0,
+        Math.floor(creditos)
+    );
+
+}
+
+function consumirCreditoRevendedor(revendedor, quantidade = 1) {
+
+    const telefone = limparNumero(revendedor?.telefone);
+    const linhas = lerRevendedoresCsv();
+    const indice = linhas.findIndex(item =>
+        limparNumero(item.telefone) === telefone
+    );
+
+    if (indice < 0) {
+        return {
+            ok: false,
+            motivo: 'revendedor_nao_encontrado',
+            creditos: 0
+        };
+    }
+
+    const atuais = obterCreditosRevendedor(linhas[indice]);
+    const desconto = Math.max(
+        1,
+        Math.floor(Number(quantidade) || 1)
+    );
+
+    if (atuais < desconto) {
+        return {
+            ok: false,
+            motivo: 'sem_creditos',
+            creditos: atuais
+        };
+    }
+
+    const restantes = atuais - desconto;
+
+    linhas[indice] = {
+        ...linhas[indice],
+        creditos: String(restantes)
+    };
+
+    salvarRevendedoresCsv(linhas);
+
+    return {
+        ok: true,
+        creditos: restantes,
+        antes: atuais
+    };
+
+}
+
+function marcarAvisoFechamentoRevendedor(revendedorAlvo) {
+
+    const telefone = limparNumero(revendedorAlvo?.telefone);
+    const linhas = lerRevendedoresCsv();
+    const indice = linhas.findIndex(revendedor =>
+        limparNumero(revendedor.telefone) === telefone
+    );
+
+    if (indice < 0) return false;
+
+    linhas[indice] = {
+        ...linhas[indice],
+        aviso_fechamento: revendedorAlvo.data_fechamento || ''
+    };
+
+    salvarRevendedoresCsv(linhas);
+
+    return true;
+
+}
+
 function lerRevendedoresClientesCsv(arquivo = caminhoRevendedoresClientesCsv()) {
 
     return lerCsv(
@@ -438,17 +592,22 @@ function listarChamadosAbertosRevendedor(revendedor) {
 }
 
 module.exports = {
+    REVENDEDORES_HEADERS,
+    adicionarOuAtualizarRevendedor,
     buscarClienteRevendedorPorUsuario,
     buscarRevendedorPorNumero,
     caminhoRevendedoresChamadosCsv,
     caminhoRevendedoresClientesCsv,
     caminhoRevendedoresCsv,
+    consumirCreditoRevendedor,
     formatarData,
     lerRevendedoresChamadosCsv,
     lerRevendedoresClientesCsv,
     lerRevendedoresCsv,
     listarChamadosAbertosRevendedor,
     listarClientesRevendedor,
+    marcarAvisoFechamentoRevendedor,
     marcarAvisoVencimentoRevendedorCliente,
+    obterCreditosRevendedor,
     registrarChamadoRevendedor
 };

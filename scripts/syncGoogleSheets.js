@@ -59,7 +59,7 @@ const DEFINICOES = [
         estado: '',
         merge: '',
         chaves: ['telefone'],
-        cabecalho: 'telefone;nome;status;observacao'
+        cabecalho: 'telefone;nome;status;observacao;creditos;data_fechamento;aviso_fechamento'
     },
     {
         chave: 'revendedores_clientes',

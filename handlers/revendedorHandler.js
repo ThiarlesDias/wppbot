@@ -6,6 +6,7 @@ const {
 const notificar = require('../services/notificador');
 const {
     buscarClienteRevendedorPorUsuario,
+    consumirCreditoRevendedor,
     listarChamadosAbertosRevendedor,
     listarClientesRevendedor,
     registrarChamadoRevendedor
@@ -214,6 +215,38 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
         );
     }
 
+    const credito = consumirCreditoRevendedor(
+        revendedor,
+        1
+    );
+
+    if (!credito.ok) {
+
+        await notificar(
+            client,
+            'REVENDA SEM CREDITOS',
+            [
+                `Revendedor: ${nomeRevendedor(revendedor)}`,
+                `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                `Creditos atuais: ${credito.creditos || 0}`,
+                '',
+                `Tentou criar teste ${tipo} para ${dados.nome} (${dados.telefone}).`
+            ].join('\n')
+        );
+
+        sessoes[numero] = 'revendedor_menu';
+
+        return await client.sendText(
+            numero,
+            [
+                'Voce nao tem creditos disponiveis para criar novo teste.',
+                '',
+                'Fale com a TOPTEC para liberar mais creditos ou regularizar seu fechamento.'
+            ].join('\n')
+        );
+
+    }
+
     const chamado = registrarChamadoRevendedor({
         revendedor,
         clienteNome: dados.nome,
@@ -233,6 +266,7 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
             `Cliente: ${dados.nome}`,
             `WhatsApp cliente: ${dados.telefone}`,
             `Tipo: ${tipo}`,
+            `Creditos restantes: ${credito.creditos}`,
             '',
             'Criar teste no painel e retornar ao revendedor.'
         ].join('\n')
@@ -246,6 +280,7 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
         numero,
         [
             `Solicitacao de teste enviada para a TOPTEC. Codigo: ${chamado.codigo}`,
+            `Credito consumido. Restam: ${credito.creditos}`,
             '',
             'Como o painel fica com a TOPTEC, nossa equipe vai criar o teste e retornar por aqui.'
         ].join('\n')

@@ -56,6 +56,14 @@ const {
     normalizarChamado,
     obterChamado
 } = require('./servicosCsv');
+const {
+    REVENDEDORES_HEADERS,
+    adicionarOuAtualizarRevendedor,
+    lerRevendedoresCsv
+} = require('./revendedoresCsv');
+const {
+    escreverValores
+} = require('./googleSheetsClient');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const PLANILHAS_ALVOS = [
@@ -125,6 +133,7 @@ function menuAdmin() {
         '#leads - resumo da planilha de leads',
         '#leads ultimos - ultimos 10 leads',
         '#leads encerrar todos - parar remarketing e encerrar leads ativos',
+        '#addrevenda Nome;WhatsApp;creditos;data fechamento - cadastrar/atualizar revenda',
         '#planilhas atualizar - sincronizar todas as planilhas agora',
         '#planilhas atualizar clientes - sincronizar uma planilha especifica',
         '#planilhas atualizar revendedores - sincronizar cadastro dos revendedores',
@@ -302,6 +311,86 @@ function normalizarAlvoPlanilha(valor) {
     if (PLANILHAS_ALVOS.includes(alvo)) return alvo;
 
     return null;
+
+}
+
+function textoUsoAddRevenda() {
+
+    return [
+        'Use assim:',
+        '*#addrevenda Nome;WhatsApp;creditos;data fechamento*',
+        '',
+        'Exemplo:',
+        '#addrevenda Maria Silva;5543999999999;10;30/08/2026'
+    ].join('\n');
+
+}
+
+function normalizarNumero(valor) {
+
+    return String(valor || '').replace(/\D/g, '');
+
+}
+
+function normalizarDataFechamento(valor) {
+
+    const texto = String(valor || '').trim();
+    const match = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+
+    if (!match) return '';
+
+    const dia = String(match[1]).padStart(2, '0');
+    const mes = String(match[2]).padStart(2, '0');
+    const ano = match[3];
+    const hora = String(match[4] || '23').padStart(2, '0');
+    const minuto = String(match[5] || '59').padStart(2, '0');
+    const segundo = String(match[6] || '59').padStart(2, '0');
+
+    return `${dia}/${mes}/${ano} ${hora}:${minuto}:${segundo}`;
+
+}
+
+function parseAddRevenda(texto) {
+
+    const conteudo = String(texto || '')
+        .replace(/^#addrevenda\b/i, '')
+        .trim();
+    const partes = conteudo
+        .split(';')
+        .map(parte => parte.trim());
+
+    if (partes.length < 4) return null;
+
+    const nome = partes[0];
+    const whatsapp = normalizarNumero(partes[1]);
+    const creditos = Number(partes[2].replace(',', '.'));
+    const dataFechamento = normalizarDataFechamento(partes.slice(3).join(';'));
+
+    if (!nome || whatsapp.length < 10) return null;
+    if (!Number.isFinite(creditos) || creditos < 0) return null;
+    if (!dataFechamento) return null;
+
+    return {
+        nome,
+        whatsapp,
+        creditos: String(Math.floor(creditos)),
+        dataFechamento
+    };
+
+}
+
+async function atualizarRevendedoresGoogle() {
+
+    const linhas = lerRevendedoresCsv();
+    const valores = [
+        REVENDEDORES_HEADERS,
+        ...linhas.map(linha => REVENDEDORES_HEADERS.map(campo => linha[campo] || ''))
+    ];
+
+    await escreverValores(
+        'revendedores',
+        valores
+    );
 
 }
 
@@ -825,6 +914,50 @@ async function tratarComandoAdmin({
     if (texto === '#fluxos') {
 
         return await client.sendText(numero, textoFluxos());
+
+    }
+
+    if (/^#addrevenda\b/i.test(texto)) {
+
+        const dados = parseAddRevenda(texto);
+
+        if (!dados) {
+
+            return await client.sendText(
+                numero,
+                textoUsoAddRevenda()
+            );
+
+        }
+
+        const revenda = adicionarOuAtualizarRevendedor({
+            nome: dados.nome,
+            telefone: dados.whatsapp,
+            creditos: dados.creditos,
+            dataFechamento: dados.dataFechamento
+        });
+        let syncGoogle = 'Google Sheets nao atualizado.';
+
+        try {
+            await atualizarRevendedoresGoogle();
+            syncGoogle = 'Google Sheets atualizado na aba revendedores.';
+        } catch (erro) {
+            syncGoogle = `CSV local atualizado. Google Sheets nao atualizado: ${erro.message}`;
+        }
+
+        return await client.sendText(
+            numero,
+            [
+                'Revenda cadastrada/atualizada.',
+                '',
+                `Nome: ${revenda.nome}`,
+                `WhatsApp: ${revenda.telefone}`,
+                `Creditos: ${revenda.creditos}`,
+                `Fechamento: ${revenda.data_fechamento}`,
+                '',
+                syncGoogle
+            ].join('\n')
+        );
 
     }
 
@@ -1382,6 +1515,9 @@ async function tratarComandoAdmin({
                 `Enviados: ${resumo?.enviados ?? 0}`,
                 resumo?.revendedores ?
                     `Revendedores: ${resumo.revendedores.enviados || 0}/${resumo.revendedores.total || 0}` :
+                    '',
+                resumo?.revendedores?.fechamentos ?
+                    `Fechamentos revenda: ${resumo.revendedores.fechamentos.enviados || 0}/${resumo.revendedores.fechamentos.total || 0}` :
                     '',
                 `Erros: ${resumo?.erros?.length ?? 0}`,
                 ...(resumo?.erros?.length ?

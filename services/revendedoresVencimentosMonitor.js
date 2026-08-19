@@ -1,10 +1,13 @@
 const {
+    lerRevendedoresCsv,
     lerRevendedoresClientesCsv,
+    marcarAvisoFechamentoRevendedor,
     marcarAvisoVencimentoRevendedorCliente
 } = require('./revendedoresCsv');
 const {
     enviarTextoSeguro
 } = require('./envioWhatsapp');
+const notificar = require('./notificador');
 
 const HORA_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_HORA || 10);
 const MINUTO_ENVIO = Number(process.env.VENCIMENTOS_ENVIO_MINUTO || 0);
@@ -182,6 +185,20 @@ function mensagemAviso(cliente, periodo) {
 
 }
 
+function mensagemFechamentoRevendedor(revendedor) {
+
+    return [
+        '*Fechamento da revenda amanha*',
+        '',
+        `Revenda: ${revendedor.nome || 'Nao informado'}`,
+        `Data de fechamento: ${revendedor.data_fechamento || 'Nao informada'}`,
+        `Creditos atuais: ${revendedor.creditos || '0'}`,
+        '',
+        'Se precisar ajustar creditos ou regularizar algo, fale com a TOPTEC por aqui.'
+    ].join('\n');
+
+}
+
 function listarVencimentosRevendedores() {
 
     const hoje = chaveDiaSaoPaulo(hojeSaoPaulo());
@@ -205,6 +222,77 @@ function listarVencimentosRevendedores() {
         ...item.cliente,
         periodo: item.chave === hoje ? 'hoje' : 'amanha'
     }));
+
+}
+
+function listarFechamentosRevendedores() {
+
+    const amanha = chaveDiaSaoPaulo(amanhaSaoPaulo());
+
+    return lerRevendedoresCsv().map(revendedor => {
+        const fechamentoData = parseDataBrasil(revendedor.data_fechamento);
+        const chave = fechamentoData ? chaveDiaSaoPaulo(fechamentoData) : '';
+
+        return {
+            revendedor,
+            chave
+        };
+    }).filter(item =>
+        item.chave &&
+        statusAtivo(item.revendedor.status) &&
+        item.revendedor.aviso_fechamento !== item.revendedor.data_fechamento &&
+        item.chave === amanha
+    ).map(item => item.revendedor);
+
+}
+
+async function verificarFechamentosRevendedores(client) {
+
+    const fechamentos = listarFechamentosRevendedores();
+    const resumo = {
+        total: fechamentos.length,
+        enviados: 0,
+        erros: []
+    };
+
+    console.log('FECHAMENTOS REVENDEDORES PARA AVISAR', fechamentos.length);
+
+    for (const revendedor of fechamentos) {
+        const telefone = limparNumero(revendedor.telefone);
+
+        if (!telefone) continue;
+
+        try {
+            await enviarTextoSeguro(
+                client,
+                [telefone],
+                mensagemFechamentoRevendedor(revendedor)
+            );
+
+            await notificar(
+                client,
+                'FECHAMENTO DE REVENDA AMANHA',
+                [
+                    `Revenda: ${revendedor.nome || 'Nao informado'}`,
+                    `WhatsApp: ${revendedor.telefone || telefone}`,
+                    `Creditos: ${revendedor.creditos || '0'}`,
+                    `Fechamento: ${revendedor.data_fechamento || 'Nao informado'}`
+                ].join('\n')
+            );
+
+            marcarAvisoFechamentoRevendedor(revendedor);
+            resumo.enviados += 1;
+        } catch (erro) {
+            console.log(
+                'ERRO AVISO FECHAMENTO REVENDEDOR',
+                revendedor.telefone,
+                erro.message
+            );
+            resumo.erros.push(`${revendedor.telefone}: ${erro.message}`);
+        }
+    }
+
+    return resumo;
 
 }
 
@@ -244,6 +332,8 @@ async function verificarVencimentosRevendedores(client) {
             resumo.erros.push(`${cliente.usuario}: ${erro.message}`);
         }
     }
+
+    resumo.fechamentos = await verificarFechamentosRevendedores(client);
 
     return resumo;
 
