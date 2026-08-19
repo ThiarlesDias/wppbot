@@ -433,7 +433,8 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
         teste = await criarTesteRevendedor({
             nome: dados.nome,
             telefone: dados.telefone,
-            tipo
+            tipo,
+            revendedor
         });
     } catch (erro) {
 

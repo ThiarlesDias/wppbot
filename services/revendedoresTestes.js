@@ -46,6 +46,43 @@ function urlPorTipo(tipo) {
 
 }
 
+function limparTexto(valor) {
+
+    return String(valor || '').trim();
+
+}
+
+function removerVazios(objeto) {
+
+    return Object.fromEntries(
+        Object.entries(objeto).filter(([, valor]) =>
+            valor !== undefined &&
+            valor !== null &&
+            String(valor).trim() !== ''
+        )
+    );
+
+}
+
+function montarOrigemRevendedor({ nome, telefone, revendedor }) {
+
+    const revendedorNome = limparTexto(revendedor?.nome);
+    const revendedorTelefone = normalizarTelefoneBrasil(revendedor?.telefone);
+    const linhas = [
+        revendedorNome ? `Revendedor: ${revendedorNome}` : '',
+        revendedorTelefone ? `WhatsApp revendedor: ${revendedorTelefone}` : '',
+        nome ? `Cliente: ${nome}` : '',
+        telefone ? `WhatsApp cliente: ${telefone}` : ''
+    ].filter(Boolean);
+
+    return {
+        texto: linhas.join(' | '),
+        revendedorNome,
+        revendedorTelefone
+    };
+
+}
+
 function textoComDadosAcesso(texto) {
 
     const valor = String(texto || '').trim();
@@ -219,11 +256,17 @@ function montarMensagemTeste(dados) {
 async function criarTesteRevendedor({
     nome,
     telefone,
-    tipo
+    tipo,
+    revendedor
 }) {
 
     const telefoneLimpo = normalizarTelefoneBrasil(telefone);
     const url = urlPorTipo(tipo);
+    const origem = montarOrigemRevendedor({
+        nome,
+        telefone: telefoneLimpo,
+        revendedor
+    });
 
     if (!url) {
         throw new Error('Link de criacao de teste da revenda nao configurado.');
@@ -240,13 +283,27 @@ async function criarTesteRevendedor({
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
                     '(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
             },
-            body: JSON.stringify({
+            body: JSON.stringify(removerVazios({
                 name: nome || `WhatsApp ${telefoneLimpo}`,
                 whatsapp: telefoneLimpo,
                 phone: telefoneLimpo,
                 number: telefoneLimpo,
-                message: telefoneLimpo
-            })
+                message: origem.texto || telefoneLimpo,
+                note: origem.texto,
+                notes: origem.texto,
+                observacao: origem.texto,
+                observation: origem.texto,
+                description: origem.texto,
+                descricao: origem.texto,
+                source: 'Revendedor TOPTEC',
+                origin: 'Revendedor TOPTEC',
+                reseller: origem.revendedorNome,
+                reseller_name: origem.revendedorNome,
+                revendedor: origem.revendedorNome,
+                revendedor_nome: origem.revendedorNome,
+                reseller_phone: origem.revendedorTelefone,
+                revendedor_telefone: origem.revendedorTelefone
+            }))
         }
     );
     const texto = await resposta.text();
