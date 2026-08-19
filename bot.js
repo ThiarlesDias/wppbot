@@ -11,6 +11,7 @@ const {
 } = require('./services/menuInterativo');
 
 const menuPrincipal = require('./menus/menuPrincipal');
+const menuRevendedor = require('./menus/revendedor');
 
 const menuHandler = require('./handlers/menuHandler');
 const suporteHandler = require('./handlers/suporteHandler');
@@ -18,8 +19,10 @@ const financeiroHandler = require('./handlers/financeiroHandler');
 const comercialHandler = require('./handlers/comercialHandler');
 const humanoHandler = require('./handlers/humanoHandler');
 const chamadoHandler = require('./handlers/chamadoHandler');
+const revendedorHandler = require('./handlers/revendedorHandler');
 const iniciarMonitorPagamentos = require('./services/pagamentosMonitor');
 const iniciarMonitorVencimentos = require('./services/vencimentosMonitor');
+const iniciarMonitorVencimentosRevendedores = require('./services/revendedoresVencimentosMonitor');
 const iniciarMonitorClientesCsv = require('./services/clientesImportMonitor');
 const iniciarMonitorSigma = require('./services/sigmaHealthMonitor');
 const iniciarStatusDiario = require('./services/statusDiario');
@@ -65,6 +68,9 @@ const {
     marcarLeadPorContatos,
     registrarLead
 } = require('./services/leadsCsv');
+const {
+    buscarRevendedorPorNumero
+} = require('./services/revendedoresCsv');
 
 console.log('INICIANDO BOT...');
 
@@ -296,7 +302,11 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp, forcar = false) {
         '_aguardando_telefone_teste',
         '_marketing_detalhes',
         '_meu_chamado',
-        '_chamado_externo_servico'
+        '_chamado_externo_servico',
+        '_rev_teste_tipo',
+        '_rev_teste_dados',
+        '_rev_renovar_cliente',
+        '_rev_chamado_descricao'
     ];
 
     for (const sufixo of sufixos) {
@@ -600,6 +610,7 @@ wppconnect.create({
         iniciarMonitorPagamentos(client);
         iniciarMonitorClientesCsv();
         iniciarMonitorVencimentos(client);
+        iniciarMonitorVencimentosRevendedores(client);
         iniciarMonitorSigma(client);
         iniciarStatusDiario(client);
         iniciarMonitorTestes(client);
@@ -709,7 +720,15 @@ wppconnect.create({
                     client,
                     numero,
                     texto,
-                    verificarVencimentos: iniciarMonitorVencimentos.verificarVencimentos
+                    verificarVencimentos: async (clientAdmin) => {
+                        const clientes = await iniciarMonitorVencimentos.verificarVencimentos(clientAdmin);
+                        const revendedores = await iniciarMonitorVencimentosRevendedores.verificarVencimentosRevendedores(clientAdmin);
+
+                        return {
+                            ...clientes,
+                            revendedores
+                        };
+                    }
                 });
 
                 if (tratado || texto.startsWith('#')) return;
@@ -802,6 +821,62 @@ wppconnect.create({
             )) {
                 logFluxo('atendimento pausado', numero, numeroWhatsapp || '');
                 return;
+            }
+
+            const revendedor = buscarRevendedorPorNumero(
+                numero,
+                numeroWhatsapp
+            );
+
+            if (revendedor) {
+
+                verificarTimeout(
+                    numero
+                );
+
+                const etapaRevendedor = String(sessoes[numero] || '');
+
+                if (
+                    !sessoes[numero + '_iniciado'] ||
+                    !etapaRevendedor.startsWith('revendedor')
+                ) {
+
+                    sessoes[numero + '_iniciado'] = true;
+                    sessoes[numero] = 'revendedor_menu';
+
+                    logFluxo('menu revendedor enviado', numero, numeroWhatsapp || '');
+
+                    return await menuRevendedor(
+                        client,
+                        numero,
+                        revendedor
+                    );
+
+                }
+
+                atualizarInteracao(
+                    numero
+                );
+
+                registrar(
+                    numero,
+                    etapaRevendedor,
+                    texto
+                );
+                console.log(
+                    `[${numero}]`,
+                    `[${etapaRevendedor}]`,
+                    texto
+                );
+
+                return await revendedorHandler(
+                    client,
+                    numero,
+                    texto,
+                    numeroWhatsapp,
+                    revendedor
+                );
+
             }
 
             if (

@@ -63,7 +63,10 @@ const PLANILHAS_ALVOS = [
     'testes',
     'leads',
     'marketing',
-    'servicos'
+    'servicos',
+    'revendedores',
+    'revendedores_clientes',
+    'revendedores_chamados'
 ];
 
 function arquivoInfo(caminho) {
@@ -124,6 +127,9 @@ function menuAdmin() {
         '#leads encerrar todos - parar remarketing e encerrar leads ativos',
         '#planilhas atualizar - sincronizar todas as planilhas agora',
         '#planilhas atualizar clientes - sincronizar uma planilha especifica',
+        '#planilhas atualizar revendedores - sincronizar cadastro dos revendedores',
+        '#planilhas atualizar revendedores_clientes - sincronizar clientes dos revendedores',
+        '#planilhas atualizar revendedores_chamados - sincronizar chamados dos revendedores',
         '#chamado enviar OS359 - enviar informacoes do chamado ao cliente',
         '#marketing status - status da campanha',
         '#marketing enviar - disparar campanha com limite/intervalo',
@@ -275,7 +281,10 @@ function textoUsoPlanilhas() {
         '*#planilhas atualizar testes*',
         '*#planilhas atualizar leads*',
         '*#planilhas atualizar marketing*',
-        '*#planilhas atualizar servicos*'
+        '*#planilhas atualizar servicos*',
+        '*#planilhas atualizar revendedores*',
+        '*#planilhas atualizar revendedores_clientes*',
+        '*#planilhas atualizar revendedores_chamados*'
     ].join('\n');
 
 }
@@ -284,7 +293,9 @@ function normalizarAlvoPlanilha(valor) {
 
     const alvo = String(valor || '')
         .trim()
-        .toLowerCase();
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/-+/g, '_');
 
     if (!alvo || ['todas', 'todos', 'all'].includes(alvo)) return '';
 
@@ -1369,6 +1380,9 @@ async function tratarComandoAdmin({
                 `Hoje: ${resumo?.hoje ?? 0}`,
                 `Amanha: ${resumo?.amanha ?? 0}`,
                 `Enviados: ${resumo?.enviados ?? 0}`,
+                resumo?.revendedores ?
+                    `Revendedores: ${resumo.revendedores.enviados || 0}/${resumo.revendedores.total || 0}` :
+                    '',
                 `Erros: ${resumo?.erros?.length ?? 0}`,
                 ...(resumo?.erros?.length ?
                     [

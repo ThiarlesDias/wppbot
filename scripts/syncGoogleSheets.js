@@ -51,6 +51,33 @@ const DEFINICOES = [
         estado: '',
         merge: '',
         cabecalho: 'telefone'
+    },
+    {
+        chave: 'revendedores',
+        arquivo: 'revendedores.csv',
+        remoto: 'revendedores-google.csv',
+        estado: '',
+        merge: '',
+        chaves: ['telefone'],
+        cabecalho: 'telefone;nome;status;observacao'
+    },
+    {
+        chave: 'revendedores_clientes',
+        arquivo: 'revendedores-clientes.csv',
+        remoto: 'revendedores-clientes-google.csv',
+        estado: '',
+        merge: '',
+        chaves: ['revendedor_telefone', 'usuario'],
+        cabecalho: 'revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;observacao;aviso_vencimento'
+    },
+    {
+        chave: 'revendedores_chamados',
+        arquivo: 'revendedores-chamados.csv',
+        remoto: 'revendedores-chamados-google.csv',
+        estado: '',
+        merge: '',
+        chaves: ['codigo'],
+        cabecalho: 'codigo;revendedor_telefone;revendedor_nome;cliente_nome;usuario;descricao;status;criado_em;atualizado_em;observacao'
     }
 ];
 
@@ -214,14 +241,93 @@ function mesclarMarketing(localPath, remotoPath, saidaPath) {
 
 }
 
+function normalizarCampo(campo) {
+
+    return String(campo || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+}
+
+function mesclarGenerico(def, localPath, remotoPath, saidaPath) {
+
+    const cabecalho = def.cabecalho.split(';');
+    const cabecalhoNormalizado = cabecalho.map(normalizarCampo);
+    const indicesChave = (def.chaves || []).map(chave =>
+        cabecalhoNormalizado.indexOf(normalizarCampo(chave))
+    );
+    const linhasPorChave = new Map();
+
+    if (indicesChave.some(indice => indice < 0)) {
+        throw new Error(`Chave de merge invalida para ${def.chave}`);
+    }
+
+    function chaveLinha(linha) {
+        return indicesChave
+            .map(indice => String(linha[indice] || '').trim().toLowerCase())
+            .join('|');
+    }
+
+    function adicionar(arquivo) {
+        const valores = csvParaValores(
+            arquivo,
+            def.cabecalho
+        ).slice(1);
+
+        for (const linhaOriginal of valores) {
+            const linha = cabecalho.map((_, indice) => linhaOriginal[indice] || '');
+            const chave = chaveLinha(linha);
+
+            if (!chave.replace(/\|/g, '')) continue;
+
+            linhasPorChave.set(
+                chave,
+                linha
+            );
+        }
+    }
+
+    adicionar(localPath);
+    adicionar(remotoPath);
+
+    const valores = [
+        cabecalho,
+        ...Array.from(linhasPorChave.values()).sort((a, b) =>
+            chaveLinha(a).localeCompare(chaveLinha(b), 'pt-BR')
+        )
+    ];
+
+    fs.writeFileSync(
+        saidaPath,
+        valoresParaCsv(
+            valores,
+            def.cabecalho
+        )
+    );
+
+}
+
 function executarMerge(def, localPath, remotoPath) {
 
     if (!def.merge) {
-        mesclarMarketing(
-            localPath,
-            remotoPath,
-            localPath
-        );
+        if (def.chaves) {
+            mesclarGenerico(
+                def,
+                localPath,
+                remotoPath,
+                localPath
+            );
+        } else {
+            mesclarMarketing(
+                localPath,
+                remotoPath,
+                localPath
+            );
+        }
         return;
     }
 
