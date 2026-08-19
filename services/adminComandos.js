@@ -328,7 +328,16 @@ function textoUsoAddRevenda() {
 
 function normalizarNumero(valor) {
 
-    return String(valor || '').replace(/\D/g, '');
+    const limpo = String(valor || '').replace(/\D/g, '');
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        return `55${limpo}`;
+    }
+
+    return limpo;
 
 }
 

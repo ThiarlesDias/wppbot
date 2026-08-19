@@ -12,7 +12,7 @@ const TIPOS = {
             'data_fechamento',
             'aviso_fechamento'
         ],
-        key: linha => limparNumero(linha.telefone)
+        key: linha => normalizarTelefoneBrasil(linha.telefone)
     },
     clientes: {
         headers: [
@@ -30,7 +30,7 @@ const TIPOS = {
             'aviso_vencimento'
         ],
         key: linha => [
-            limparNumero(linha.revendedor_telefone),
+            normalizarTelefoneBrasil(linha.revendedor_telefone),
             String(linha.usuario || '').trim().toLowerCase()
         ].filter(Boolean).join('|')
     },
@@ -54,6 +54,21 @@ const TIPOS = {
 function limparNumero(valor) {
 
     return String(valor || '').replace(/\D+/g, '');
+
+}
+
+function normalizarTelefoneBrasil(valor) {
+
+    const limpo = limparNumero(valor);
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        return `55${limpo}`;
+    }
+
+    return limpo;
 
 }
 

@@ -216,6 +216,61 @@ function limparNumero(numero) {
 
 }
 
+function variantesTelefone(numero) {
+
+    const limpo = limparNumero(numero);
+    const variantes = new Set();
+
+    if (!limpo) return variantes;
+
+    variantes.add(limpo);
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        variantes.add(`55${limpo}`);
+    }
+
+    if (
+        limpo.startsWith('55') &&
+        (limpo.length === 12 || limpo.length === 13)
+    ) {
+        variantes.add(limpo.slice(2));
+    }
+
+    return variantes;
+
+}
+
+function normalizarTelefoneBrasil(numero) {
+
+    const limpo = limparNumero(numero);
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        return `55${limpo}`;
+    }
+
+    return limpo;
+
+}
+
+function telefonesEquivalentes(a, b) {
+
+    const variantesA = variantesTelefone(a);
+    const variantesB = variantesTelefone(b);
+
+    for (const variante of variantesA) {
+        if (variantesB.has(variante)) return true;
+    }
+
+    return false;
+
+}
+
 function statusAtivo(status) {
 
     const texto = normalizarCabecalho(status || 'ativo');
@@ -250,7 +305,7 @@ function salvarRevendedoresCsv(linhas, arquivo = caminhoRevendedoresCsv()) {
 function limparRevendedor(revendedor) {
 
     return {
-        telefone: limparNumero(revendedor?.telefone),
+        telefone: normalizarTelefoneBrasil(revendedor?.telefone),
         nome: String(revendedor?.nome || '').trim(),
         status: String(revendedor?.status || 'ativo').trim() || 'ativo',
         observacao: String(revendedor?.observacao || '').trim(),
@@ -270,7 +325,7 @@ function adicionarOuAtualizarRevendedor({
     observacao
 }) {
 
-    const telefoneLimpo = limparNumero(telefone);
+    const telefoneLimpo = normalizarTelefoneBrasil(telefone);
 
     if (!telefoneLimpo) {
         throw new Error('WhatsApp do revendedor nao informado.');
@@ -278,7 +333,7 @@ function adicionarOuAtualizarRevendedor({
 
     const linhas = lerRevendedoresCsv();
     const indice = linhas.findIndex(item =>
-        limparNumero(item.telefone) === telefoneLimpo
+        telefonesEquivalentes(item.telefone, telefoneLimpo)
     );
     const linha = limparRevendedor({
         ...(indice >= 0 ? linhas[indice] : {}),
@@ -322,10 +377,10 @@ function obterCreditosRevendedor(revendedor) {
 
 function consumirCreditoRevendedor(revendedor, quantidade = 1) {
 
-    const telefone = limparNumero(revendedor?.telefone);
+    const telefone = normalizarTelefoneBrasil(revendedor?.telefone);
     const linhas = lerRevendedoresCsv();
     const indice = linhas.findIndex(item =>
-        limparNumero(item.telefone) === telefone
+        telefonesEquivalentes(item.telefone, telefone)
     );
 
     if (indice < 0) {
@@ -369,10 +424,10 @@ function consumirCreditoRevendedor(revendedor, quantidade = 1) {
 
 function marcarAvisoFechamentoRevendedor(revendedorAlvo) {
 
-    const telefone = limparNumero(revendedorAlvo?.telefone);
+    const telefone = normalizarTelefoneBrasil(revendedorAlvo?.telefone);
     const linhas = lerRevendedoresCsv();
     const indice = linhas.findIndex(revendedor =>
-        limparNumero(revendedor.telefone) === telefone
+        telefonesEquivalentes(revendedor.telefone, telefone)
     );
 
     if (indice < 0) return false;
@@ -429,27 +484,29 @@ function salvarRevendedoresChamadosCsv(linhas, arquivo = caminhoRevendedoresCham
 function buscarRevendedorPorNumero(numero, numeroWhatsapp) {
 
     const alvos = new Set([
-        limparNumero(numero),
-        limparNumero(numeroWhatsapp)
-    ].filter(Boolean));
+        ...variantesTelefone(numero),
+        ...variantesTelefone(numeroWhatsapp)
+    ]);
 
     if (!alvos.size) return null;
 
     return lerRevendedoresCsv().find(revendedor =>
         statusAtivo(revendedor.status) &&
-        alvos.has(limparNumero(revendedor.telefone))
+        Array.from(variantesTelefone(revendedor.telefone)).some(telefone =>
+            alvos.has(telefone)
+        )
     ) || null;
 
 }
 
 function listarClientesRevendedor(revendedor) {
 
-    const telefone = limparNumero(revendedor?.telefone);
+    const telefone = normalizarTelefoneBrasil(revendedor?.telefone);
 
     if (!telefone) return [];
 
     return lerRevendedoresClientesCsv().filter(cliente =>
-        limparNumero(cliente.revendedor_telefone) === telefone &&
+        telefonesEquivalentes(cliente.revendedor_telefone, telefone) &&
         statusAtivo(cliente.status)
     );
 
@@ -458,10 +515,10 @@ function listarClientesRevendedor(revendedor) {
 function marcarAvisoVencimentoRevendedorCliente(clienteAlvo) {
 
     const linhas = lerRevendedoresClientesCsv();
-    const revendedorTelefone = limparNumero(clienteAlvo?.revendedor_telefone);
+    const revendedorTelefone = normalizarTelefoneBrasil(clienteAlvo?.revendedor_telefone);
     const usuario = String(clienteAlvo?.usuario || '').trim().toLowerCase();
     const indice = linhas.findIndex(cliente =>
-        limparNumero(cliente.revendedor_telefone) === revendedorTelefone &&
+        telefonesEquivalentes(cliente.revendedor_telefone, revendedorTelefone) &&
         String(cliente.usuario || '').trim().toLowerCase() === usuario
     );
 
@@ -552,7 +609,7 @@ function registrarChamadoRevendedor({
     const agora = formatarData(new Date());
     const linha = {
         codigo: proximoCodigoChamado(linhas),
-        revendedor_telefone: limparNumero(revendedor?.telefone),
+        revendedor_telefone: normalizarTelefoneBrasil(revendedor?.telefone),
         revendedor_nome: revendedor?.nome || '',
         cliente_nome: clienteNome || '',
         usuario: usuario || '',
@@ -575,12 +632,12 @@ function registrarChamadoRevendedor({
 
 function listarChamadosAbertosRevendedor(revendedor) {
 
-    const telefone = limparNumero(revendedor?.telefone);
+    const telefone = normalizarTelefoneBrasil(revendedor?.telefone);
 
     if (!telefone) return [];
 
     return lerRevendedoresChamadosCsv().filter(chamado =>
-        limparNumero(chamado.revendedor_telefone) === telefone &&
+        telefonesEquivalentes(chamado.revendedor_telefone, telefone) &&
         ![
             'concluido',
             'concluido',
