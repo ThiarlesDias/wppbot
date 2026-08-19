@@ -25,6 +25,21 @@ const CLIENTES_HEADERS = [
     'observacao',
     'aviso_vencimento'
 ];
+const REMARKETING_HEADERS = [
+    'revendedor_telefone',
+    'revendedor_nome',
+    'cliente_nome',
+    'cliente_telefone',
+    'usuario',
+    'senha',
+    'dns',
+    'm3u',
+    'vencimento',
+    'status',
+    'criado_em',
+    'origem',
+    'observacao'
+];
 const CHAMADOS_HEADERS = [
     'codigo',
     'revendedor_telefone',
@@ -49,6 +64,13 @@ function caminhoRevendedoresClientesCsv() {
 
     return process.env.REVENDEDORES_CLIENTES_CSV_PATH ||
         path.join(DATA_DIR, 'revendedores-clientes.csv');
+
+}
+
+function caminhoRevendedoresRemarketingCsv() {
+
+    return process.env.REVENDEDORES_REMARKETING_CSV_PATH ||
+        path.join(DATA_DIR, 'revendedores-remarketing.csv');
 
 }
 
@@ -304,7 +326,22 @@ function statusAtivo(status) {
     return ![
         'inativo',
         'cancelado',
-        'bloqueado'
+        'bloqueado',
+        'teste',
+        'teste_ativo',
+        'remarketing',
+        'limpo'
+    ].includes(texto);
+
+}
+
+function statusTeste(status) {
+
+    const texto = normalizarCabecalho(status || '');
+
+    return [
+        'teste',
+        'teste_ativo'
     ].includes(texto);
 
 }
@@ -488,6 +525,25 @@ function salvarRevendedoresClientesCsv(linhas, arquivo = caminhoRevendedoresClie
 
 }
 
+function lerRevendedoresRemarketingCsv(arquivo = caminhoRevendedoresRemarketingCsv()) {
+
+    return lerCsv(
+        arquivo,
+        REMARKETING_HEADERS
+    ).filter(item => item.usuario || limparNumero(item.cliente_telefone));
+
+}
+
+function salvarRevendedoresRemarketingCsv(linhas, arquivo = caminhoRevendedoresRemarketingCsv()) {
+
+    salvarCsv(
+        arquivo,
+        REMARKETING_HEADERS,
+        linhas
+    );
+
+}
+
 function lerRevendedoresChamadosCsv(arquivo = caminhoRevendedoresChamadosCsv()) {
 
     return lerCsv(
@@ -538,6 +594,100 @@ function listarClientesRevendedor(revendedor) {
 
 }
 
+function mesmoRevendedor(linha, revendedor) {
+
+    return telefonesEquivalentes(
+        linha.revendedor_telefone,
+        revendedor?.telefone
+    );
+
+}
+
+function adicionarObservacao(atual, nova) {
+
+    const existente = String(atual || '').trim();
+    const texto = String(nova || '').trim();
+
+    if (!texto) return existente;
+    if (!existente) return texto;
+
+    return `${existente} | ${texto}`;
+
+}
+
+function chaveClienteRevendedor(linha) {
+
+    const revendedorTelefone = normalizarTelefoneBrasil(linha.revendedor_telefone);
+    const usuario = String(linha.usuario || '').trim().toLowerCase();
+    const telefone = normalizarTelefoneBrasil(linha.cliente_telefone);
+
+    return [
+        revendedorTelefone,
+        usuario || telefone
+    ].filter(Boolean).join('|');
+
+}
+
+function registrarTesteRevendedorCliente({
+    revendedor,
+    clienteNome,
+    clienteTelefone,
+    usuario,
+    senha,
+    dns,
+    m3u,
+    vencimento,
+    observacao = ''
+}) {
+
+    const linhas = lerRevendedoresClientesCsv();
+    const agora = formatarData(new Date());
+    const linha = {
+        revendedor_telefone: normalizarTelefoneBrasil(revendedor?.telefone),
+        revendedor_nome: revendedor?.nome || '',
+        cliente_nome: clienteNome || '',
+        cliente_telefone: normalizarTelefoneBrasil(clienteTelefone),
+        usuario: String(usuario || '').trim(),
+        senha: String(senha || '').trim(),
+        dns: String(dns || '').trim(),
+        m3u: String(m3u || '').trim(),
+        vencimento: String(vencimento || '').trim(),
+        status: 'teste',
+        observacao: adicionarObservacao(
+            observacao,
+            `Teste criado em ${agora}`
+        ),
+        aviso_vencimento: ''
+    };
+    const chaveNova = chaveClienteRevendedor(linha);
+    const indice = linhas.findIndex(item =>
+        chaveClienteRevendedor(item) === chaveNova
+    );
+
+    if (indice >= 0) {
+        linhas[indice] = {
+            ...linhas[indice],
+            ...linha
+        };
+    } else {
+        linhas.push(linha);
+    }
+
+    salvarRevendedoresClientesCsv(linhas);
+
+    return linha;
+
+}
+
+function listarTestesRevendedor(revendedor) {
+
+    return lerRevendedoresClientesCsv().filter(cliente =>
+        mesmoRevendedor(cliente, revendedor) &&
+        statusTeste(cliente.status)
+    );
+
+}
+
 function marcarAvisoVencimentoRevendedorCliente(clienteAlvo) {
 
     const linhas = lerRevendedoresClientesCsv();
@@ -570,6 +720,74 @@ function buscarClienteRevendedorPorUsuario(revendedor, usuario) {
     return listarClientesRevendedor(revendedor).find(cliente =>
         String(cliente.usuario || '').trim().toLowerCase() === alvo
     ) || null;
+
+}
+
+function limparTestesRevendedor(revendedor) {
+
+    const clientes = lerRevendedoresClientesCsv();
+    const remarketing = lerRevendedoresRemarketingCsv();
+    const agora = formatarData(new Date());
+    const movidos = [];
+
+    const atualizados = clientes.map(cliente => {
+
+        if (
+            !mesmoRevendedor(cliente, revendedor) ||
+            !statusTeste(cliente.status)
+        ) {
+            return cliente;
+        }
+
+        const linhaRemarketing = {
+            revendedor_telefone: normalizarTelefoneBrasil(cliente.revendedor_telefone || revendedor?.telefone),
+            revendedor_nome: cliente.revendedor_nome || revendedor?.nome || '',
+            cliente_nome: cliente.cliente_nome || '',
+            cliente_telefone: normalizarTelefoneBrasil(cliente.cliente_telefone),
+            usuario: cliente.usuario || '',
+            senha: cliente.senha || '',
+            dns: cliente.dns || '',
+            m3u: cliente.m3u || '',
+            vencimento: cliente.vencimento || '',
+            status: 'pendente',
+            criado_em: agora,
+            origem: 'limpeza_testes_revenda',
+            observacao: adicionarObservacao(
+                cliente.observacao,
+                `Movido para remarketing em ${agora}`
+            )
+        };
+        const chaveRemarketing = chaveClienteRevendedor(linhaRemarketing);
+        const indiceRemarketing = remarketing.findIndex(item =>
+            chaveClienteRevendedor(item) === chaveRemarketing
+        );
+
+        if (indiceRemarketing >= 0) {
+            remarketing[indiceRemarketing] = {
+                ...remarketing[indiceRemarketing],
+                ...linhaRemarketing
+            };
+        } else {
+            remarketing.push(linhaRemarketing);
+        }
+
+        movidos.push(linhaRemarketing);
+
+        return {
+            ...cliente,
+            status: 'remarketing',
+            observacao: adicionarObservacao(
+                cliente.observacao,
+                `Limpo pelo revendedor em ${agora}`
+            )
+        };
+
+    });
+
+    salvarRevendedoresClientesCsv(atualizados);
+    salvarRevendedoresRemarketingCsv(remarketing);
+
+    return movidos;
 
 }
 
@@ -681,16 +899,22 @@ module.exports = {
     buscarRevendedorPorNumero,
     caminhoRevendedoresChamadosCsv,
     caminhoRevendedoresClientesCsv,
+    caminhoRevendedoresRemarketingCsv,
     caminhoRevendedoresCsv,
     consumirCreditoRevendedor,
     formatarData,
     lerRevendedoresChamadosCsv,
     lerRevendedoresClientesCsv,
+    lerRevendedoresRemarketingCsv,
     lerRevendedoresCsv,
+    limparTestesRevendedor,
     listarChamadosAbertosRevendedor,
     listarClientesRevendedor,
+    listarTestesRevendedor,
     marcarAvisoFechamentoRevendedor,
     marcarAvisoVencimentoRevendedorCliente,
     obterCreditosRevendedor,
-    registrarChamadoRevendedor
+    registrarChamadoRevendedor,
+    registrarTesteRevendedorCliente,
+    salvarRevendedoresRemarketingCsv
 };

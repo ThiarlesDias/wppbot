@@ -71,6 +71,15 @@ const DEFINICOES = [
         cabecalho: 'revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;observacao;aviso_vencimento'
     },
     {
+        chave: 'revendedores_remarketing',
+        arquivo: 'revendedores-remarketing.csv',
+        remoto: 'revendedores-remarketing-google.csv',
+        estado: '',
+        merge: '',
+        chaves: ['revendedor_telefone', 'cliente_telefone', 'usuario'],
+        cabecalho: 'revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;criado_em;origem;observacao'
+    },
+    {
         chave: 'revendedores_chamados',
         arquivo: 'revendedores-chamados.csv',
         remoto: 'revendedores-chamados-google.csv',

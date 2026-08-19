@@ -9,10 +9,14 @@ const notificar = require('../services/notificador');
 const {
     buscarClienteRevendedorPorUsuario,
     consumirCreditoRevendedor,
+    formatarData,
+    limparTestesRevendedor,
     listarChamadosAbertosRevendedor,
     listarClientesRevendedor,
+    listarTestesRevendedor,
     obterCreditosRevendedor,
-    registrarChamadoRevendedor
+    registrarChamadoRevendedor,
+    registrarTesteRevendedorCliente
 } = require('../services/revendedoresCsv');
 const {
     criarTesteRevendedor
@@ -103,6 +107,68 @@ function resumoClientes(clientes) {
 
 }
 
+function resumoTestes(testes) {
+
+    if (!testes.length) {
+        return 'Nao encontrei testes ativos vinculados ao seu cadastro.';
+    }
+
+    const limite = 20;
+    const linhas = testes.slice(0, limite).map((teste, indice) => [
+        `${indice + 1}. ${teste.cliente_nome || 'Cliente sem nome'}`,
+        teste.cliente_telefone ? `   WhatsApp: ${teste.cliente_telefone}` : '',
+        teste.usuario ? `   Usuario: ${teste.usuario}` : '',
+        teste.vencimento ? `   Vencimento: ${teste.vencimento}` : ''
+    ].filter(Boolean).join('\n'));
+
+    if (testes.length > limite) {
+        linhas.push(`\nMostrando ${limite} de ${testes.length}.`);
+    }
+
+    return linhas.join('\n');
+
+}
+
+function montarDadosAcessoTeste(teste) {
+
+    return [
+        '*Teste ativo encontrado*',
+        '',
+        `Cliente: ${teste.cliente_nome || 'Nao informado'}`,
+        teste.cliente_telefone ? `WhatsApp: ${teste.cliente_telefone}` : '',
+        teste.vencimento ? `Vencimento: ${teste.vencimento}` : '',
+        '',
+        '*Dados de acesso*',
+        teste.usuario ? `Usuario: ${teste.usuario}` : '',
+        teste.senha ? `Senha: ${teste.senha}` : '',
+        teste.dns ? `DNS: ${String(teste.dns).replace(/\/$/, '')}/` : '',
+        teste.m3u ? `M3U: ${teste.m3u}` : ''
+    ].filter(Boolean).join('\n');
+
+}
+
+function buscarTesteEscolhido(testes, texto) {
+
+    const indice = Number.parseInt(texto, 10);
+
+    if (
+        Number.isInteger(indice) &&
+        indice >= 1 &&
+        indice <= testes.length
+    ) {
+        return testes[indice - 1];
+    }
+
+    const telefone = normalizarTelefoneBrasil(texto);
+
+    if (!telefone) return null;
+
+    return testes.find(teste =>
+        normalizarTelefoneBrasil(teste.cliente_telefone) === telefone
+    ) || null;
+
+}
+
 function extrairNomeTelefone(texto) {
 
     const original = String(texto || '').trim();
@@ -188,12 +254,30 @@ async function menuTeste(client, numero) {
                     titulo: 'Sem adultos'
                 },
                 {
+                    id: '3',
+                    titulo: 'Tem teste ativo?'
+                },
+                {
+                    id: '4',
+                    titulo: 'Limpar testes'
+                },
+                {
                     id: '0',
                     titulo: 'Voltar'
                 }
             ]
         }
     );
+
+}
+
+function vencimentoTeste(teste) {
+
+    if (teste.vencimento) {
+        return formatarData(teste.vencimento);
+    }
+
+    return formatarData(new Date(Date.now() + 6 * 60 * 60 * 1000));
 
 }
 
@@ -384,6 +468,171 @@ async function listarClientes(client, numero, revendedor) {
 
 }
 
+async function listarTestesAtivos(client, numero, revendedor) {
+
+    const testes = listarTestesRevendedor(revendedor);
+
+    if (!testes.length) {
+        sessoes[numero] = 'revendedor_teste';
+
+        return await client.sendText(
+            numero,
+            [
+                'Nao encontrei testes ativos vinculados ao seu cadastro.',
+                '',
+                'Se precisar criar um novo, escolha com adultos ou sem adultos.'
+            ].join('\n')
+        );
+    }
+
+    sessoes[chave(numero, 'rev_testes_ativos')] = testes;
+    sessoes[numero] = 'revendedor_teste_ativo_escolher';
+
+    return await client.sendText(
+        numero,
+        [
+            '*Testes ativos da sua revenda*',
+            '',
+            resumoTestes(testes),
+            '',
+            'Digite o *WhatsApp do cliente* para ver os dados do teste.',
+            'Tambem aceito o numero da lista.',
+            '',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function enviarTesteAtivoEscolhido(client, numero, texto, revendedor) {
+
+    if (texto === '0') {
+        sessoes[numero] = 'revendedor_teste';
+        return await menuTeste(
+            client,
+            numero
+        );
+    }
+
+    const testes = sessoes[chave(numero, 'rev_testes_ativos')] ||
+        listarTestesRevendedor(revendedor);
+    const teste = buscarTesteEscolhido(
+        testes,
+        texto
+    );
+
+    if (!teste) {
+        return await client.sendText(
+            numero,
+            [
+                'Nao encontrei teste ativo com esse WhatsApp.',
+                '',
+                'Envie o WhatsApp do cliente exatamente como aparece na lista, ou digite 0 para voltar.'
+            ].join('\n')
+        );
+    }
+
+    await client.sendText(
+        numero,
+        montarDadosAcessoTeste(teste)
+    );
+
+    sessoes[numero] = 'revendedor_pos_teste';
+
+    return await menuPosTeste(
+        client,
+        numero
+    );
+
+}
+
+async function pedirConfirmacaoLimparTestes(client, numero, revendedor) {
+
+    const testes = listarTestesRevendedor(revendedor);
+
+    if (!testes.length) {
+        sessoes[numero] = 'revendedor_teste';
+
+        return await client.sendText(
+            numero,
+            'Nao encontrei testes ativos para limpar.'
+        );
+    }
+
+    sessoes[chave(numero, 'rev_limpar_testes_total')] = String(testes.length);
+    sessoes[numero] = 'revendedor_limpar_testes_confirmar';
+
+    return await client.sendText(
+        numero,
+        [
+            '*Limpar testes da revenda?*',
+            '',
+            `Encontrei ${testes.length} teste(s) ativo(s).`,
+            '',
+            'Ao confirmar, esses contatos vao para a lista de remarketing da TOPTEC e deixam de aparecer como teste ativo para voce.',
+            '',
+            '1 - Confirmar limpeza',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function confirmarLimpezaTestes(client, numero, texto, numeroWhatsapp, revendedor) {
+
+    if (texto === '0') {
+        sessoes[numero] = 'revendedor_teste';
+        return await menuTeste(
+            client,
+            numero
+        );
+    }
+
+    if (texto !== '1') {
+        return await pedirConfirmacaoLimparTestes(
+            client,
+            numero,
+            revendedor
+        );
+    }
+
+    const movidos = limparTestesRevendedor(revendedor);
+    delete sessoes[chave(numero, 'rev_limpar_testes_total')];
+    sessoes[numero] = 'revendedor_teste';
+
+    if (movidos.length) {
+        await notificar(
+            client,
+            'TESTES REVENDA PARA REMARKETING',
+            [
+                `Revendedor: ${nomeRevendedor(revendedor)}`,
+                `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                `Total movido: ${movidos.length}`,
+                '',
+                ...movidos.slice(0, 10).map(item =>
+                    `${item.cliente_nome || 'Sem nome'} - ${item.cliente_telefone || 'sem telefone'} - ${item.usuario || 'sem usuario'}`
+                ),
+                movidos.length > 10 ? `... e mais ${movidos.length - 10}` : ''
+            ].filter(Boolean).join('\n')
+        );
+    }
+
+    await client.sendText(
+        numero,
+        [
+            `Limpeza concluida. ${movidos.length} teste(s) foram enviados para remarketing da TOPTEC.`,
+            '',
+            'Se quiser criar novo teste, escolha uma opcao abaixo.'
+        ].join('\n')
+    );
+
+    return await menuTeste(
+        client,
+        numero
+    );
+
+}
+
 async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
 
     const dados = sessoes[chave(numero, 'rev_teste_dados')];
@@ -500,6 +749,42 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
         );
     }
 
+    let testeRegistrado;
+
+    try {
+        testeRegistrado = registrarTesteRevendedorCliente({
+            revendedor,
+            clienteNome: dados.nome,
+            clienteTelefone: dados.telefone,
+            usuario: teste.usuario || '',
+            senha: teste.senha || '',
+            dns: teste.dns || '',
+            m3u: teste.m3u || '',
+            vencimento: vencimentoTeste(teste),
+            observacao: `Tipo: ${tipo}`
+        });
+    } catch (erro) {
+        console.error(
+            'ERRO REGISTRAR TESTE REVENDEDOR CSV',
+            erro.message
+        );
+
+        await notificar(
+            client,
+            'ERRO PLANILHA TESTE REVENDEDOR',
+            [
+                `Revendedor: ${nomeRevendedor(revendedor)}`,
+                `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                '',
+                `Cliente: ${dados.nome}`,
+                `WhatsApp cliente: ${dados.telefone}`,
+                teste.usuario ? `Usuario teste: ${teste.usuario}` : '',
+                '',
+                `Erro: ${erro.message}`
+            ].filter(Boolean).join('\n')
+        );
+    }
+
     const chamado = registrarChamadoRevendedor({
         revendedor,
         clienteNome: dados.nome,
@@ -520,6 +805,7 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
             `WhatsApp cliente: ${dados.telefone}`,
             `Tipo: ${tipo}`,
             teste.usuario ? `Usuario teste: ${teste.usuario}` : '',
+            testeRegistrado?.vencimento ? `Vencimento teste: ${testeRegistrado.vencimento}` : '',
             `Creditos restantes: ${credito.creditos}`,
             '',
             'Teste criado automaticamente pelo link da revenda.'
@@ -743,6 +1029,22 @@ module.exports = async function revendedorHandler(
             );
         }
 
+        if (texto === '3') {
+            return await listarTestesAtivos(
+                client,
+                numero,
+                revendedor
+            );
+        }
+
+        if (texto === '4') {
+            return await pedirConfirmacaoLimparTestes(
+                client,
+                numero,
+                revendedor
+            );
+        }
+
         if (!['1', '2'].includes(texto)) {
             return await menuTeste(
                 client,
@@ -761,6 +1063,25 @@ module.exports = async function revendedorHandler(
             numero
         );
 
+    }
+
+    if (etapa === 'revendedor_teste_ativo_escolher') {
+        return await enviarTesteAtivoEscolhido(
+            client,
+            numero,
+            texto,
+            revendedor
+        );
+    }
+
+    if (etapa === 'revendedor_limpar_testes_confirmar') {
+        return await confirmarLimpezaTestes(
+            client,
+            numero,
+            texto,
+            numeroWhatsapp,
+            revendedor
+        );
     }
 
     if (etapa === 'revendedor_teste_nome' || etapa === 'revendedor_teste_dados') {

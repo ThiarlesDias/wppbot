@@ -34,6 +34,28 @@ const TIPOS = {
             String(linha.usuario || '').trim().toLowerCase()
         ].filter(Boolean).join('|')
     },
+    remarketing: {
+        headers: [
+            'revendedor_telefone',
+            'revendedor_nome',
+            'cliente_nome',
+            'cliente_telefone',
+            'usuario',
+            'senha',
+            'dns',
+            'm3u',
+            'vencimento',
+            'status',
+            'criado_em',
+            'origem',
+            'observacao'
+        ],
+        key: linha => [
+            normalizarTelefoneBrasil(linha.revendedor_telefone),
+            String(linha.usuario || '').trim().toLowerCase() ||
+                normalizarTelefoneBrasil(linha.cliente_telefone)
+        ].filter(Boolean).join('|')
+    },
     chamados: {
         headers: [
             'codigo',
@@ -348,7 +370,7 @@ function main() {
     const config = TIPOS[tipo];
 
     if (!config) {
-        throw new Error('Tipo invalido. Use revendedores, clientes ou chamados.');
+        throw new Error('Tipo invalido. Use revendedores, clientes, remarketing ou chamados.');
     }
 
     if (!local || !remoto) {

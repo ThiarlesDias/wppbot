@@ -62,6 +62,12 @@ if [ -f "$LEGADO_CHAMADOS" ] && [ ! -f "$CHAMADOS_LOCAL" ]; then
     cp "$LEGADO_CHAMADOS" "$CHAMADOS_LOCAL"
 fi
 
+LEGADO_REMARKETING="$APP_DIR/data/revendedores_remarketing.csv"
+REMARKETING_LOCAL="$APP_DIR/data/revendedores-remarketing.csv"
+if [ -f "$LEGADO_REMARKETING" ] && [ ! -f "$REMARKETING_LOCAL" ]; then
+    cp "$LEGADO_REMARKETING" "$REMARKETING_LOCAL"
+fi
+
 sync_um \
     "revendedores" \
     "$APP_DIR/data/revendedores.csv" \
@@ -75,6 +81,13 @@ sync_um \
     "revendedores_clientes.csv" \
     "revendedores-clientes.csv" \
     "revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;observacao;aviso_vencimento"
+
+sync_um \
+    "remarketing" \
+    "$REMARKETING_LOCAL" \
+    "revendedores_remarketing.csv" \
+    "revendedores-remarketing.csv" \
+    "revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;criado_em;origem;observacao"
 
 sync_um \
     "chamados" \

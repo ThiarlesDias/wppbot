@@ -46,6 +46,11 @@ const DEFINICOES = [
         cabecalho: 'revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;observacao;aviso_vencimento'
     },
     {
+        chave: 'revendedores_remarketing',
+        arquivo: 'revendedores-remarketing.csv',
+        cabecalho: 'revendedor_telefone;revendedor_nome;cliente_nome;cliente_telefone;usuario;senha;dns;m3u;vencimento;status;criado_em;origem;observacao'
+    },
+    {
         chave: 'revendedores_chamados',
         arquivo: 'revendedores-chamados.csv',
         cabecalho: 'codigo;revendedor_telefone;revendedor_nome;cliente_nome;usuario;descricao;status;criado_em;atualizado_em;observacao'

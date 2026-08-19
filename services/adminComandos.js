@@ -74,6 +74,7 @@ const PLANILHAS_ALVOS = [
     'servicos',
     'revendedores',
     'revendedores_clientes',
+    'revendedores_remarketing',
     'revendedores_chamados'
 ];
 
@@ -138,6 +139,7 @@ function menuAdmin() {
         '#planilhas atualizar clientes - sincronizar uma planilha especifica',
         '#planilhas atualizar revendedores - sincronizar cadastro dos revendedores',
         '#planilhas atualizar revendedores_clientes - sincronizar clientes dos revendedores',
+        '#planilhas atualizar revendedores_remarketing - sincronizar remarketing das revendas',
         '#planilhas atualizar revendedores_chamados - sincronizar chamados dos revendedores',
         '#chamado enviar OS359 - enviar informacoes do chamado ao cliente',
         '#marketing status - status da campanha',
@@ -293,6 +295,7 @@ function textoUsoPlanilhas() {
         '*#planilhas atualizar servicos*',
         '*#planilhas atualizar revendedores*',
         '*#planilhas atualizar revendedores_clientes*',
+        '*#planilhas atualizar revendedores_remarketing*',
         '*#planilhas atualizar revendedores_chamados*'
     ].join('\n');
 

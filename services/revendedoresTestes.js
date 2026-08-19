@@ -220,14 +220,13 @@ function resumirResposta(dados) {
 
 }
 
-function montarMensagemTeste(dados) {
+function extrairDadosAcesso(payload = {}) {
 
-    const payload = extrairPayloadTeste(dados) || dados?.data || dados || {};
     const usuario = payload.username || payload.usuario || payload.user || '';
     const senha = payload.password || payload.senha || payload.pass || '';
     const dns = String(payload.dns || payload.server || payload.host || '').replace(/\/$/, '');
     const dnsComBarra = dns ? `${dns}/` : '';
-    const linkM3u = payload.m3u ||
+    const m3u = payload.m3u ||
         payload.linkM3u ||
         payload.link_m3u ||
         (
@@ -235,6 +234,33 @@ function montarMensagemTeste(dados) {
                 `${dns}/get.php?username=${usuario}&password=${senha}&type=m3u_plus&output=mpegts` :
                 ''
         );
+    const vencimento = payload.expiresAt ||
+        payload.expires_at ||
+        payload.vencimento ||
+        payload.expiration ||
+        payload.exp_date ||
+        '';
+
+    return {
+        usuario,
+        senha,
+        dns,
+        dnsComBarra,
+        m3u,
+        vencimento
+    };
+
+}
+
+function montarMensagemTeste(dados) {
+
+    const payload = extrairPayloadTeste(dados) || dados?.data || dados || {};
+    const {
+        usuario,
+        senha,
+        dnsComBarra,
+        m3u
+    } = extrairDadosAcesso(payload);
 
     if (payload.template && typeof payload.template === 'string') return payload.template;
 
@@ -248,7 +274,7 @@ function montarMensagemTeste(dados) {
         dnsComBarra ? `🟠 *DNS XCIPTV:* ${dnsComBarra}` : '',
         dnsComBarra ? `🟠 *DNS SMARTERS:* ${dnsComBarra}` : '',
         '',
-        linkM3u ? `🟢 *Link (M3U):* ${linkM3u}` : ''
+        m3u ? `🟢 *Link (M3U):* ${m3u}` : ''
     ].filter(Boolean).join('\n');
 
 }
@@ -346,7 +372,8 @@ async function criarTesteRevendedor({
     }
 
     const mensagem = montarMensagemTeste(payload);
-    const usuario = payload.username || payload.usuario || payload.user || '';
+    const acesso = extrairDadosAcesso(payload);
+    const usuario = acesso.usuario;
 
     if (!mensagem && !usuario) {
         throw new Error(
@@ -358,7 +385,10 @@ async function criarTesteRevendedor({
         dados,
         mensagem,
         usuario,
-        senha: payload.password || payload.senha || payload.pass || '',
+        senha: acesso.senha,
+        dns: acesso.dns,
+        m3u: acesso.m3u,
+        vencimento: acesso.vencimento,
         url
     };
 
