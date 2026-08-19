@@ -44,6 +44,11 @@ async function menuRevendedor(client, numero, revendedor = {}) {
                     id: '5',
                     titulo: 'Falar com a TOPTEC',
                     descricao: 'Encaminhar atendimento para nossa equipe.'
+                },
+                {
+                    id: '6',
+                    titulo: 'Ajuda com configuracao',
+                    descricao: 'Passo a passo para instalar e usar a lista.'
                 }
             ]
         }

@@ -1,5 +1,7 @@
 const sessoes = require('../services/sessions');
 const menuRevendedor = require('../menus/revendedor');
+const ajudaConfiguracao = require('../menus/suporte/ajudaConfiguracao');
+const passosConfiguracao = require('../menus/suporte/passosConfiguracao');
 const {
     enviarMenu
 } = require('../services/menuInterativo');
@@ -274,6 +276,97 @@ async function falarComToptec(client, numero, numeroWhatsapp, revendedor, origem
 
 }
 
+async function abrirAjudaConfiguracao(client, numero) {
+
+    sessoes[numero] = 'revendedor_ajuda_config';
+
+    return await ajudaConfiguracao(
+        client,
+        numero
+    );
+
+}
+
+async function tratarAjudaConfiguracao(client, numero, texto, numeroWhatsapp, revendedor) {
+
+    if (texto === '1') {
+        return await passosConfiguracao.smartTv(
+            client,
+            numero
+        );
+    }
+
+    if (texto === '2') {
+        return await passosConfiguracao.computador(
+            client,
+            numero
+        );
+    }
+
+    if (texto === '3') {
+        return await passosConfiguracao.celular(
+            client,
+            numero
+        );
+    }
+
+    if (texto === '4') {
+        return await passosConfiguracao.outro(
+            client,
+            numero
+        );
+    }
+
+    if (texto === '9') {
+        return await falarComToptec(
+            client,
+            numero,
+            numeroWhatsapp,
+            revendedor,
+            'Ajuda de configuracao revendedor'
+        );
+    }
+
+    if (texto === '8') {
+        sessoes[numero] = 'revendedor_menu';
+
+        return await client.sendText(
+            numero,
+            'Atendimento de configuracao encerrado. Quando precisar, envie uma mensagem por aqui.'
+        );
+    }
+
+    if (texto === '0') {
+        sessoes[numero] = 'revendedor_menu';
+
+        return await menuRevendedor(
+            client,
+            numero,
+            revendedor
+        );
+    }
+
+    return await ajudaConfiguracao(
+        client,
+        numero
+    );
+
+}
+
+async function menuPosTeste(client, numero) {
+
+    return await client.sendText(
+        numero,
+        [
+            'Precisa de ajuda para configurar no aparelho do cliente?',
+            '',
+            '6 - Ajuda com configuracao',
+            '0 - Voltar ao menu'
+        ].join('\n')
+    );
+
+}
+
 async function listarClientes(client, numero, revendedor) {
 
     const clientes = listarClientesRevendedor(revendedor);
@@ -434,9 +527,9 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
 
     delete sessoes[chave(numero, 'rev_teste_dados')];
     delete sessoes[chave(numero, 'rev_teste_tipo')];
-    sessoes[numero] = 'revendedor_menu';
+    sessoes[numero] = 'revendedor_pos_teste';
 
-    return await client.sendText(
+    await client.sendText(
         numero,
         [
             'Teste criado com sucesso.',
@@ -444,6 +537,11 @@ async function confirmarTeste(client, numero, numeroWhatsapp, revendedor) {
             '',
             teste.mensagem || 'Dados do teste criados, mas o painel nao retornou uma mensagem pronta.'
         ].join('\n')
+    );
+
+    return await menuPosTeste(
+        client,
+        numero
     );
 
 }
@@ -544,6 +642,46 @@ module.exports = async function revendedorHandler(
         );
     }
 
+    if (
+        texto === '6' ||
+        texto.includes('ajuda') ||
+        texto.includes('configuracao') ||
+        texto.includes('configuração')
+    ) {
+        return await abrirAjudaConfiguracao(
+            client,
+            numero
+        );
+    }
+
+    if (etapa === 'revendedor_ajuda_config') {
+        return await tratarAjudaConfiguracao(
+            client,
+            numero,
+            texto,
+            numeroWhatsapp,
+            revendedor
+        );
+    }
+
+    if (etapa === 'revendedor_pos_teste') {
+
+        if (texto === '0') {
+            sessoes[numero] = 'revendedor_menu';
+            return await menuRevendedor(
+                client,
+                numero,
+                revendedor
+            );
+        }
+
+        return await menuPosTeste(
+            client,
+            numero
+        );
+
+    }
+
     if (etapa === 'revendedor_menu') {
 
         if (texto === '1') {
@@ -573,6 +711,13 @@ module.exports = async function revendedorHandler(
         if (texto === '4') {
             sessoes[numero] = 'revendedor_chamados';
             return await menuChamados(
+                client,
+                numero
+            );
+        }
+
+        if (texto === '6') {
+            return await abrirAjudaConfiguracao(
                 client,
                 numero
             );
