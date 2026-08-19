@@ -11,6 +11,33 @@ function limparNumero(valor) {
 
 }
 
+function normalizarTelefoneBrasil(valor) {
+
+    const limpo = limparNumero(valor);
+    let local = limpo;
+
+    if (
+        limpo.startsWith('55') &&
+        (limpo.length === 12 || limpo.length === 13)
+    ) {
+        local = limpo.slice(2);
+    }
+
+    if (local.length === 10) {
+        local = `${local.slice(0, 2)}9${local.slice(2)}`;
+    }
+
+    if (
+        (local.length === 10 || local.length === 11) &&
+        !local.startsWith('55')
+    ) {
+        return `55${local}`;
+    }
+
+    return limpo;
+
+}
+
 function urlPorTipo(tipo) {
 
     return String(tipo || '').includes('sem') ?
@@ -58,7 +85,7 @@ async function criarTesteRevendedor({
     tipo
 }) {
 
-    const telefoneLimpo = limparNumero(telefone);
+    const telefoneLimpo = normalizarTelefoneBrasil(telefone);
     const url = urlPorTipo(tipo);
 
     if (!url) {
@@ -105,11 +132,14 @@ async function criarTesteRevendedor({
     }
 
     if (!resposta.ok) {
-        throw new Error(
+        const detalheErro =
             dados?.message ||
             dados?.errors?.[0] ||
             texto.slice(0, 200) ||
-            `Erro chatbot revenda: ${resposta.status}`
+            `Erro chatbot revenda: ${resposta.status}`;
+
+        throw new Error(
+            `URL: ${url} | Status: ${resposta.status} | ${detalheErro}`
         );
     }
 
