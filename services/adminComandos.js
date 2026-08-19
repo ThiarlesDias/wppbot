@@ -133,7 +133,7 @@ function menuAdmin() {
         '#leads - resumo da planilha de leads',
         '#leads ultimos - ultimos 10 leads',
         '#leads encerrar todos - parar remarketing e encerrar leads ativos',
-        '#addrevenda Nome;WhatsApp;creditos;data fechamento - cadastrar/atualizar revenda',
+        '#addrevenda - cadastrar/atualizar revenda passo a passo',
         '#planilhas atualizar - sincronizar todas as planilhas agora',
         '#planilhas atualizar clientes - sincronizar uma planilha especifica',
         '#planilhas atualizar revendedores - sincronizar cadastro dos revendedores',
@@ -317,11 +317,11 @@ function normalizarAlvoPlanilha(valor) {
 function textoUsoAddRevenda() {
 
     return [
-        'Use assim:',
-        '*#addrevenda Nome;WhatsApp;creditos;data fechamento*',
+        'Cadastro de revenda iniciado.',
         '',
-        'Exemplo:',
-        '#addrevenda Maria Silva;5543999999999;10;30/08/2026'
+        'Informe o *nome da revenda* ou do revendedor.',
+        '',
+        'Para cancelar, envie *0*.'
     ].join('\n');
 
 }
@@ -350,32 +350,41 @@ function normalizarDataFechamento(valor) {
 
 }
 
-function parseAddRevenda(texto) {
+function chaveAddRevenda(numero, campo) {
 
-    const conteudo = String(texto || '')
-        .replace(/^#addrevenda\b/i, '')
-        .trim();
-    const partes = conteudo
-        .split(';')
-        .map(parte => parte.trim());
+    return `${numero}_admin_addrevenda_${campo}`;
 
-    if (partes.length < 4) return null;
+}
 
-    const nome = partes[0];
-    const whatsapp = normalizarNumero(partes[1]);
-    const creditos = Number(partes[2].replace(',', '.'));
-    const dataFechamento = normalizarDataFechamento(partes.slice(3).join(';'));
+function dadosAddRevenda(numero) {
 
-    if (!nome || whatsapp.length < 10) return null;
-    if (!Number.isFinite(creditos) || creditos < 0) return null;
-    if (!dataFechamento) return null;
+    const chaveDados = chaveAddRevenda(numero, 'dados');
 
-    return {
-        nome,
-        whatsapp,
-        creditos: String(Math.floor(creditos)),
-        dataFechamento
-    };
+    if (!sessoes[chaveDados]) {
+        sessoes[chaveDados] = {};
+    }
+
+    return sessoes[chaveDados];
+
+}
+
+function etapaAddRevenda(numero) {
+
+    return sessoes[chaveAddRevenda(numero, 'etapa')] || '';
+
+}
+
+function limparAddRevenda(numero) {
+
+    delete sessoes[chaveAddRevenda(numero, 'etapa')];
+    delete sessoes[chaveAddRevenda(numero, 'dados')];
+
+}
+
+function iniciarAddRevenda(numero) {
+
+    sessoes[chaveAddRevenda(numero, 'etapa')] = 'nome';
+    sessoes[chaveAddRevenda(numero, 'dados')] = {};
 
 }
 
@@ -409,6 +418,232 @@ function mensagemBoasVindasRevenda(revenda) {
         '',
         'Para abrir o menu, envie qualquer mensagem por aqui.'
     ].join('\n');
+
+}
+
+async function salvarRevendaComBoasVindas(client, dados) {
+
+    const revenda = adicionarOuAtualizarRevendedor({
+        nome: dados.nome,
+        telefone: dados.whatsapp,
+        creditos: dados.creditos,
+        dataFechamento: dados.dataFechamento
+    });
+    let syncGoogle = 'Google Sheets nao atualizado.';
+
+    try {
+        await atualizarRevendedoresGoogle();
+        syncGoogle = 'Google Sheets atualizado na aba revendedores.';
+    } catch (erro) {
+        syncGoogle = `CSV local atualizado. Google Sheets nao atualizado: ${erro.message}`;
+    }
+
+    let boasVindas = 'Boas-vindas nao enviadas.';
+
+    try {
+        const envio = await enviarTextoSeguro(
+            client,
+            [
+                `${revenda.telefone}@c.us`,
+                revenda.telefone
+            ],
+            mensagemBoasVindasRevenda(revenda)
+        );
+        boasVindas = `Boas-vindas enviada para ${envio.destino}.`;
+    } catch (erro) {
+        boasVindas = `Nao consegui enviar boas-vindas: ${erro.message}`;
+    }
+
+    return {
+        revenda,
+        syncGoogle,
+        boasVindas
+    };
+
+}
+
+function resumoConfirmacaoAddRevenda(dados) {
+
+    return [
+        '*Confirmar cadastro da revenda?*',
+        '',
+        `Nome: ${dados.nome}`,
+        `WhatsApp: ${dados.whatsapp}`,
+        `Creditos: ${dados.creditos}`,
+        `Fechamento: ${dados.dataFechamento}`,
+        '',
+        '1 - Confirmar e enviar boas-vindas',
+        '0 - Cancelar'
+    ].join('\n');
+
+}
+
+async function tratarFluxoAddRevenda(client, numero, texto) {
+
+    const etapa = etapaAddRevenda(numero);
+    const dados = dadosAddRevenda(numero);
+
+    if (!etapa) return false;
+
+    if (texto === '0' || texto === 'cancelar') {
+        limparAddRevenda(numero);
+
+        await client.sendText(
+            numero,
+            'Cadastro de revenda cancelado.'
+        );
+
+        return true;
+    }
+
+    if (etapa === 'nome') {
+        const nome = String(texto || '').trim();
+
+        if (nome.length < 2) {
+            await client.sendText(
+                numero,
+                'Informe um nome valido para a revenda.'
+            );
+
+            return true;
+        }
+
+        dados.nome = nome;
+        sessoes[chaveAddRevenda(numero, 'etapa')] = 'whatsapp';
+
+        await client.sendText(
+            numero,
+            [
+                'Agora informe o *WhatsApp da revenda* com DDD.',
+                '',
+                'Exemplo: 5543999999999',
+                '',
+                '0 - Cancelar'
+            ].join('\n')
+        );
+
+        return true;
+    }
+
+    if (etapa === 'whatsapp') {
+        const whatsapp = normalizarNumero(texto);
+
+        if (whatsapp.length < 10) {
+            await client.sendText(
+                numero,
+                'WhatsApp invalido. Envie com DDD, somente numeros.'
+            );
+
+            return true;
+        }
+
+        dados.whatsapp = whatsapp;
+        sessoes[chaveAddRevenda(numero, 'etapa')] = 'creditos';
+
+        await client.sendText(
+            numero,
+            [
+                'Quantos *creditos* essa revenda tera para criar testes?',
+                '',
+                'Exemplo: 10',
+                '',
+                '0 - Cancelar'
+            ].join('\n')
+        );
+
+        return true;
+    }
+
+    if (etapa === 'creditos') {
+        const creditos = Number(String(texto || '').replace(',', '.'));
+
+        if (!Number.isFinite(creditos) || creditos < 0) {
+            await client.sendText(
+                numero,
+                'Informe uma quantidade valida de creditos. Exemplo: 10'
+            );
+
+            return true;
+        }
+
+        dados.creditos = String(Math.floor(creditos));
+        sessoes[chaveAddRevenda(numero, 'etapa')] = 'fechamento';
+
+        await client.sendText(
+            numero,
+            [
+                'Informe a *data de fechamento* da revenda.',
+                '',
+                'Exemplo: 30/08/2026',
+                'Se quiser, pode mandar com hora: 30/08/2026 18:00',
+                '',
+                '0 - Cancelar'
+            ].join('\n')
+        );
+
+        return true;
+    }
+
+    if (etapa === 'fechamento') {
+        const dataFechamento = normalizarDataFechamento(texto);
+
+        if (!dataFechamento) {
+            await client.sendText(
+                numero,
+                'Data invalida. Envie no formato 30/08/2026 ou 30/08/2026 18:00.'
+            );
+
+            return true;
+        }
+
+        dados.dataFechamento = dataFechamento;
+        sessoes[chaveAddRevenda(numero, 'etapa')] = 'confirmar';
+
+        await client.sendText(
+            numero,
+            resumoConfirmacaoAddRevenda(dados)
+        );
+
+        return true;
+    }
+
+    if (etapa === 'confirmar') {
+        if (!['1', 'sim', 's'].includes(texto)) {
+            await client.sendText(
+                numero,
+                resumoConfirmacaoAddRevenda(dados)
+            );
+
+            return true;
+        }
+
+        const resultado = await salvarRevendaComBoasVindas(
+            client,
+            dados
+        );
+
+        limparAddRevenda(numero);
+
+        await client.sendText(
+            numero,
+            [
+                'Revenda cadastrada/atualizada.',
+                '',
+                `Nome: ${resultado.revenda.nome}`,
+                `WhatsApp: ${resultado.revenda.telefone}`,
+                `Creditos: ${resultado.revenda.creditos}`,
+                `Fechamento: ${resultado.revenda.data_fechamento}`,
+                '',
+                resultado.syncGoogle,
+                resultado.boasVindas
+            ].join('\n')
+        );
+
+        return true;
+    }
+
+    limparAddRevenda(numero);
+    return false;
 
 }
 
@@ -950,63 +1185,23 @@ async function tratarComandoAdmin({
 
     }
 
+    if (etapaAddRevenda(numero)) {
+
+        return await tratarFluxoAddRevenda(
+            client,
+            numero,
+            texto
+        );
+
+    }
+
     if (/^#addrevenda\b/i.test(texto)) {
 
-        const dados = parseAddRevenda(texto);
-
-        if (!dados) {
-
-            return await client.sendText(
-                numero,
-                textoUsoAddRevenda()
-            );
-
-        }
-
-        const revenda = adicionarOuAtualizarRevendedor({
-            nome: dados.nome,
-            telefone: dados.whatsapp,
-            creditos: dados.creditos,
-            dataFechamento: dados.dataFechamento
-        });
-        let syncGoogle = 'Google Sheets nao atualizado.';
-
-        try {
-            await atualizarRevendedoresGoogle();
-            syncGoogle = 'Google Sheets atualizado na aba revendedores.';
-        } catch (erro) {
-            syncGoogle = `CSV local atualizado. Google Sheets nao atualizado: ${erro.message}`;
-        }
-
-        let boasVindas = 'Boas-vindas nao enviadas.';
-
-        try {
-            const envio = await enviarTextoSeguro(
-                client,
-                [
-                    `${revenda.telefone}@c.us`,
-                    revenda.telefone
-                ],
-                mensagemBoasVindasRevenda(revenda)
-            );
-            boasVindas = `Boas-vindas enviada para ${envio.destino}.`;
-        } catch (erro) {
-            boasVindas = `Nao consegui enviar boas-vindas: ${erro.message}`;
-        }
+        iniciarAddRevenda(numero);
 
         return await client.sendText(
             numero,
-            [
-                'Revenda cadastrada/atualizada.',
-                '',
-                `Nome: ${revenda.nome}`,
-                `WhatsApp: ${revenda.telefone}`,
-                `Creditos: ${revenda.creditos}`,
-                `Fechamento: ${revenda.data_fechamento}`,
-                '',
-                syncGoogle,
-                boasVindas
-            ].join('\n')
+            textoUsoAddRevenda()
         );
 
     }
