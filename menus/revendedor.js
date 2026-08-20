@@ -26,6 +26,11 @@ async function menuRevendedor(client, numero, revendedor = {}) {
                     descricao: 'Solicitar teste com ou sem adultos.'
                 },
                 {
+                    id: '7',
+                    titulo: 'Criar cliente',
+                    descricao: 'Ativar cliente usando teste ativo ou vencido.'
+                },
+                {
                     id: '2',
                     titulo: 'Renovar cliente',
                     descricao: 'Informar usuario do sistema para renovacao.'

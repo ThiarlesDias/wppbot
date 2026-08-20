@@ -329,8 +329,11 @@ function statusAtivo(status) {
         'bloqueado',
         'teste',
         'teste_ativo',
+        'teste_vencido',
         'remarketing',
-        'limpo'
+        'limpo',
+        'cliente_solicitado',
+        'solicitado_cliente'
     ].includes(texto);
 
 }
@@ -341,7 +344,8 @@ function statusTeste(status) {
 
     return [
         'teste',
-        'teste_ativo'
+        'teste_ativo',
+        'teste_vencido'
     ].includes(texto);
 
 }
@@ -791,6 +795,36 @@ function limparTestesRevendedor(revendedor) {
 
 }
 
+function marcarTesteRevendedorComoClienteSolicitado(revendedor, testeAlvo) {
+
+    const linhas = lerRevendedoresClientesCsv();
+    const alvo = chaveClienteRevendedor({
+        revendedor_telefone: testeAlvo?.revendedor_telefone || revendedor?.telefone,
+        cliente_telefone: testeAlvo?.cliente_telefone,
+        usuario: testeAlvo?.usuario
+    });
+    const agora = formatarData(new Date());
+    const indice = linhas.findIndex(cliente =>
+        chaveClienteRevendedor(cliente) === alvo
+    );
+
+    if (indice < 0) return false;
+
+    linhas[indice] = {
+        ...linhas[indice],
+        status: 'cliente_solicitado',
+        observacao: adicionarObservacao(
+            linhas[indice].observacao,
+            `Criacao de cliente solicitada em ${agora}`
+        )
+    };
+
+    salvarRevendedoresClientesCsv(linhas);
+
+    return true;
+
+}
+
 function formatarData(valor = new Date()) {
 
     const data = valor instanceof Date ? valor : new Date(valor);
@@ -913,6 +947,7 @@ module.exports = {
     listarTestesRevendedor,
     marcarAvisoFechamentoRevendedor,
     marcarAvisoVencimentoRevendedorCliente,
+    marcarTesteRevendedorComoClienteSolicitado,
     obterCreditosRevendedor,
     registrarChamadoRevendedor,
     registrarTesteRevendedorCliente,

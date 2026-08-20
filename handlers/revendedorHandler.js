@@ -14,6 +14,7 @@ const {
     listarChamadosAbertosRevendedor,
     listarClientesRevendedor,
     listarTestesRevendedor,
+    marcarTesteRevendedorComoClienteSolicitado,
     obterCreditosRevendedor,
     registrarChamadoRevendedor,
     registrarTesteRevendedorCliente
@@ -118,7 +119,8 @@ function resumoTestes(testes) {
         `${indice + 1}. ${teste.cliente_nome || 'Cliente sem nome'}`,
         teste.cliente_telefone ? `   WhatsApp: ${teste.cliente_telefone}` : '',
         teste.usuario ? `   Usuario: ${teste.usuario}` : '',
-        teste.vencimento ? `   Vencimento: ${teste.vencimento}` : ''
+        teste.vencimento ? `   Vencimento: ${teste.vencimento}` : '',
+        `   Situacao: ${situacaoTeste(teste)}`
     ].filter(Boolean).join('\n'));
 
     if (testes.length > limite) {
@@ -144,6 +146,44 @@ function montarDadosAcessoTeste(teste) {
         teste.dns ? `DNS: ${String(teste.dns).replace(/\/$/, '')}/` : '',
         teste.m3u ? `M3U: ${teste.m3u}` : ''
     ].filter(Boolean).join('\n');
+
+}
+
+function parseDataRevenda(valor) {
+
+    if (!valor) return null;
+
+    const texto = String(valor).trim();
+    const direta = new Date(texto);
+
+    if (!Number.isNaN(direta.getTime())) return direta;
+
+    const match = texto.match(
+        /^(\d{2})\/(\d{2})\/(\d{4})(?:,?\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/
+    );
+
+    if (!match) return null;
+
+    return new Date(
+        Number(match[3]),
+        Number(match[2]) - 1,
+        Number(match[1]),
+        Number(match[4] || 0),
+        Number(match[5] || 0),
+        Number(match[6] || 0)
+    );
+
+}
+
+function situacaoTeste(teste) {
+
+    const vencimento = parseDataRevenda(teste?.vencimento);
+
+    if (!vencimento) return 'ativo/vencido';
+
+    return vencimento.getTime() < Date.now() ?
+        'vencido' :
+        'ativo';
 
 }
 
@@ -255,11 +295,34 @@ async function menuTeste(client, numero) {
                 },
                 {
                     id: '3',
-                    titulo: 'Tem teste ativo?'
+                    titulo: 'Limpar testes'
                 },
                 {
-                    id: '4',
-                    titulo: 'Limpar testes'
+                    id: '0',
+                    titulo: 'Voltar'
+                }
+            ]
+        }
+    );
+
+}
+
+async function menuCriarCliente(client, numero) {
+
+    return await enviarMenu(
+        client,
+        numero,
+        {
+            titulo: 'Criar cliente',
+            descricao: 'O cliente ja tem teste ativo ou vencido?',
+            opcoes: [
+                {
+                    id: '1',
+                    titulo: 'Sim, buscar teste'
+                },
+                {
+                    id: '2',
+                    titulo: 'Nao, informar cliente'
                 },
                 {
                     id: '0',
@@ -468,34 +531,34 @@ async function listarClientes(client, numero, revendedor) {
 
 }
 
-async function listarTestesAtivos(client, numero, revendedor) {
+async function listarTestesParaCriarCliente(client, numero, revendedor) {
 
     const testes = listarTestesRevendedor(revendedor);
 
     if (!testes.length) {
-        sessoes[numero] = 'revendedor_teste';
+        sessoes[numero] = 'revendedor_criar_cliente';
 
         return await client.sendText(
             numero,
             [
-                'Nao encontrei testes ativos vinculados ao seu cadastro.',
+                'Nao encontrei testes ativos ou vencidos vinculados ao seu cadastro.',
                 '',
-                'Se precisar criar um novo, escolha com adultos ou sem adultos.'
+                'Se o cliente nao tem teste, escolha a opcao de informar cliente.'
             ].join('\n')
         );
     }
 
-    sessoes[chave(numero, 'rev_testes_ativos')] = testes;
-    sessoes[numero] = 'revendedor_teste_ativo_escolher';
+    sessoes[chave(numero, 'rev_testes_criar_cliente')] = testes;
+    sessoes[numero] = 'revendedor_criar_cliente_teste_escolher';
 
     return await client.sendText(
         numero,
         [
-            '*Testes ativos da sua revenda*',
+            '*Testes ativos ou vencidos da sua revenda*',
             '',
             resumoTestes(testes),
             '',
-            'Digite o *WhatsApp do cliente* para ver os dados do teste.',
+            'Digite o *WhatsApp do cliente* que deseja transformar em cliente.',
             'Tambem aceito o numero da lista.',
             '',
             '0 - Voltar'
@@ -504,17 +567,17 @@ async function listarTestesAtivos(client, numero, revendedor) {
 
 }
 
-async function enviarTesteAtivoEscolhido(client, numero, texto, revendedor) {
+async function escolherTesteParaCriarCliente(client, numero, texto, revendedor) {
 
     if (texto === '0') {
-        sessoes[numero] = 'revendedor_teste';
-        return await menuTeste(
+        sessoes[numero] = 'revendedor_criar_cliente';
+        return await menuCriarCliente(
             client,
             numero
         );
     }
 
-    const testes = sessoes[chave(numero, 'rev_testes_ativos')] ||
+    const testes = sessoes[chave(numero, 'rev_testes_criar_cliente')] ||
         listarTestesRevendedor(revendedor);
     const teste = buscarTesteEscolhido(
         testes,
@@ -525,23 +588,150 @@ async function enviarTesteAtivoEscolhido(client, numero, texto, revendedor) {
         return await client.sendText(
             numero,
             [
-                'Nao encontrei teste ativo com esse WhatsApp.',
+                'Nao encontrei teste ativo ou vencido com esse WhatsApp.',
                 '',
                 'Envie o WhatsApp do cliente exatamente como aparece na lista, ou digite 0 para voltar.'
             ].join('\n')
         );
     }
 
-    await client.sendText(
+    sessoes[chave(numero, 'rev_criar_cliente_teste')] = teste;
+    sessoes[numero] = 'revendedor_criar_cliente_confirmar';
+
+    return await client.sendText(
         numero,
-        montarDadosAcessoTeste(teste)
+        [
+            '*Confirmar criacao de cliente?*',
+            '',
+            montarDadosAcessoTeste(teste),
+            '',
+            '1 - Confirmar',
+            '0 - Voltar'
+        ].join('\n')
     );
 
-    sessoes[numero] = 'revendedor_pos_teste';
+}
 
-    return await menuPosTeste(
+async function pedirNomeCriarCliente(client, numero) {
+
+    return await client.sendText(
+        numero,
+        [
+            'Informe o *nome do cliente* que sera criado.',
+            '',
+            'Exemplo: Joao',
+            '',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function pedirTelefoneCriarCliente(client, numero) {
+
+    return await client.sendText(
+        numero,
+        [
+            'Agora informe o *WhatsApp do cliente* com DDD.',
+            '',
+            'Pode enviar com ou sem 55.',
+            'Exemplo: 42988682052',
+            '',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function confirmarDadosCriarCliente(client, numero, dados) {
+
+    return await client.sendText(
+        numero,
+        [
+            '*Confirmar criacao de cliente?*',
+            '',
+            `Cliente: ${dados.nome}`,
+            `WhatsApp: ${dados.telefone}`,
+            '',
+            '1 - Confirmar',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedor) {
+
+    const teste = sessoes[chave(numero, 'rev_criar_cliente_teste')];
+    const dadosManual = sessoes[chave(numero, 'rev_criar_cliente_dados')];
+    const clienteNome = teste?.cliente_nome || dadosManual?.nome || '';
+    const clienteTelefone = teste?.cliente_telefone || dadosManual?.telefone || '';
+    const usuario = teste?.usuario || '';
+
+    if (!clienteNome && !clienteTelefone && !usuario) {
+        sessoes[numero] = 'revendedor_criar_cliente';
+        return await menuCriarCliente(
+            client,
+            numero
+        );
+    }
+
+    const chamado = registrarChamadoRevendedor({
+        revendedor,
+        clienteNome,
+        usuario,
+        descricao: usuario ?
+            `Criar cliente a partir do teste ${usuario}` :
+            `Criar cliente sem teste informado para ${clienteNome} (${clienteTelefone})`,
+        observacao: [
+            'Solicitacao criada pelo fluxo de revendedor',
+            teste ? `Situacao do teste: ${situacaoTeste(teste)}` : 'Sem teste informado',
+            teste?.senha ? `Senha teste: ${teste.senha}` : '',
+            teste?.dns ? `DNS: ${teste.dns}` : '',
+            teste?.m3u ? `M3U: ${teste.m3u}` : '',
+            teste?.vencimento ? `Vencimento teste: ${teste.vencimento}` : ''
+        ].filter(Boolean).join(' | ')
+    });
+
+    await notificar(
         client,
-        numero
+        'CRIAR CLIENTE - REVENDEDOR',
+        [
+            `Codigo: ${chamado.codigo}`,
+            `Revendedor: ${nomeRevendedor(revendedor)}`,
+            `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+            '',
+            '*Cliente para criar*',
+            `Nome: ${clienteNome || 'Nao informado'}`,
+            `WhatsApp: ${clienteTelefone || 'Nao informado'}`,
+            usuario ? `Usuario teste: ${usuario}` : '',
+            teste?.senha ? `Senha teste: ${teste.senha}` : '',
+            teste?.vencimento ? `Vencimento teste: ${teste.vencimento}` : '',
+            teste ? `Situacao teste: ${situacaoTeste(teste)}` : 'Sem teste informado',
+            '',
+            'Criar/ativar no painel e avisar o revendedor.'
+        ].filter(Boolean).join('\n')
+    );
+
+    if (teste) {
+        marcarTesteRevendedorComoClienteSolicitado(
+            revendedor,
+            teste
+        );
+    }
+
+    delete sessoes[chave(numero, 'rev_testes_criar_cliente')];
+    delete sessoes[chave(numero, 'rev_criar_cliente_teste')];
+    delete sessoes[chave(numero, 'rev_criar_cliente_dados')];
+    sessoes[numero] = 'revendedor_menu';
+
+    return await client.sendText(
+        numero,
+        [
+            `Solicitacao de criacao enviada para a TOPTEC. Codigo: ${chamado.codigo}`,
+            '',
+            'Nossa equipe vai validar no painel e confirmar por aqui.'
+        ].join('\n')
     );
 
 }
@@ -555,7 +745,7 @@ async function pedirConfirmacaoLimparTestes(client, numero, revendedor) {
 
         return await client.sendText(
             numero,
-            'Nao encontrei testes ativos para limpar.'
+            'Nao encontrei testes ativos ou vencidos para limpar.'
         );
     }
 
@@ -567,7 +757,7 @@ async function pedirConfirmacaoLimparTestes(client, numero, revendedor) {
         [
             '*Limpar testes da revenda?*',
             '',
-            `Encontrei ${testes.length} teste(s) ativo(s).`,
+            `Encontrei ${testes.length} teste(s) ativo(s) ou vencido(s).`,
             '',
             'Ao confirmar, esses contatos vao para a lista de remarketing da TOPTEC e deixam de aparecer como teste ativo para voce.',
             '',
@@ -919,7 +1109,18 @@ module.exports = async function revendedorHandler(
 
     const etapa = sessoes[numero] || 'revendedor_menu';
 
-    if (texto === '5' && etapa !== 'revendedor_teste' && etapa !== 'revendedor_renovar') {
+    if (
+        texto === '5' &&
+        ![
+            'revendedor_teste',
+            'revendedor_renovar',
+            'revendedor_criar_cliente',
+            'revendedor_criar_cliente_teste_escolher',
+            'revendedor_criar_cliente_nome',
+            'revendedor_criar_cliente_telefone',
+            'revendedor_criar_cliente_confirmar'
+        ].includes(etapa)
+    ) {
         return await falarComToptec(
             client,
             numero,
@@ -1010,6 +1211,14 @@ module.exports = async function revendedorHandler(
             );
         }
 
+        if (texto === '7') {
+            sessoes[numero] = 'revendedor_criar_cliente';
+            return await menuCriarCliente(
+                client,
+                numero
+            );
+        }
+
         return await menuRevendedor(
             client,
             numero,
@@ -1030,14 +1239,6 @@ module.exports = async function revendedorHandler(
         }
 
         if (texto === '3') {
-            return await listarTestesAtivos(
-                client,
-                numero,
-                revendedor
-            );
-        }
-
-        if (texto === '4') {
             return await pedirConfirmacaoLimparTestes(
                 client,
                 numero,
@@ -1063,15 +1264,6 @@ module.exports = async function revendedorHandler(
             numero
         );
 
-    }
-
-    if (etapa === 'revendedor_teste_ativo_escolher') {
-        return await enviarTesteAtivoEscolhido(
-            client,
-            numero,
-            texto,
-            revendedor
-        );
     }
 
     if (etapa === 'revendedor_limpar_testes_confirmar') {
@@ -1192,6 +1384,149 @@ module.exports = async function revendedorHandler(
 
         sessoes[numero] = 'revendedor_teste';
         return await menuTeste(
+            client,
+            numero
+        );
+
+    }
+
+    if (etapa === 'revendedor_criar_cliente') {
+
+        if (texto === '0') {
+            sessoes[numero] = 'revendedor_menu';
+            return await menuRevendedor(
+                client,
+                numero,
+                revendedor
+            );
+        }
+
+        if (texto === '1') {
+            return await listarTestesParaCriarCliente(
+                client,
+                numero,
+                revendedor
+            );
+        }
+
+        if (texto === '2') {
+            delete sessoes[chave(numero, 'rev_criar_cliente_teste')];
+            delete sessoes[chave(numero, 'rev_criar_cliente_dados')];
+            sessoes[numero] = 'revendedor_criar_cliente_nome';
+            return await pedirNomeCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        return await menuCriarCliente(
+            client,
+            numero
+        );
+
+    }
+
+    if (etapa === 'revendedor_criar_cliente_teste_escolher') {
+        return await escolherTesteParaCriarCliente(
+            client,
+            numero,
+            texto,
+            revendedor
+        );
+    }
+
+    if (etapa === 'revendedor_criar_cliente_nome') {
+
+        if (texto === '0') {
+            sessoes[numero] = 'revendedor_criar_cliente';
+            return await menuCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        const nome = String(texto || '').trim();
+
+        if (!nome || nome.length < 2 || /^\d+$/.test(nome)) {
+            return await client.sendText(
+                numero,
+                'Informe apenas o nome do cliente. Exemplo: Joao'
+            );
+        }
+
+        sessoes[chave(numero, 'rev_criar_cliente_dados')] = {
+            nome
+        };
+        sessoes[numero] = 'revendedor_criar_cliente_telefone';
+
+        return await pedirTelefoneCriarCliente(
+            client,
+            numero
+        );
+
+    }
+
+    if (etapa === 'revendedor_criar_cliente_telefone') {
+
+        if (texto === '0') {
+            sessoes[numero] = 'revendedor_criar_cliente_nome';
+            return await pedirNomeCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        const dados = sessoes[chave(numero, 'rev_criar_cliente_dados')];
+
+        if (!dados?.nome) {
+            sessoes[numero] = 'revendedor_criar_cliente_nome';
+            return await pedirNomeCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        if (!telefoneValido(texto)) {
+            return await client.sendText(
+                numero,
+                [
+                    'Nao consegui identificar o WhatsApp.',
+                    '',
+                    'Envie com DDD, com ou sem 55.',
+                    'Exemplo: 42988682052'
+                ].join('\n')
+            );
+        }
+
+        const completos = {
+            ...dados,
+            telefone: normalizarTelefoneBrasil(texto)
+        };
+
+        sessoes[chave(numero, 'rev_criar_cliente_dados')] = completos;
+        sessoes[numero] = 'revendedor_criar_cliente_confirmar';
+
+        return await confirmarDadosCriarCliente(
+            client,
+            numero,
+            completos
+        );
+
+    }
+
+    if (etapa === 'revendedor_criar_cliente_confirmar') {
+
+        if (texto === '1') {
+            return await confirmarCriacaoCliente(
+                client,
+                numero,
+                numeroWhatsapp,
+                revendedor
+            );
+        }
+
+        sessoes[numero] = 'revendedor_criar_cliente';
+        return await menuCriarCliente(
             client,
             numero
         );
