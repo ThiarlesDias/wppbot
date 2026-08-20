@@ -322,7 +322,34 @@ async function menuCriarCliente(client, numero) {
                 },
                 {
                     id: '2',
-                    titulo: 'Nao, informar cliente'
+                    titulo: 'Nao, criar teste'
+                },
+                {
+                    id: '0',
+                    titulo: 'Voltar'
+                }
+            ]
+        }
+    );
+
+}
+
+async function menuTipoCriarCliente(client, numero) {
+
+    return await enviarMenu(
+        client,
+        numero,
+        {
+            titulo: 'Tipo do teste',
+            descricao: 'Escolha o tipo de teste para criar o acesso do cliente.',
+            opcoes: [
+                {
+                    id: '1',
+                    titulo: 'Com adultos'
+                },
+                {
+                    id: '2',
+                    titulo: 'Sem adultos'
                 },
                 {
                     id: '0',
@@ -341,6 +368,12 @@ function vencimentoTeste(teste) {
     }
 
     return formatarData(new Date(Date.now() + 6 * 60 * 60 * 1000));
+
+}
+
+function vencimentoClienteRevenda() {
+
+    return formatarData(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
 
 }
 
@@ -605,6 +638,8 @@ async function escolherTesteParaCriarCliente(client, numero, texto, revendedor) 
             '',
             montarDadosAcessoTeste(teste),
             '',
+            `Vencimento informado: ${vencimentoClienteRevenda()}`,
+            '',
             '1 - Confirmar',
             '0 - Voltar'
         ].join('\n')
@@ -645,6 +680,8 @@ async function pedirTelefoneCriarCliente(client, numero) {
 
 async function confirmarDadosCriarCliente(client, numero, dados) {
 
+    const tipo = sessoes[chave(numero, 'rev_criar_cliente_tipo')];
+
     return await client.sendText(
         numero,
         [
@@ -652,10 +689,14 @@ async function confirmarDadosCriarCliente(client, numero, dados) {
             '',
             `Cliente: ${dados.nome}`,
             `WhatsApp: ${dados.telefone}`,
+            tipo ? `Tipo do teste: ${tipo}` : '',
+            `Vencimento informado: ${vencimentoClienteRevenda()}`,
+            '',
+            'O bot vai criar um teste e a TOPTEC sera avisada para validar a ativacao.',
             '',
             '1 - Confirmar',
             '0 - Voltar'
-        ].join('\n')
+        ].filter(Boolean).join('\n')
     );
 
 }
@@ -664,9 +705,13 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
 
     const teste = sessoes[chave(numero, 'rev_criar_cliente_teste')];
     const dadosManual = sessoes[chave(numero, 'rev_criar_cliente_dados')];
-    const clienteNome = teste?.cliente_nome || dadosManual?.nome || '';
-    const clienteTelefone = teste?.cliente_telefone || dadosManual?.telefone || '';
-    const usuario = teste?.usuario || '';
+    const tipoManual = sessoes[chave(numero, 'rev_criar_cliente_tipo')];
+    const vencimentoCliente = vencimentoClienteRevenda();
+    let testeFinal = teste;
+    let clienteNome = teste?.cliente_nome || dadosManual?.nome || '';
+    let clienteTelefone = teste?.cliente_telefone || dadosManual?.telefone || '';
+    let usuario = teste?.usuario || '';
+    let creditoRestante = null;
 
     if (!clienteNome && !clienteTelefone && !usuario) {
         sessoes[numero] = 'revendedor_criar_cliente';
@@ -676,20 +721,132 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
         );
     }
 
+    if (!testeFinal && dadosManual) {
+        const creditosAtuais = obterCreditosRevendedor(revendedor);
+
+        if (creditosAtuais < 1) {
+            await notificar(
+                client,
+                'REVENDA SEM CREDITOS - CRIAR CLIENTE',
+                [
+                    `Revendedor: ${nomeRevendedor(revendedor)}`,
+                    `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                    `Creditos atuais: ${creditosAtuais}`,
+                    '',
+                    `Tentou criar cliente/teste para ${clienteNome} (${clienteTelefone}).`
+                ].join('\n')
+            );
+
+            sessoes[numero] = 'revendedor_menu';
+
+            return await client.sendText(
+                numero,
+                [
+                    'Voce nao tem creditos disponiveis para criar o teste deste cliente.',
+                    '',
+                    'Fale com a TOPTEC para liberar mais creditos ou regularizar seu fechamento.'
+                ].join('\n')
+            );
+        }
+
+        try {
+            testeFinal = await criarTesteRevendedor({
+                nome: dadosManual.nome,
+                telefone: dadosManual.telefone,
+                tipo: tipoManual || 'com adultos',
+                revendedor
+            });
+        } catch (erro) {
+            console.error(
+                'ERRO CRIAR CLIENTE REVENDEDOR',
+                erro.message
+            );
+
+            await notificar(
+                client,
+                'ERRO CRIAR CLIENTE - REVENDEDOR',
+                [
+                    `Revendedor: ${nomeRevendedor(revendedor)}`,
+                    `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                    '',
+                    `Cliente: ${clienteNome}`,
+                    `WhatsApp cliente: ${clienteTelefone}`,
+                    `Tipo: ${tipoManual || 'com adultos'}`,
+                    '',
+                    `Erro: ${erro.message}`
+                ].join('\n')
+            );
+
+            return await client.sendText(
+                numero,
+                [
+                    'Nao consegui criar o teste para este cliente agora.',
+                    '',
+                    'A TOPTEC foi avisada para verificar internamente. Nenhum credito foi consumido.'
+                ].join('\n')
+            );
+        }
+
+        const credito = consumirCreditoRevendedor(
+            revendedor,
+            1
+        );
+
+        if (credito.ok) {
+            creditoRestante = credito.creditos;
+        } else {
+            await notificar(
+                client,
+                'CREDITO NAO DESCONTADO - CRIAR CLIENTE',
+                [
+                    `Revendedor: ${nomeRevendedor(revendedor)}`,
+                    `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
+                    '',
+                    `Cliente: ${clienteNome}`,
+                    `WhatsApp cliente: ${clienteTelefone}`,
+                    testeFinal.usuario ? `Usuario teste: ${testeFinal.usuario}` : '',
+                    '',
+                    `Motivo: ${credito.motivo || 'falha desconhecida'}`
+                ].filter(Boolean).join('\n')
+            );
+        }
+
+        const registrado = registrarTesteRevendedorCliente({
+            revendedor,
+            clienteNome,
+            clienteTelefone,
+            usuario: testeFinal.usuario || '',
+            senha: testeFinal.senha || '',
+            dns: testeFinal.dns || '',
+            m3u: testeFinal.m3u || '',
+            vencimento: vencimentoCliente,
+            observacao: `Criar cliente via teste | Tipo: ${tipoManual || 'com adultos'}`
+        });
+
+        testeFinal = {
+            ...registrado,
+            ...testeFinal,
+            cliente_nome: clienteNome,
+            cliente_telefone: clienteTelefone,
+            vencimento: vencimentoCliente
+        };
+        usuario = testeFinal.usuario || usuario;
+    }
+
     const chamado = registrarChamadoRevendedor({
         revendedor,
         clienteNome,
         usuario,
         descricao: usuario ?
-            `Criar cliente a partir do teste ${usuario}` :
-            `Criar cliente sem teste informado para ${clienteNome} (${clienteTelefone})`,
+            `Criar cliente/teste a partir do usuario ${usuario}` :
+            `Criar cliente/teste para ${clienteNome} (${clienteTelefone})`,
         observacao: [
             'Solicitacao criada pelo fluxo de revendedor',
-            teste ? `Situacao do teste: ${situacaoTeste(teste)}` : 'Sem teste informado',
-            teste?.senha ? `Senha teste: ${teste.senha}` : '',
-            teste?.dns ? `DNS: ${teste.dns}` : '',
-            teste?.m3u ? `M3U: ${teste.m3u}` : '',
-            teste?.vencimento ? `Vencimento teste: ${teste.vencimento}` : ''
+            teste ? `Situacao do teste anterior: ${situacaoTeste(teste)}` : `Teste criado no fluxo: ${tipoManual || 'com adultos'}`,
+            `Vencimento informado ao revendedor: ${vencimentoCliente}`,
+            testeFinal?.senha ? `Senha teste: ${testeFinal.senha}` : '',
+            testeFinal?.dns ? `DNS: ${testeFinal.dns}` : '',
+            testeFinal?.m3u ? `M3U: ${testeFinal.m3u}` : ''
         ].filter(Boolean).join(' | ')
     });
 
@@ -701,37 +858,57 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
             `Revendedor: ${nomeRevendedor(revendedor)}`,
             `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
             '',
-            '*Cliente para criar*',
+            '*Cliente/teste para validar*',
             `Nome: ${clienteNome || 'Nao informado'}`,
             `WhatsApp: ${clienteTelefone || 'Nao informado'}`,
             usuario ? `Usuario teste: ${usuario}` : '',
-            teste?.senha ? `Senha teste: ${teste.senha}` : '',
-            teste?.vencimento ? `Vencimento teste: ${teste.vencimento}` : '',
-            teste ? `Situacao teste: ${situacaoTeste(teste)}` : 'Sem teste informado',
+            testeFinal?.senha ? `Senha teste: ${testeFinal.senha}` : '',
+            testeFinal?.dns ? `DNS: ${testeFinal.dns}` : '',
+            testeFinal?.m3u ? `M3U: ${testeFinal.m3u}` : '',
+            `Vencimento informado: ${vencimentoCliente}`,
+            teste ? `Situacao teste anterior: ${situacaoTeste(teste)}` : `Teste criado agora: ${tipoManual || 'com adultos'}`,
+            creditoRestante !== null ? `Creditos restantes: ${creditoRestante}` : '',
             '',
-            'Criar/ativar no painel e avisar o revendedor.'
+            'Validar no painel e ajustar a ativacao para 30 dias, se necessario.'
         ].filter(Boolean).join('\n')
     );
 
-    if (teste) {
+    if (testeFinal) {
         marcarTesteRevendedorComoClienteSolicitado(
             revendedor,
-            teste
+            testeFinal,
+            {
+                vencimento: vencimentoCliente,
+                observacao: `Vencimento de cliente informado: ${vencimentoCliente}`
+            }
         );
     }
 
     delete sessoes[chave(numero, 'rev_testes_criar_cliente')];
     delete sessoes[chave(numero, 'rev_criar_cliente_teste')];
     delete sessoes[chave(numero, 'rev_criar_cliente_dados')];
+    delete sessoes[chave(numero, 'rev_criar_cliente_tipo')];
     sessoes[numero] = 'revendedor_menu';
+
+    const dadosTeste = testeFinal?.mensagem ||
+        (
+            testeFinal ?
+                montarDadosAcessoTeste(testeFinal) :
+                ''
+        );
 
     return await client.sendText(
         numero,
         [
-            `Solicitacao de criacao enviada para a TOPTEC. Codigo: ${chamado.codigo}`,
+            `Solicitacao enviada para a TOPTEC. Codigo: ${chamado.codigo}`,
             '',
-            'Nossa equipe vai validar no painel e confirmar por aqui.'
-        ].join('\n')
+            dadosTeste,
+            '',
+            `Vencimento informado: ${vencimentoCliente}`,
+            creditoRestante !== null ? `Credito consumido. Restam: ${creditoRestante}` : '',
+            '',
+            'A TOPTEC vai validar internamente e ajustar a ativacao no painel, se necessario.'
+        ].filter(Boolean).join('\n')
     );
 
 }
@@ -1118,6 +1295,7 @@ module.exports = async function revendedorHandler(
             'revendedor_criar_cliente_teste_escolher',
             'revendedor_criar_cliente_nome',
             'revendedor_criar_cliente_telefone',
+            'revendedor_criar_cliente_tipo',
             'revendedor_criar_cliente_confirmar'
         ].includes(etapa)
     ) {
@@ -1412,6 +1590,7 @@ module.exports = async function revendedorHandler(
         if (texto === '2') {
             delete sessoes[chave(numero, 'rev_criar_cliente_teste')];
             delete sessoes[chave(numero, 'rev_criar_cliente_dados')];
+            delete sessoes[chave(numero, 'rev_criar_cliente_tipo')];
             sessoes[numero] = 'revendedor_criar_cliente_nome';
             return await pedirNomeCriarCliente(
                 client,
@@ -1504,12 +1683,51 @@ module.exports = async function revendedorHandler(
         };
 
         sessoes[chave(numero, 'rev_criar_cliente_dados')] = completos;
+        sessoes[numero] = 'revendedor_criar_cliente_tipo';
+
+        return await menuTipoCriarCliente(
+            client,
+            numero
+        );
+
+    }
+
+    if (etapa === 'revendedor_criar_cliente_tipo') {
+
+        if (texto === '0') {
+            sessoes[numero] = 'revendedor_criar_cliente_telefone';
+            return await pedirTelefoneCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        if (!['1', '2'].includes(texto)) {
+            return await menuTipoCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        const dados = sessoes[chave(numero, 'rev_criar_cliente_dados')];
+
+        if (!dados?.nome || !dados?.telefone) {
+            sessoes[numero] = 'revendedor_criar_cliente_nome';
+            return await pedirNomeCriarCliente(
+                client,
+                numero
+            );
+        }
+
+        sessoes[chave(numero, 'rev_criar_cliente_tipo')] = texto === '1' ?
+            'com adultos' :
+            'sem adultos';
         sessoes[numero] = 'revendedor_criar_cliente_confirmar';
 
         return await confirmarDadosCriarCliente(
             client,
             numero,
-            completos
+            dados
         );
 
     }

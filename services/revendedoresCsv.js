@@ -795,7 +795,11 @@ function limparTestesRevendedor(revendedor) {
 
 }
 
-function marcarTesteRevendedorComoClienteSolicitado(revendedor, testeAlvo) {
+function marcarTesteRevendedorComoClienteSolicitado(
+    revendedor,
+    testeAlvo,
+    extras = {}
+) {
 
     const linhas = lerRevendedoresClientesCsv();
     const alvo = chaveClienteRevendedor({
@@ -812,10 +816,11 @@ function marcarTesteRevendedorComoClienteSolicitado(revendedor, testeAlvo) {
 
     linhas[indice] = {
         ...linhas[indice],
+        ...(extras.vencimento ? { vencimento: extras.vencimento } : {}),
         status: 'cliente_solicitado',
         observacao: adicionarObservacao(
             linhas[indice].observacao,
-            `Criacao de cliente solicitada em ${agora}`
+            extras.observacao || `Criacao de cliente solicitada em ${agora}`
         )
     };
 
