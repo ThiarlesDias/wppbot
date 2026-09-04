@@ -65,6 +65,31 @@ function extrairWidTelefone(valor) {
 
 }
 
+function timeoutResolucaoLidMs() {
+
+    const valor = Number(process.env.WHATSAPP_LID_RESOLVE_TIMEOUT_MS || 2500);
+
+    return Number.isFinite(valor) && valor > 0 ? valor : 2500;
+
+}
+
+function comTimeout(promise, ms) {
+
+    let timer;
+
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Error(`timeout ao resolver LID depois de ${ms}ms`)),
+            ms
+        );
+    });
+
+    return Promise.race([promise, timeout]).finally(() => {
+        clearTimeout(timer);
+    });
+
+}
+
 async function resolverNumeroMensagem(client, message) {
 
     if (!message?.from) return null;
@@ -75,7 +100,12 @@ async function resolverNumeroMensagem(client, message) {
 
     try {
 
-        const info = await client.getPnLidEntry(message.from);
+        if (typeof client.getPnLidEntry !== 'function') return null;
+
+        const info = await comTimeout(
+            client.getPnLidEntry(message.from),
+            timeoutResolucaoLidMs()
+        );
 
         return extrairWidTelefone(info);
 
