@@ -92,7 +92,6 @@ function idsMensagem(message) {
 
     return [
         message?.from,
-        message?.to,
         message?.chatId,
         message?.sender?.id,
         message?.id?.remote
@@ -132,11 +131,27 @@ function textosContatoMensagem(message) {
 
 }
 
-function ehContatoIgnorado(message) {
+function resumoMensagemDebug(message) {
 
-    if (!message) return true;
-    if (message.isStatusV3) return true;
-    if (message.isGroupMsg) return true;
+    return {
+        from: message?.from,
+        to: message?.to,
+        chatId: message?.chatId,
+        sender: message?.sender?.id,
+        remote: message?.id?.remote,
+        fromMe: Boolean(message?.fromMe),
+        isStatusV3: Boolean(message?.isStatusV3),
+        isGroupMsg: Boolean(message?.isGroupMsg),
+        type: message?.type
+    };
+
+}
+
+function motivoContatoIgnorado(message) {
+
+    if (!message) return 'mensagem vazia';
+    if (message.isStatusV3) return 'status';
+    if (message.isGroupMsg) return 'grupo';
 
     const ids = idsMensagem(message);
 
@@ -145,7 +160,7 @@ function ehContatoIgnorado(message) {
         id.endsWith('@g.us') ||
         id.endsWith('@newsletter') ||
         idsIgnoradosConfigurados().has(id)
-    )) return true;
+    )) return 'id ignorado';
 
     const textoContato = textosContatoMensagem(message)
         .join(' ')
@@ -155,9 +170,15 @@ function ehContatoIgnorado(message) {
         textoContato.includes('whatsapp support') ||
         textoContato.includes('suporte do whatsapp') ||
         textoContato.includes('conta oficial do suporte')
-    ) return true;
+    ) return 'contato suporte whatsapp';
 
-    return false;
+    return '';
+
+}
+
+function ehContatoIgnorado(message) {
+
+    return Boolean(motivoContatoIgnorado(message));
 
 }
 
@@ -639,9 +660,24 @@ wppconnect.create({
 
         try {
 
-            if (ehContatoIgnorado(message)) return;
+            const motivoIgnorado = motivoContatoIgnorado(message);
 
-            if (message.fromMe) return;
+            if (motivoIgnorado) {
+                logFluxo(
+                    'mensagem ignorada',
+                    motivoIgnorado,
+                    resumoMensagemDebug(message)
+                );
+                return;
+            }
+
+            if (message.fromMe) {
+                logFluxo(
+                    'mensagem propria ignorada',
+                    resumoMensagemDebug(message)
+                );
+                return;
+            }
 
             const numero = message.from;
 
