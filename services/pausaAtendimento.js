@@ -11,9 +11,14 @@ const DURACAO_MS = Number(process.env.ATENDIMENTO_MANUAL_PAUSA_MS || 12 * 60 * 6
 const JANELA_AUTOMATICA_MS = Number(process.env.ATENDIMENTO_AUTO_MATCH_MS || 15000);
 const USAR_DESTINO_RESOLVIDO = process.env.WHATSAPP_SEND_RESOLVED === '1';
 const DEBUG_ENVIO = process.env.WHATSAPP_SEND_DEBUG === '1';
-const USAR_ENVIO_DIRETO = process.env.WHATSAPP_DIRECT_SEND === '1';
 const USAR_FALLBACK_DIRETO = process.env.WHATSAPP_DIRECT_FALLBACK !== '0';
 const AGUARDAR_ACK = process.env.WHATSAPP_WAIT_FOR_ACK === '1';
+const FORCAR_ENVIO_ORIGINAL = process.env.WHATSAPP_FORCE_ORIGINAL_SEND === '1';
+const USAR_ENVIO_DIRETO = !FORCAR_ENVIO_ORIGINAL && (
+    process.env.WHATSAPP_DIRECT_SEND === '1' ||
+    !AGUARDAR_ACK
+);
+const PREFERIR_LID_ORIGINAL = process.env.WHATSAPP_LID_REPLY_ORIGINAL !== '0';
 const TIMEOUT_ENVIO_MS = Number(process.env.WHATSAPP_SEND_TIMEOUT_MS || 12000);
 
 function garantirDiretorio() {
@@ -131,6 +136,7 @@ function registrarDestinoResolvido(origem, destino) {
 function resolverDestinoEnvio(numero) {
 
     if (!USAR_DESTINO_RESOLVIDO || !numero) return numero;
+    if (PREFERIR_LID_ORIGINAL && String(numero).endsWith('@lid')) return numero;
 
     return destinosResolvidos.get(numero) || numero;
 
