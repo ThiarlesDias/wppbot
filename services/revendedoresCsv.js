@@ -641,6 +641,7 @@ function registrarTesteRevendedorCliente({
     dns,
     m3u,
     vencimento,
+    status = 'teste',
     observacao = ''
 }) {
 
@@ -656,10 +657,12 @@ function registrarTesteRevendedorCliente({
         dns: String(dns || '').trim(),
         m3u: String(m3u || '').trim(),
         vencimento: String(vencimento || '').trim(),
-        status: 'teste',
+        status: String(status || 'teste').trim() || 'teste',
         observacao: adicionarObservacao(
             observacao,
-            `Teste criado em ${agora}`
+            statusAtivo(status) ?
+                `Cliente criado em ${agora}` :
+                `Teste criado em ${agora}`
         ),
         aviso_vencimento: ''
     };
@@ -817,10 +820,10 @@ function marcarTesteRevendedorComoClienteSolicitado(
     linhas[indice] = {
         ...linhas[indice],
         ...(extras.vencimento ? { vencimento: extras.vencimento } : {}),
-        status: 'cliente_solicitado',
+        status: extras.status || 'ativo',
         observacao: adicionarObservacao(
             linhas[indice].observacao,
-            extras.observacao || `Criacao de cliente solicitada em ${agora}`
+            extras.observacao || `Cliente criado em ${agora}`
         )
     };
 

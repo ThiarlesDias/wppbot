@@ -820,6 +820,7 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
             dns: testeFinal.dns || '',
             m3u: testeFinal.m3u || '',
             vencimento: vencimentoCliente,
+            status: 'ativo',
             observacao: `Criar cliente via teste | Tipo: ${tipoManual || 'com adultos'}`
         });
 
@@ -879,6 +880,7 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
             testeFinal,
             {
                 vencimento: vencimentoCliente,
+                status: 'ativo',
                 observacao: `Vencimento de cliente informado: ${vencimentoCliente}`
             }
         );
