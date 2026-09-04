@@ -178,7 +178,7 @@ function mensagemAviso(cliente, periodo) {
         cliente.vencimento ? `Vencimento: ${cliente.vencimento}` : '',
         '',
         'Para solicitar renovacao, entre no menu de revendedor e escolha:',
-        '2 - Renovar cliente',
+        '3 - Renovar cliente',
         '',
         'A TOPTEC recebe a solicitacao e faz a renovacao no painel.'
     ].filter(Boolean).join('\n');

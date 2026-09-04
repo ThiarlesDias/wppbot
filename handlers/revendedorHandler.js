@@ -540,7 +540,7 @@ async function menuPosTeste(client, numero) {
         [
             'Precisa de ajuda para configurar no aparelho do cliente?',
             '',
-            '6 - Ajuda com configuracao',
+            '7 - Ajuda com configuracao',
             '0 - Voltar ao menu'
         ].join('\n')
     );
@@ -558,7 +558,7 @@ async function listarClientes(client, numero, revendedor) {
             '',
             resumoClientes(clientes),
             '',
-            'Para renovar, escolha *2 - Renovar cliente* e informe o usuario do sistema.'
+            'Para renovar, escolha *3 - Renovar cliente* e informe o usuario do sistema.'
         ].join('\n')
     );
 
@@ -1289,7 +1289,7 @@ module.exports = async function revendedorHandler(
     const etapa = sessoes[numero] || 'revendedor_menu';
 
     if (
-        texto === '5' &&
+        texto === '6' &&
         ![
             'revendedor_teste',
             'revendedor_renovar',
@@ -1311,7 +1311,7 @@ module.exports = async function revendedorHandler(
     }
 
     if (
-        texto === '6' ||
+        texto === '7' ||
         texto.includes('ajuda') ||
         texto.includes('configuracao') ||
         texto.includes('configuração')
@@ -1361,15 +1361,16 @@ module.exports = async function revendedorHandler(
         }
 
         if (texto === '2') {
-            sessoes[numero] = 'revendedor_renovar';
-            return await menuRenovar(
+            sessoes[numero] = 'revendedor_criar_cliente';
+            return await menuCriarCliente(
                 client,
                 numero
             );
         }
 
         if (texto === '3') {
-            return await listarClientes(
+            sessoes[numero] = 'revendedor_renovar';
+            return await menuRenovar(
                 client,
                 numero,
                 revendedor
@@ -1377,6 +1378,14 @@ module.exports = async function revendedorHandler(
         }
 
         if (texto === '4') {
+            return await listarClientes(
+                client,
+                numero,
+                revendedor
+            );
+        }
+
+        if (texto === '5') {
             sessoes[numero] = 'revendedor_chamados';
             return await menuChamados(
                 client,
@@ -1384,16 +1393,8 @@ module.exports = async function revendedorHandler(
             );
         }
 
-        if (texto === '6') {
-            return await abrirAjudaConfiguracao(
-                client,
-                numero
-            );
-        }
-
         if (texto === '7') {
-            sessoes[numero] = 'revendedor_criar_cliente';
-            return await menuCriarCliente(
+            return await abrirAjudaConfiguracao(
                 client,
                 numero
             );

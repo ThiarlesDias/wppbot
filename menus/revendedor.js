@@ -26,32 +26,32 @@ async function menuRevendedor(client, numero, revendedor = {}) {
                     descricao: 'Solicitar teste com ou sem adultos.'
                 },
                 {
-                    id: '7',
+                    id: '2',
                     titulo: 'Criar cliente',
                     descricao: 'Ativar cliente usando teste ativo ou vencido.'
                 },
                 {
-                    id: '2',
+                    id: '3',
                     titulo: 'Renovar cliente',
                     descricao: 'Informar usuario do sistema para renovacao.'
                 },
                 {
-                    id: '3',
+                    id: '4',
                     titulo: 'Listar clientes',
                     descricao: 'Ver somente os clientes vinculados a voce.'
                 },
                 {
-                    id: '4',
+                    id: '5',
                     titulo: 'Chamados',
                     descricao: 'Consultar ou abrir chamado.'
                 },
                 {
-                    id: '5',
+                    id: '6',
                     titulo: 'Falar com a TOPTEC',
                     descricao: 'Encaminhar atendimento para nossa equipe.'
                 },
                 {
-                    id: '6',
+                    id: '7',
                     titulo: 'Ajuda com configuracao',
                     descricao: 'Passo a passo para instalar e usar a lista.'
                 }
