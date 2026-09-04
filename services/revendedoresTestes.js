@@ -1,9 +1,9 @@
 const URL_COM_ADULTOS =
     process.env.REVENDA_TESTE_COM_ADULTOS_URL ||
-    'https://painelblackbr.com/api/chatbot/loL7vZl1XM/ayb1B3ELPR';
+    'https://painelblackbr.com/api/chatbot/loL7vZl1XM/Yen12Re1PE';
 const URL_SEM_ADULTOS =
     process.env.REVENDA_TESTE_SEM_ADULTOS_URL ||
-    'https://painelblackbr.com/api/chatbot/loL7vZl1XM/Kr6LJXEWv9';
+    'https://painelblackbr.com/api/chatbot/loL7vZl1XM/ZVdWXlaW3q';
 
 function limparNumero(valor) {
 
@@ -69,16 +69,21 @@ function montarOrigemRevendedor({ nome, telefone, revendedor }) {
     const revendedorNome = limparTexto(revendedor?.nome);
     const revendedorTelefone = normalizarTelefoneBrasil(revendedor?.telefone);
     const linhas = [
+        'Origem: Revenda TOPTEC',
         revendedorNome ? `Revendedor: ${revendedorNome}` : '',
         revendedorTelefone ? `WhatsApp revendedor: ${revendedorTelefone}` : '',
         nome ? `Cliente: ${nome}` : '',
-        telefone ? `WhatsApp cliente: ${telefone}` : ''
+        telefone ? `WhatsApp cliente: ${telefone}` : '',
+        'Fluxo: teste revendedor WhatsApp TOPTEC'
     ].filter(Boolean);
 
     return {
         texto: linhas.join(' | '),
+        origem: 'Revenda TOPTEC',
         revendedorNome,
-        revendedorTelefone
+        revendedorTelefone,
+        clienteNome: limparTexto(nome),
+        clienteTelefone: normalizarTelefoneBrasil(telefone)
     };
 
 }
@@ -321,14 +326,22 @@ async function criarTesteRevendedor({
                 observation: origem.texto,
                 description: origem.texto,
                 descricao: origem.texto,
-                source: 'Revendedor TOPTEC',
-                origin: 'Revendedor TOPTEC',
+                source: origem.origem,
+                origin: origem.origem,
+                origem: origem.origem,
+                created_by: origem.origem,
+                created_from: origem.origem,
+                chatbot_origin: origem.origem,
                 reseller: origem.revendedorNome,
                 reseller_name: origem.revendedorNome,
                 revendedor: origem.revendedorNome,
                 revendedor_nome: origem.revendedorNome,
                 reseller_phone: origem.revendedorTelefone,
-                revendedor_telefone: origem.revendedorTelefone
+                revendedor_telefone: origem.revendedorTelefone,
+                customer_name: origem.clienteNome,
+                client_name: origem.clienteNome,
+                cliente_nome: origem.clienteNome,
+                cliente_telefone: origem.clienteTelefone
             }))
         }
     );

@@ -606,7 +606,25 @@ async function criarTesteGratisNoNavegador(telefone) {
 
 }
 
+function montarOrigemClienteDireto(telefone) {
+
+    const texto = [
+        'Origem: Cliente direto pelo robo',
+        `WhatsApp cliente: ${telefone}`,
+        'Fluxo: teste gratis WhatsApp TOPTEC'
+    ].join(' | ');
+
+    return {
+        texto,
+        origem: 'Cliente direto pelo robo',
+        clienteNome: `WhatsApp ${telefone}`
+    };
+
+}
+
 async function criarTesteGratisViaChatbot(telefone) {
+
+    const origem = montarOrigemClienteDireto(telefone);
 
     const resposta = await fetch(
         SIGMA_CHATBOT_URL,
@@ -620,11 +638,26 @@ async function criarTesteGratisViaChatbot(telefone) {
                 '(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
             },
             body: JSON.stringify({
-                name: `WhatsApp ${telefone}`,
+                name: origem.clienteNome,
                 whatsapp: telefone,
                 phone: telefone,
                 number: telefone,
-                message: telefone
+                message: origem.texto,
+                note: origem.texto,
+                notes: origem.texto,
+                observacao: origem.texto,
+                observation: origem.texto,
+                description: origem.texto,
+                descricao: origem.texto,
+                source: origem.origem,
+                origin: origem.origem,
+                origem: origem.origem,
+                created_by: origem.origem,
+                created_from: origem.origem,
+                chatbot_origin: origem.origem,
+                customer_name: origem.clienteNome,
+                cliente_nome: origem.clienteNome,
+                cliente_telefone: telefone
             })
         }
     );
@@ -836,7 +869,7 @@ async function criarTesteGratis(numero) {
                     ...TESTE_PADRAO,
                     name: `WhatsApp ${telefone}`,
                     whatsapp: telefone,
-                    note: `Teste gratis solicitado pelo WhatsApp ${telefone}`
+                    note: montarOrigemClienteDireto(telefone).texto
                 })
             }
         );
