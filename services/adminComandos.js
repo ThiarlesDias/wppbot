@@ -45,6 +45,9 @@ const {
     responderPagamentoInformado
 } = require('./pagamentosInformados');
 const {
+    tratarRespostaAdminPagamento
+} = require('./pagamentosValidacao');
+const {
     caminhoLeadsCsv,
     encerrarLeadsAtivos,
     lerLeadsCsv
@@ -1187,6 +1190,7 @@ Se nao quiser responder, envie *0* para pular.`
 async function tratarComandoAdmin({
     client,
     numero,
+    numeroWhatsapp,
     texto,
     verificarVencimentos
 }) {
@@ -1202,6 +1206,15 @@ async function tratarComandoAdmin({
         return await client.sendText(numero, textoFluxos());
 
     }
+
+    const validacaoPagamento = await tratarRespostaAdminPagamento({
+        client,
+        numero,
+        numeroWhatsapp,
+        texto
+    });
+
+    if (validacaoPagamento) return true;
 
     if (etapaAddRevenda(numero)) {
 

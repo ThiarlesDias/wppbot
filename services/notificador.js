@@ -62,3 +62,4 @@ ${mensagem}`
 }
 
 module.exports = notificar;
+module.exports.obterAdmin = obterAdmin;

@@ -49,6 +49,85 @@ function lerStore() {
 
 }
 
+function limparNumero(valor) {
+
+    return String(valor || '')
+        .replace('@c.us', '')
+        .replace(/\D/g, '');
+
+}
+
+function lista(valor) {
+
+    if (Array.isArray(valor)) {
+
+        return valor
+            .map(item => String(item || '').trim())
+            .filter(Boolean);
+
+    }
+
+    return String(valor || '')
+        .split(/[;,]/)
+        .map(item => item.trim())
+        .filter(Boolean);
+
+}
+
+function contatosPagamento(pagamento) {
+
+    const contatos = [];
+
+    for (const valor of [
+        pagamento?.numero,
+        pagamento?.telefone
+    ]) {
+
+        const texto = String(valor || '').trim();
+        const telefone = limparNumero(texto);
+
+        if (texto) contatos.push(texto);
+        if (telefone) {
+            contatos.push(telefone);
+            contatos.push(`${telefone}@c.us`);
+        }
+
+    }
+
+    return [...new Set(contatos)];
+
+}
+
+function pertenceAoContato(pagamento, ...contatos) {
+
+    const contatosPagamentoAtual = contatosPagamento(pagamento);
+    const candidatos = contatos
+        .flatMap(contato => {
+            const texto = String(contato || '').trim();
+            const telefone = limparNumero(texto);
+
+            return [
+                texto,
+                telefone,
+                telefone ? `${telefone}@c.us` : ''
+            ].filter(Boolean);
+        });
+
+    return candidatos.some(candidato =>
+        contatosPagamentoAtual.includes(candidato)
+    );
+
+}
+
+function ordenarMaisRecentes(pagamentos) {
+
+    return pagamentos.sort((a, b) =>
+        new Date(b.atualizadoEm || b.criadoEm || 0).getTime() -
+        new Date(a.atualizadoEm || a.criadoEm || 0).getTime()
+    );
+
+}
+
 function salvarStore(store) {
 
     garantirStore();
@@ -89,11 +168,17 @@ function registrarPagamentoInformado(dados) {
         codigo,
         numero: dados.numero || '',
         telefone: dados.telefone || '',
+        nome: dados.nome || '',
+        usuario: dados.usuario || '',
+        assinaturaId: dados.assinaturaId || '',
+        assinaturaIds: lista(dados.assinaturaIds || dados.assinaturaId),
         resumo: dados.resumo || '',
         status: 'pendente',
         criadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString(),
         respondidoEm: '',
-        respostaAdmin: ''
+        respostaAdmin: '',
+        comprovantes: []
     };
 
     salvarStore(store);
@@ -110,7 +195,7 @@ function buscarPagamentoInformado(codigo) {
 
 }
 
-function responderPagamentoInformado(codigo, aprovado) {
+function atualizarPagamentoInformado(codigo, campos = {}) {
 
     const chave = String(codigo || '').trim().toUpperCase();
     const store = lerStore();
@@ -120,9 +205,8 @@ function responderPagamentoInformado(codigo, aprovado) {
 
     store.pagamentos[chave] = {
         ...pagamento,
-        status: aprovado ? 'confirmado' : 'nao_encontrado',
-        respondidoEm: new Date().toISOString(),
-        respostaAdmin: aprovado ? 'sim' : 'nao'
+        ...campos,
+        atualizadoEm: new Date().toISOString()
     };
 
     salvarStore(store);
@@ -131,8 +215,100 @@ function responderPagamentoInformado(codigo, aprovado) {
 
 }
 
+function responderPagamentoInformado(codigo, aprovado, extras = {}) {
+
+    return atualizarPagamentoInformado(
+        codigo,
+        {
+            ...extras,
+            status: aprovado ? 'confirmado' : 'nao_encontrado',
+            respondidoEm: new Date().toISOString(),
+            respostaAdmin: aprovado ? 'sim' : 'nao'
+        }
+    );
+
+}
+
+function marcarPagamentoAguardandoComprovante(codigo) {
+
+    return atualizarPagamentoInformado(
+        codigo,
+        {
+            status: 'aguardando_comprovante',
+            respostaAdmin: 'nao',
+            respondidoEm: new Date().toISOString()
+        }
+    );
+
+}
+
+function marcarComprovantePagamento(codigo, dados = {}) {
+
+    const pagamento = buscarPagamentoInformado(codigo);
+
+    if (!pagamento) return null;
+
+    const comprovantes = Array.isArray(pagamento.comprovantes) ?
+        pagamento.comprovantes :
+        [];
+
+    return atualizarPagamentoInformado(
+        codigo,
+        {
+            status: 'comprovante_enviado',
+            comprovantes: [
+                ...comprovantes,
+                {
+                    recebidoEm: new Date().toISOString(),
+                    tipo: dados.tipo || '',
+                    id: dados.id || '',
+                    texto: dados.texto || ''
+                }
+            ]
+        }
+    );
+
+}
+
+function buscarPagamentoAguardandoComprovante(numero, telefone) {
+
+    const store = lerStore();
+
+    return ordenarMaisRecentes(
+        Object.values(store.pagamentos || {}).filter(pagamento =>
+            pagamento.status === 'aguardando_comprovante' &&
+            pertenceAoContato(
+                pagamento,
+                numero,
+                telefone
+            )
+        )
+    )[0] || null;
+
+}
+
+function buscarPagamentoPendenteValidacao() {
+
+    const store = lerStore();
+    const pendentes = new Set([
+        'pendente',
+        'comprovante_enviado'
+    ]);
+
+    return ordenarMaisRecentes(
+        Object.values(store.pagamentos || {}).filter(pagamento =>
+            pendentes.has(pagamento.status)
+        )
+    )[0] || null;
+
+}
+
 module.exports = {
+    buscarPagamentoAguardandoComprovante,
     buscarPagamentoInformado,
+    buscarPagamentoPendenteValidacao,
+    marcarComprovantePagamento,
+    marcarPagamentoAguardandoComprovante,
     registrarPagamentoInformado,
     responderPagamentoInformado
 };

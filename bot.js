@@ -58,6 +58,9 @@ const {
     buscarAssinaturasPorNumero
 } = require('./services/assinaturasStore');
 const {
+    tratarComprovantePagamento
+} = require('./services/pagamentosValidacao');
+const {
     lerTestesCsv
 } = require('./services/testesCsv');
 const {
@@ -713,6 +716,16 @@ wppconnect.create({
             );
             const texto = obterTextoMensagem(message);
 
+            const comprovanteTratado = await tratarComprovantePagamento({
+                client,
+                numero,
+                numeroWhatsapp,
+                message,
+                texto
+            });
+
+            if (comprovanteTratado) return;
+
             if (!texto) {
                 logFluxo('sem texto utilizavel', numero);
                 return;
@@ -756,6 +769,7 @@ wppconnect.create({
                     client,
                     numero,
                     texto,
+                    numeroWhatsapp,
                     verificarVencimentos: async (clientAdmin) => {
                         const clientes = await iniciarMonitorVencimentos.verificarVencimentos(clientAdmin);
                         const revendedores = await iniciarMonitorVencimentosRevendedores.verificarVencimentosRevendedores(clientAdmin);
@@ -917,7 +931,14 @@ wppconnect.create({
 
             if (
                 ['1', '2', '3'].includes(texto) &&
-                !['vencimento_aviso', 'renovacao', 'cancelamento_feedback', 'cancelamento_repescagem'].includes(sessoes[numero])
+                ![
+                    'vencimento_aviso',
+                    'pagamento_validacao_pendente',
+                    'aguardando_comprovante_pagamento',
+                    'renovacao',
+                    'cancelamento_feedback',
+                    'cancelamento_repescagem'
+                ].includes(sessoes[numero])
             ) {
 
                 const assinaturaAvisada = assinaturaComAvisoPendente(
@@ -1079,6 +1100,8 @@ wppconnect.create({
                 case 'followup_configuracao':
                 case 'satisfacao':
                 case 'vencimento_aviso':
+                case 'pagamento_validacao_pendente':
+                case 'aguardando_comprovante_pagamento':
                 case 'marketing_info':
                 case 'cancelamento_feedback':
                 case 'cancelamento_repescagem':

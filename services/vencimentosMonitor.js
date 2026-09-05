@@ -166,6 +166,7 @@ function marcarSessaoVencimento(assinatura, destino = '') {
     for (const alias of [...new Set(aliases)]) {
 
         sessoes[alias] = 'vencimento_aviso';
+        sessoes[`${alias}_vencimento_assinatura_id`] = assinatura.id;
 
     }
 

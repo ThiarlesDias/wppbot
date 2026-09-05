@@ -38,6 +38,9 @@ const {
 } = require('../services/assinaturasStore');
 const notificar =
 require('../services/notificador');
+const {
+    solicitarValidacaoPagamento
+} = require('../services/pagamentosValidacao');
 const encaminharAtendente = require('../services/atendimentoHumano');
 const {
     agendarFollowUp
@@ -74,6 +77,7 @@ module.exports = async function suporteHandler(
     const chaveUltimoCheckout = `${numero}_ultimo_checkout`;
     const chaveForcarRenovacao = `${numero}_forcar_renovacao`;
     const chaveRenovacaoAtual = `${numero}_renovacao_atual`;
+    const chaveAssinaturaVencimento = `${numero}_vencimento_assinatura_id`;
     const chaveTesteUsuario = `${numero}_teste_usuario`;
     const chavePacoteOutro = `${numero}_pacote_outro`;
 
@@ -515,6 +519,19 @@ De *1* a *5*, qual nota voce da para este atendimento?
             `Usuario: ${assinatura.username || 'Nao informado'}`,
             `Vencimento: ${formatarDataAssinatura(assinatura.expiresAt)}`
         ].join('\n')).join('\n\n');
+
+    }
+
+    function assinaturaVencimentoAtual(assinaturas) {
+
+        const ids = [
+            sessoes[chaveAssinaturaVencimento],
+            numeroWhatsapp ? sessoes[`${numeroWhatsapp}_vencimento_assinatura_id`] : ''
+        ].filter(Boolean);
+
+        return assinaturas.find(assinatura =>
+            ids.includes(assinatura.id)
+        ) || assinaturas[0] || null;
 
     }
 
@@ -1869,37 +1886,21 @@ Se nao quiser responder, envie *0* para pular.`
             const resumo = assinaturas.length ?
                 resumoAssinaturas(assinaturas) :
                 'Nenhum usuario ativo encontrado automaticamente para este WhatsApp.';
-
-            sessoes[numero] = 'menu';
+            const assinaturaAtual = assinaturaVencimentoAtual(assinaturas);
 
             const pagamentoInformado = registrarPagamentoInformado({
                 numero,
                 telefone: numeroWhatsapp,
+                nome: assinaturaAtual?.nome || '',
+                usuario: assinaturaAtual?.username || '',
+                assinaturaId: assinaturaAtual?.id || '',
+                assinaturaIds: assinaturaAtual?.id ? [assinaturaAtual.id] : [],
                 resumo
             });
 
-            await notificar(
+            await solicitarValidacaoPagamento(
                 client,
-                'CLIENTE INFORMOU PAGAMENTO',
-
-`Cliente informou que ja realizou o pagamento.
-
-Codigo:
-${pagamentoInformado.codigo}
-
-WhatsApp:
-${numeroWhatsapp || 'Nao confirmado'}
-
-Atendimento:
-${numero}
-
-Acessos encontrados:
-${resumo}
-
-Responda para o bot:
-#pgsim ${pagamentoInformado.codigo}
-ou
-#pgnao ${pagamentoInformado.codigo}`
+                pagamentoInformado
             );
 
             return await client.sendText(
@@ -1951,6 +1952,58 @@ ou
 2️⃣ Cancelar minha assinatura
 3️⃣ Ja realizei o pagamento
 0️⃣ Voltar ao menu`
+        );
+
+    }
+
+    if (etapa === 'pagamento_validacao_pendente') {
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            [
+                'Ainda estamos validando seu pagamento com o financeiro.',
+                '',
+                'Assim que a conferencia for concluida, aviso por aqui.',
+                '',
+                '0 - Voltar ao menu'
+            ].join('\n')
+        );
+
+    }
+
+    if (etapa === 'aguardando_comprovante_pagamento') {
+
+        if (texto === '0') {
+
+            sessoes[numero] = 'menu';
+
+            return await menuPrincipal(
+                client,
+                numero
+            );
+
+        }
+
+        return await client.sendText(
+            numero,
+            [
+                'Estou aguardando o comprovante do pagamento.',
+                '',
+                'Envie a imagem ou PDF por aqui para eu avisar o financeiro.',
+                '',
+                '0 - Voltar ao menu'
+            ].join('\n')
         );
 
     }
