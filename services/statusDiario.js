@@ -20,6 +20,17 @@ function imagensDir() {
 
 }
 
+function imagensDirs() {
+
+    const pastas = [
+        imagensDir(),
+        path.join(__dirname, '..', 'status')
+    ];
+
+    return [...new Set(pastas.filter(Boolean))];
+
+}
+
 function horaEnvio() {
 
     const hora = Number(process.env.STATUS_ENVIO_HORA || 9);
@@ -142,9 +153,7 @@ function salvarEstado(estado) {
 
 }
 
-function listarImagens() {
-
-    const pasta = imagensDir();
+function listarImagensPasta(pasta) {
 
     try {
         return fs.readdirSync(pasta)
@@ -155,6 +164,23 @@ function listarImagens() {
     } catch (_) {
         return [];
     }
+
+}
+
+function listarImagens() {
+
+    return imagensDirs()
+        .flatMap(pasta => listarImagensPasta(pasta))
+        .sort();
+
+}
+
+function resumoPastas() {
+
+    return imagensDirs().map(pasta => ({
+        pasta,
+        totalImagens: listarImagensPasta(pasta).length
+    }));
 
 }
 
@@ -199,7 +225,7 @@ async function postarAgora(client, opcoes = {}) {
     const imagem = escolherImagem(imagens, estado.ultimoArquivo);
 
     if (!imagem) {
-        throw new Error(`Nenhuma imagem encontrada em ${imagensDir()}.`);
+        throw new Error(`Nenhuma imagem encontrada nas pastas: ${imagensDirs().join(', ')}.`);
     }
 
     const legenda = process.env.STATUS_LEGENDA || '';
@@ -274,6 +300,7 @@ function resumo() {
     return {
         habilitado: habilitado(),
         pasta: imagensDir(),
+        pastas: resumoPastas(),
         totalImagens: imagens.length,
         ultimoArquivo: estado.ultimoArquivo || '',
         ultimoDia: estado.ultimoDia || '',

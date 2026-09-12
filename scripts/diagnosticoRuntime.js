@@ -14,6 +14,7 @@ const {
     testesParaAvisar,
     testesParaAvisoContratacao
 } = require('../services/testesCsv');
+const statusDiario = require('../services/statusDiario');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
@@ -99,6 +100,11 @@ function main() {
         'CLIENTES_CSV_PATH',
         'TESTES_CSV_PATH',
         'LEADS_CSV_PATH',
+        'STATUS_DIARIO_ENABLED',
+        'STATUS_IMAGENS_DIR',
+        'STATUS_ENVIO_HORA',
+        'STATUS_ENVIO_MINUTO',
+        'STATUS_POST_STARTUP',
         'GOOGLE_SHEETS_SPREADSHEET_ID'
     ].forEach(nome => console.log(envResumo(nome)));
     console.log('');
@@ -124,6 +130,20 @@ function main() {
     console.log(`testes_para_avisar=${testesParaAvisar().length}`);
     console.log(`testes_convite=${testesParaAvisoContratacao().length}`);
     console.log(`pausas=${contarPausas()}`);
+    console.log('');
+
+    const status = statusDiario.resumo();
+    console.log('=== STATUS DIARIO ===');
+    console.log(`ativo=${status.habilitado}`);
+    console.log(`pasta_principal=${status.pasta}`);
+    for (const item of status.pastas || []) {
+        console.log(`pasta=${item.pasta} imagens=${item.totalImagens}`);
+    }
+    console.log(`imagens_total=${status.totalImagens}`);
+    console.log(`ultimo_dia=${status.ultimoDia || ''}`);
+    console.log(`ultimo_arquivo=${status.ultimoArquivo || ''}`);
+    console.log(`postado_em=${status.postadoEm || ''}`);
+    console.log(`proxima_execucao=${status.proximaExecucao || ''}`);
 }
 
 main();

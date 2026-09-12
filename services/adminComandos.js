@@ -884,18 +884,26 @@ function textoResumoTestes() {
 function textoStatusImagens() {
 
     const status = statusDiario.resumo();
+    const pastas = Array.isArray(status.pastas) ?
+        status.pastas :
+        [];
 
     return [
         '*Status diario*',
         '',
         `Ativo: ${status.habilitado ? 'Sim' : 'Nao'}`,
-        `Pasta: ${status.pasta}`,
-        `Imagens: ${status.totalImagens}`,
+        `Pasta principal: ${status.pasta}`,
+        '',
+        'Pastas verificadas:',
+        ...pastas.map(item => `- ${item.pasta}: ${item.totalImagens} imagem(ns)`),
+        !pastas.length ? '- Nenhuma pasta encontrada' : '',
+        '',
+        `Total de imagens: ${status.totalImagens}`,
         `Ultimo dia: ${status.ultimoDia || 'nenhum'}`,
         `Ultimo arquivo: ${status.ultimoArquivo || 'nenhum'}`,
         `Postado em: ${status.postadoEm ? formatarData(new Date(status.postadoEm)) : 'nenhum'}`,
         `Proximo envio: ${status.proximaExecucao ? formatarData(new Date(status.proximaExecucao)) : 'nao agendado'}`
-    ].join('\n');
+    ].filter(linha => linha !== '').join('\n');
 
 }
 
