@@ -4,6 +4,8 @@ const path = require('path');
 const registrar = require('./services/logger');
 const sessoes = require('./services/sessions');
 const {
+    buscarNumeroResolvido,
+    registrarNumeroResolvido,
     resolverNumeroMensagem
 } = require('./services/whatsappNumero');
 const {
@@ -565,6 +567,30 @@ function aliasesContato(numero, numeroWhatsapp) {
 
 }
 
+function marcarSessaoRevendedor(numero, numeroWhatsapp) {
+
+    for (const alias of aliasesContato(
+        numero,
+        numeroWhatsapp
+    )) {
+
+        sessoes[alias] = 'revendedor_menu';
+        sessoes[`${alias}_iniciado`] = true;
+
+    }
+
+}
+
+function etapaRevendedorAtual(numero, numeroWhatsapp) {
+
+    return aliasesContato(
+        numero,
+        numeroWhatsapp
+    ).map(alias => String(sessoes[alias] || ''))
+        .find(etapa => etapa.startsWith('revendedor')) || '';
+
+}
+
 function liberarAliasesAtendimento(numero, numeroWhatsapp) {
 
     for (const alias of aliasesContato(
@@ -678,11 +704,15 @@ wppconnect.create({
             const numeroWhatsapp = await resolverNumeroMensagem(
                 client,
                 message
-            );
+            ) || buscarNumeroResolvido(numero);
 
             if (numeroWhatsapp) {
 
                 registrarDestinoResolvido(
+                    numero,
+                    numeroWhatsapp
+                );
+                registrarNumeroResolvido(
                     numero,
                     numeroWhatsapp
                 );
@@ -838,19 +868,29 @@ wppconnect.create({
 
             if (revendedor) {
 
+                sincronizarSessaoNumero(
+                    numero,
+                    numeroWhatsapp,
+                    true
+                );
                 verificarTimeout(
                     numero
                 );
 
-                const etapaRevendedor = String(sessoes[numero] || '');
+                const etapaRevendedor = etapaRevendedorAtual(
+                    numero,
+                    numeroWhatsapp
+                ) || String(sessoes[numero] || '');
 
                 if (
                     !sessoes[numero + '_iniciado'] ||
                     !etapaRevendedor.startsWith('revendedor')
                 ) {
 
-                    sessoes[numero + '_iniciado'] = true;
-                    sessoes[numero] = 'revendedor_menu';
+                    marcarSessaoRevendedor(
+                        numero,
+                        numeroWhatsapp
+                    );
 
                     logFluxo('menu revendedor enviado', numero, numeroWhatsapp || '');
 
@@ -868,12 +908,12 @@ wppconnect.create({
 
                 registrar(
                     numero,
-                    etapaRevendedor,
+                    etapaRevendedor || 'revendedor_menu',
                     texto
                 );
                 console.log(
                     `[${numero}]`,
-                    `[${etapaRevendedor}]`,
+                    `[${etapaRevendedor || 'revendedor_menu'}]`,
                     texto
                 );
 

@@ -1,3 +1,10 @@
+const fs = require('fs');
+const path = require('path');
+
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const RESOLVIDOS_PATH = path.join(DATA_DIR, 'whatsapp-resolvidos.json');
+const resolvidos = carregarResolvidos();
+
 function limparTelefone(valor) {
 
     return String(valor || '').replace(/\D/g, '');
@@ -65,6 +72,82 @@ function extrairWidTelefone(valor) {
 
 }
 
+function garantirDiretorio() {
+
+    if (!fs.existsSync(DATA_DIR)) {
+
+        fs.mkdirSync(
+            DATA_DIR,
+            {
+                recursive: true
+            }
+        );
+
+    }
+
+}
+
+function carregarResolvidos() {
+
+    try {
+
+        if (!fs.existsSync(RESOLVIDOS_PATH)) return {};
+
+        const dados = JSON.parse(fs.readFileSync(RESOLVIDOS_PATH, 'utf8'));
+
+        return dados.resolvidos || {};
+
+    } catch (_) {
+
+        return {};
+
+    }
+
+}
+
+function salvarResolvidos() {
+
+    garantirDiretorio();
+
+    fs.writeFileSync(
+        RESOLVIDOS_PATH,
+        JSON.stringify(
+            {
+                atualizadoEm: new Date().toISOString(),
+                resolvidos
+            },
+            null,
+            2
+        )
+    );
+
+}
+
+function registrarNumeroResolvido(origem, destino) {
+
+    const origemTexto = String(origem || '').trim();
+    const destinoWid = extrairWidTelefone(destino);
+
+    if (!origemTexto || !destinoWid || origemTexto === destinoWid) return destinoWid;
+    if (resolvidos[origemTexto] === destinoWid) return destinoWid;
+
+    resolvidos[origemTexto] = destinoWid;
+    salvarResolvidos();
+
+    return destinoWid;
+
+}
+
+function buscarNumeroResolvido(origem) {
+
+    const origemTexto = String(origem || '').trim();
+
+    if (!origemTexto) return null;
+
+    return extrairWidTelefone(resolvidos[origemTexto]);
+
+}
+
 function timeoutResolucaoLidMs() {
 
     const valor = Number(process.env.WHATSAPP_LID_RESOLVE_TIMEOUT_MS || 2500);
@@ -98,6 +181,34 @@ async function resolverNumeroMensagem(client, message) {
 
     if (!message.from.endsWith('@lid')) return null;
 
+    const candidatos = [
+        message.sender,
+        message.sender?.id,
+        message.sender?.phoneNumber,
+        message.sender?.phone,
+        message.sender?.pn,
+        message.author,
+        message.chatId,
+        message.id?.remote,
+        message.to,
+        message.contact
+    ];
+
+    for (const candidato of candidatos) {
+
+        const wid = extrairWidTelefone(candidato);
+
+        if (wid) return registrarNumeroResolvido(
+            message.from,
+            wid
+        );
+
+    }
+
+    const resolvidoAnterior = buscarNumeroResolvido(message.from);
+
+    if (resolvidoAnterior) return resolvidoAnterior;
+
     try {
 
         if (typeof client.getPnLidEntry !== 'function') return null;
@@ -107,7 +218,14 @@ async function resolverNumeroMensagem(client, message) {
             timeoutResolucaoLidMs()
         );
 
-        return extrairWidTelefone(info);
+        const wid = extrairWidTelefone(info);
+
+        if (wid) return registrarNumeroResolvido(
+            message.from,
+            wid
+        );
+
+        return null;
 
     } catch (erro) {
 
@@ -124,7 +242,9 @@ async function resolverNumeroMensagem(client, message) {
 }
 
 module.exports = {
+    buscarNumeroResolvido,
     limparTelefone,
     montarWidTelefone,
+    registrarNumeroResolvido,
     resolverNumeroMensagem
 };

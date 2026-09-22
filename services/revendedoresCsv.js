@@ -60,24 +60,44 @@ function caminhoRevendedoresCsv() {
 
 }
 
+function caminhoComAlternativas(envName, principal, ...alternativas) {
+
+    if (process.env[envName]) return process.env[envName];
+
+    return [
+        principal,
+        ...alternativas
+    ].find(caminho => fs.existsSync(caminho)) || principal;
+
+}
+
 function caminhoRevendedoresClientesCsv() {
 
-    return process.env.REVENDEDORES_CLIENTES_CSV_PATH ||
-        path.join(DATA_DIR, 'revendedores-clientes.csv');
+    return caminhoComAlternativas(
+        'REVENDEDORES_CLIENTES_CSV_PATH',
+        path.join(DATA_DIR, 'revendedores-clientes.csv'),
+        path.join(DATA_DIR, 'revendedores_clientes.csv')
+    );
 
 }
 
 function caminhoRevendedoresRemarketingCsv() {
 
-    return process.env.REVENDEDORES_REMARKETING_CSV_PATH ||
-        path.join(DATA_DIR, 'revendedores-remarketing.csv');
+    return caminhoComAlternativas(
+        'REVENDEDORES_REMARKETING_CSV_PATH',
+        path.join(DATA_DIR, 'revendedores-remarketing.csv'),
+        path.join(DATA_DIR, 'revendedores_remarketing.csv')
+    );
 
 }
 
 function caminhoRevendedoresChamadosCsv() {
 
-    return process.env.REVENDEDORES_CHAMADOS_CSV_PATH ||
-        path.join(DATA_DIR, 'revendedores-chamados.csv');
+    return caminhoComAlternativas(
+        'REVENDEDORES_CHAMADOS_CSV_PATH',
+        path.join(DATA_DIR, 'revendedores-chamados.csv'),
+        path.join(DATA_DIR, 'revendedores_chamados.csv')
+    );
 
 }
 
