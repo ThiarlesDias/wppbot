@@ -436,6 +436,7 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp, forcar = false) {
         '_rev_criar_cliente_dados',
         '_rev_criar_cliente_tipo',
         '_rev_limpar_testes_total',
+        '_rev_renovar_clientes',
         '_rev_renovar_cliente',
         '_rev_chamado_descricao'
     ];

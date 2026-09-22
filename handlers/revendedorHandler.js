@@ -564,6 +564,62 @@ async function listarClientes(client, numero, revendedor) {
 
 }
 
+async function listarClientesParaRenovar(client, numero, revendedor) {
+
+    const clientes = listarClientesRevendedor(revendedor);
+
+    if (!clientes.length) {
+        return await client.sendText(
+            numero,
+            [
+                '*Clientes vinculados a voce*',
+                '',
+                resumoClientes(clientes),
+                '',
+                'Se precisar, escolha *2 - Informar cliente* e envie o usuario do sistema.'
+            ].join('\n')
+        );
+    }
+
+    sessoes[chave(numero, 'rev_renovar_clientes')] = clientes;
+    sessoes[numero] = 'revendedor_renovar_usuario';
+
+    return await client.sendText(
+        numero,
+        [
+            '*Clientes vinculados a voce*',
+            '',
+            resumoClientes(clientes),
+            '',
+            'Digite o *numero da lista* ou o *usuario do sistema* que deseja renovar.',
+            '',
+            '0 - Voltar'
+        ].join('\n')
+    );
+
+}
+
+function buscarClienteRenovacaoEscolhido(numero, revendedor, texto) {
+
+    const clientes = sessoes[chave(numero, 'rev_renovar_clientes')] ||
+        listarClientesRevendedor(revendedor);
+    const indice = Number.parseInt(String(texto || '').trim(), 10);
+
+    if (
+        Number.isInteger(indice) &&
+        indice >= 1 &&
+        indice <= clientes.length
+    ) {
+        return clientes[indice - 1];
+    }
+
+    return buscarClienteRevendedorPorUsuario(
+        revendedor,
+        texto
+    );
+
+}
+
 async function listarTestesParaCriarCliente(client, numero, revendedor) {
 
     const testes = listarTestesRevendedor(revendedor);
@@ -1255,6 +1311,7 @@ async function confirmarRenovacao(client, numero, numeroWhatsapp, revendedor) {
     );
 
     delete sessoes[chave(numero, 'rev_renovar_cliente')];
+    delete sessoes[chave(numero, 'rev_renovar_clientes')];
     sessoes[numero] = 'revendedor_menu';
 
     return await client.sendText(
@@ -1783,18 +1840,15 @@ module.exports = async function revendedorHandler(
         }
 
         if (texto === '1') {
-            await listarClientes(
+            return await listarClientesParaRenovar(
                 client,
                 numero,
                 revendedor
             );
-            return await menuRenovar(
-                client,
-                numero
-            );
         }
 
         if (texto === '2') {
+            delete sessoes[chave(numero, 'rev_renovar_clientes')];
             sessoes[numero] = 'revendedor_renovar_usuario';
             return await client.sendText(
                 numero,
@@ -1816,6 +1870,7 @@ module.exports = async function revendedorHandler(
     if (etapa === 'revendedor_renovar_usuario') {
 
         if (texto === '0') {
+            delete sessoes[chave(numero, 'rev_renovar_clientes')];
             sessoes[numero] = 'revendedor_renovar';
             return await menuRenovar(
                 client,
@@ -1823,7 +1878,8 @@ module.exports = async function revendedorHandler(
             );
         }
 
-        const cliente = buscarClienteRevendedorPorUsuario(
+        const cliente = buscarClienteRenovacaoEscolhido(
+            numero,
             revendedor,
             texto
         );
@@ -1832,9 +1888,9 @@ module.exports = async function revendedorHandler(
             return await client.sendText(
                 numero,
                 [
-                    'Nao encontrei esse usuario na sua lista de clientes.',
+                    'Nao encontrei esse cliente na sua lista.',
                     '',
-                    'Confira o usuario do sistema e envie novamente.',
+                    'Envie o numero da lista ou o usuario do sistema novamente.',
                     '0 - Voltar'
                 ].join('\n')
             );
