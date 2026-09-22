@@ -289,7 +289,7 @@ function ehAdmin(numeroWhatsapp, numero) {
 
     }
 
-    if (!admins.length) return false;
+    if (!admins.size) return false;
 
     const candidatos = new Set();
 

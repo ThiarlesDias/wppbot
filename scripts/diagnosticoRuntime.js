@@ -97,6 +97,8 @@ function main() {
         'ADMIN_WHATSAPP',
         'ADMIN_NOTIFY_WHATSAPP',
         'ADMIN_WHATSAPP_ID',
+        'ADMIN_WHATSAPP_IDS',
+        'ADMIN_EXTRA_IDS',
         'CLIENTES_CSV_PATH',
         'TESTES_CSV_PATH',
         'LEADS_CSV_PATH',
