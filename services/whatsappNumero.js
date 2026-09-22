@@ -138,13 +138,36 @@ function registrarNumeroResolvido(origem, destino) {
 
 }
 
-function buscarNumeroResolvido(origem) {
+function removerNumeroResolvido(origem) {
 
     const origemTexto = String(origem || '').trim();
 
     if (!origemTexto) return null;
 
-    return extrairWidTelefone(resolvidos[origemTexto]);
+    const anterior = resolvidos[origemTexto];
+
+    delete resolvidos[origemTexto];
+    salvarResolvidos();
+
+    return extrairWidTelefone(anterior);
+
+}
+
+function buscarNumeroResolvido(origem, destinoIgnorado = '') {
+
+    const origemTexto = String(origem || '').trim();
+
+    if (!origemTexto) return null;
+
+    const resolvido = extrairWidTelefone(resolvidos[origemTexto]);
+    const ignorado = extrairWidTelefone(destinoIgnorado);
+
+    if (resolvido && ignorado && resolvido === ignorado) {
+        removerNumeroResolvido(origemTexto);
+        return null;
+    }
+
+    return resolvido;
 
 }
 
@@ -181,6 +204,8 @@ async function resolverNumeroMensagem(client, message) {
 
     if (!message.from.endsWith('@lid')) return null;
 
+    const destinoMensagem = extrairWidTelefone(message.to);
+
     const candidatos = [
         message.sender,
         message.sender?.id,
@@ -190,13 +215,14 @@ async function resolverNumeroMensagem(client, message) {
         message.author,
         message.chatId,
         message.id?.remote,
-        message.to,
         message.contact
     ];
 
     for (const candidato of candidatos) {
 
         const wid = extrairWidTelefone(candidato);
+
+        if (wid && destinoMensagem && wid === destinoMensagem) continue;
 
         if (wid) return registrarNumeroResolvido(
             message.from,
@@ -205,7 +231,10 @@ async function resolverNumeroMensagem(client, message) {
 
     }
 
-    const resolvidoAnterior = buscarNumeroResolvido(message.from);
+    const resolvidoAnterior = buscarNumeroResolvido(
+        message.from,
+        message.to
+    );
 
     if (resolvidoAnterior) return resolvidoAnterior;
 

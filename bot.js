@@ -805,7 +805,10 @@ wppconnect.create({
             const numeroWhatsapp = await resolverNumeroMensagem(
                 client,
                 message
-            ) || buscarNumeroResolvido(numero);
+            ) || buscarNumeroResolvido(
+                numero,
+                message.to
+            );
 
             if (numeroWhatsapp) {
 
