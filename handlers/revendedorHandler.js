@@ -704,6 +704,7 @@ async function confirmarDadosCriarCliente(client, numero, dados) {
 async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedor) {
 
     const teste = sessoes[chave(numero, 'rev_criar_cliente_teste')];
+    const testeExistente = Boolean(teste);
     const dadosManual = sessoes[chave(numero, 'rev_criar_cliente_dados')];
     const tipoManual = sessoes[chave(numero, 'rev_criar_cliente_tipo')];
     const vencimentoCliente = vencimentoClienteRevenda();
@@ -838,12 +839,18 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
         revendedor,
         clienteNome,
         usuario,
-        descricao: usuario ?
-            `Criar cliente/teste a partir do usuario ${usuario}` :
-            `Criar cliente/teste para ${clienteNome} (${clienteTelefone})`,
+        descricao: testeExistente ?
+            `Ativar cliente a partir do teste existente do usuario ${usuario}` :
+            (
+                usuario ?
+                    `Criar cliente a partir do acesso ${usuario}` :
+                    `Criar cliente para ${clienteNome} (${clienteTelefone})`
+            ),
         observacao: [
             'Solicitacao criada pelo fluxo de revendedor',
-            teste ? `Situacao do teste anterior: ${situacaoTeste(teste)}` : `Teste criado no fluxo: ${tipoManual || 'com adultos'}`,
+            testeExistente ?
+                `Usar teste existente; nao criar novo teste. Situacao: ${situacaoTeste(teste)}` :
+                `Acesso criado no fluxo: ${tipoManual || 'com adultos'}`,
             `Vencimento informado ao revendedor: ${vencimentoCliente}`,
             testeFinal?.senha ? `Senha teste: ${testeFinal.senha}` : '',
             testeFinal?.dns ? `DNS: ${testeFinal.dns}` : '',
@@ -853,24 +860,32 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
 
     await notificar(
         client,
-        'CRIAR CLIENTE - REVENDEDOR',
+        testeExistente ?
+            'ATIVAR CLIENTE - REVENDEDOR' :
+            'CRIAR CLIENTE - REVENDEDOR',
         [
             `Codigo: ${chamado.codigo}`,
             `Revendedor: ${nomeRevendedor(revendedor)}`,
             `WhatsApp revendedor: ${revendedor.telefone || numeroWhatsapp || numero}`,
             '',
-            '*Cliente/teste para validar*',
+            testeExistente ?
+                '*Cliente para ativar usando teste existente*' :
+                '*Cliente para validar*',
             `Nome: ${clienteNome || 'Nao informado'}`,
             `WhatsApp: ${clienteTelefone || 'Nao informado'}`,
-            usuario ? `Usuario teste: ${usuario}` : '',
+            usuario ? `Usuario: ${usuario}` : '',
             testeFinal?.senha ? `Senha teste: ${testeFinal.senha}` : '',
             testeFinal?.dns ? `DNS: ${testeFinal.dns}` : '',
             testeFinal?.m3u ? `M3U: ${testeFinal.m3u}` : '',
             `Vencimento informado: ${vencimentoCliente}`,
-            teste ? `Situacao teste anterior: ${situacaoTeste(teste)}` : `Teste criado agora: ${tipoManual || 'com adultos'}`,
+            testeExistente ?
+                `Teste existente: ${situacaoTeste(teste)}. Nao criar novo teste.` :
+                `Acesso criado agora: ${tipoManual || 'com adultos'}`,
             creditoRestante !== null ? `Creditos restantes: ${creditoRestante}` : '',
             '',
-            'Validar no painel e ajustar a ativacao para 30 dias, se necessario.'
+            testeExistente ?
+                'Apenas ativar/ajustar este usuario no painel para 30 dias. Nao gerar novo login.' :
+                'Validar no painel e ajustar a ativacao para 30 dias, se necessario.'
         ].filter(Boolean).join('\n')
     );
 
@@ -909,7 +924,9 @@ async function confirmarCriacaoCliente(client, numero, numeroWhatsapp, revendedo
             `Vencimento informado: ${vencimentoCliente}`,
             creditoRestante !== null ? `Credito consumido. Restam: ${creditoRestante}` : '',
             '',
-            'A TOPTEC vai validar internamente e ajustar a ativacao no painel, se necessario.'
+            testeExistente ?
+                'A TOPTEC vai validar internamente e ativar este mesmo usuario no painel. Nao sera criado outro teste.' :
+                'A TOPTEC vai validar internamente e ajustar a ativacao no painel, se necessario.'
         ].filter(Boolean).join('\n')
     );
 
