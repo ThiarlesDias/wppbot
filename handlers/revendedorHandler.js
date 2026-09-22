@@ -76,12 +76,30 @@ function nomeRevendedor(revendedor) {
 
 }
 
+function vencimentoVisual(valor) {
+
+    const texto = String(valor || '').trim();
+
+    if (!texto) return '';
+
+    const brasileiro = texto.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{2})(?::\d{2})?/);
+
+    if (brasileiro) {
+        return `${brasileiro[1]} as ${brasileiro[2]}`;
+    }
+
+    return texto.replace(/:(\d{2})(\s|$)/, '$2').trim();
+
+}
+
 function textoCliente(cliente) {
 
+    const vencimento = vencimentoVisual(cliente.vencimento);
+
     return [
-        cliente.cliente_nome || 'Cliente sem nome',
-        cliente.usuario ? `Usuario: ${cliente.usuario}` : '',
-        cliente.vencimento ? `Vencimento: ${cliente.vencimento}` : '',
+        `Cliente: *${cliente.cliente_nome || 'Cliente sem nome'}*`,
+        cliente.usuario ? `Usuario: \`${cliente.usuario}\`` : '',
+        vencimento ? `Vence em: *${vencimento}*` : '',
         cliente.cliente_telefone ? `WhatsApp: ${cliente.cliente_telefone}` : ''
     ].filter(Boolean).join('\n');
 
@@ -94,17 +112,21 @@ function resumoClientes(clientes) {
     }
 
     const limite = 20;
-    const linhas = clientes.slice(0, limite).map((cliente, indice) => [
-        `${indice + 1}. ${cliente.cliente_nome || 'Cliente sem nome'}`,
-        cliente.usuario ? `   Usuario: ${cliente.usuario}` : '',
-        cliente.vencimento ? `   Vencimento: ${cliente.vencimento}` : ''
-    ].filter(Boolean).join('\n'));
+    const linhas = clientes.slice(0, limite).map((cliente, indice) => {
+        const vencimento = vencimentoVisual(cliente.vencimento);
+
+        return [
+            `*${indice + 1}. ${cliente.cliente_nome || 'Cliente sem nome'}*`,
+            cliente.usuario ? `Usuario: \`${cliente.usuario}\`` : '',
+            vencimento ? `Vence em: *${vencimento}*` : ''
+        ].filter(Boolean).join('\n');
+    });
 
     if (clientes.length > limite) {
         linhas.push(`\nMostrando ${limite} de ${clientes.length}. Para renovar, informe o usuario do sistema.`);
     }
 
-    return linhas.join('\n');
+    return linhas.join('\n\n');
 
 }
 
