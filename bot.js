@@ -431,6 +431,11 @@ function sincronizarSessaoNumero(numero, numeroWhatsapp, forcar = false) {
         '_chamado_externo_servico',
         '_rev_teste_tipo',
         '_rev_teste_dados',
+        '_rev_testes_criar_cliente',
+        '_rev_criar_cliente_teste',
+        '_rev_criar_cliente_dados',
+        '_rev_criar_cliente_tipo',
+        '_rev_limpar_testes_total',
         '_rev_renovar_cliente',
         '_rev_chamado_descricao'
     ];
@@ -684,11 +689,15 @@ function marcarSessaoRevendedor(numero, numeroWhatsapp) {
 
 function etapaRevendedorAtual(numero, numeroWhatsapp) {
 
-    return aliasesContato(
+    const etapas = aliasesContato(
         numero,
         numeroWhatsapp
     ).map(alias => String(sessoes[alias] || ''))
-        .find(etapa => etapa.startsWith('revendedor')) || '';
+        .filter(etapa => etapa.startsWith('revendedor'));
+
+    return etapas.find(etapa => etapa !== 'revendedor_menu') ||
+        etapas[0] ||
+        '';
 
 }
 
@@ -974,8 +983,7 @@ wppconnect.create({
 
                 sincronizarSessaoNumero(
                     numero,
-                    numeroWhatsapp,
-                    true
+                    numeroWhatsapp
                 );
                 verificarTimeout(
                     numero
@@ -985,6 +993,13 @@ wppconnect.create({
                     numero,
                     numeroWhatsapp
                 ) || String(sessoes[numero] || '');
+
+                if (
+                    etapaRevendedor &&
+                    etapaRevendedor !== sessoes[numero]
+                ) {
+                    sessoes[numero] = etapaRevendedor;
+                }
 
                 if (
                     !sessoes[numero + '_iniciado'] ||
