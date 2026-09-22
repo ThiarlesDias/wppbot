@@ -92,6 +92,85 @@ function limparNumero(numero) {
 
 }
 
+function variantesTelefone(numero) {
+
+    const limpo = limparNumero(numero);
+    const locais = new Set();
+    const variantes = new Set();
+
+    if (!limpo) return variantes;
+
+    variantes.add(limpo);
+
+    if (
+        (limpo.length === 10 || limpo.length === 11) &&
+        !limpo.startsWith('55')
+    ) {
+        variantes.add(`55${limpo}`);
+        locais.add(limpo);
+    }
+
+    if (
+        limpo.startsWith('55') &&
+        (limpo.length === 12 || limpo.length === 13)
+    ) {
+        const local = limpo.slice(2);
+
+        variantes.add(local);
+        locais.add(local);
+    }
+
+    for (const local of Array.from(locais)) {
+
+        if (local.length === 10) {
+            locais.add(`${local.slice(0, 2)}9${local.slice(2)}`);
+        }
+
+        if (local.length === 11 && local[2] === '9') {
+            locais.add(`${local.slice(0, 2)}${local.slice(3)}`);
+        }
+
+    }
+
+    for (const local of locais) {
+        variantes.add(local);
+        variantes.add(`55${local}`);
+    }
+
+    return variantes;
+
+}
+
+function variantesIdentidadeWhatsapp(valor) {
+
+    const texto = String(valor || '').trim();
+    const variantes = new Set();
+
+    if (!texto) return variantes;
+
+    variantes.add(texto.toLowerCase());
+
+    for (const telefone of variantesTelefone(texto)) {
+
+        variantes.add(telefone);
+        variantes.add(`${telefone}@c.us`);
+
+    }
+
+    const resolvido = buscarNumeroResolvido(texto);
+
+    if (resolvido && resolvido !== texto) {
+
+        for (const variante of variantesIdentidadeWhatsapp(resolvido)) {
+            variantes.add(variante);
+        }
+
+    }
+
+    return variantes;
+
+}
+
 function idsMensagem(message) {
 
     return [
@@ -188,22 +267,44 @@ function ehContatoIgnorado(message) {
 
 function ehAdmin(numeroWhatsapp, numero) {
 
-    const admins = [
+    const admins = new Set();
+
+    for (const admin of [
         process.env.ADMIN_NOTIFY_WHATSAPP,
         process.env.ADMIN_WHATSAPP,
-        process.env.ADMIN_WHATSAPP_ID
-    ].map(limparNumero).filter(Boolean);
+        process.env.ADMIN_WHATSAPP_ID,
+        process.env.ADMIN_WHATSAPP_IDS,
+        process.env.ADMIN_EXTRA_IDS
+    ]) {
+
+        String(admin || '')
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+            .forEach(item => {
+                for (const variante of variantesIdentidadeWhatsapp(item)) {
+                    admins.add(variante);
+                }
+            });
+
+    }
 
     if (!admins.length) return false;
 
-    const candidatos = [
-        limparNumero(numeroWhatsapp),
-        limparNumero(numero)
-    ];
+    const candidatos = new Set();
 
-    return candidatos.some(candidato =>
-        admins.includes(candidato)
-    );
+    for (const candidato of [
+        numeroWhatsapp,
+        numero
+    ]) {
+
+        for (const variante of variantesIdentidadeWhatsapp(candidato)) {
+            candidatos.add(variante);
+        }
+
+    }
+
+    return Array.from(candidatos).some(candidato => admins.has(candidato));
 
 }
 
