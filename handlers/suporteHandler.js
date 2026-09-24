@@ -62,6 +62,13 @@ const {
     validarCupom,
     marcarSaidaMarketing
 } = require('../services/marketingCampanha');
+const {
+    marcarSaidaGestor360,
+    registrarInteresseGestor360
+} = require('../services/gestor360Campanha');
+const {
+    pausarAtendimento
+} = require('../services/pausaAtendimento');
 
 module.exports = async function suporteHandler(
     client,
@@ -348,6 +355,78 @@ De *1* a *5*, qual nota voce da para este atendimento?
         return await client.sendText(
             numero,
             'Tudo bem. Removi este contato da lista de ofertas. Quando precisar, envie uma mensagem por aqui.'
+        );
+
+    }
+
+    async function sairGestor360() {
+
+        marcarSaidaGestor360(numeroWhatsapp || numero);
+        marcarSaidaGestor360(numero);
+        sessoes[numero] = 'menu';
+
+        return await client.sendText(
+            numero,
+            'Tudo bem. Removi este contato da lista de apresentacoes. Quando precisar, e so chamar por aqui.'
+        );
+
+    }
+
+    async function registrarInteresseCampanhaGestor360() {
+
+        const registro = registrarInteresseGestor360(
+            numeroWhatsapp || numero,
+            texto
+        ) || registrarInteresseGestor360(
+            numero,
+            texto
+        );
+        const contato = String(numeroWhatsapp || numero || '').replace(/\D/g, '');
+
+        sessoes[numero] = 'humano';
+        pausarAtendimento(
+            numero,
+            'lead interessado Gestor360'
+        );
+
+        if (numeroWhatsapp) {
+
+            pausarAtendimento(
+                numeroWhatsapp,
+                'lead interessado Gestor360'
+            );
+            pausarAtendimento(
+                `${String(numeroWhatsapp).replace(/\D/g, '')}@c.us`,
+                'lead interessado Gestor360'
+            );
+
+        }
+
+        await notificar(
+            client,
+            'LEAD GESTOR360 INTERESSADO',
+
+`Lead respondeu a campanha do TopTec Gestor360.
+
+Nome:
+${registro?.nome || 'Nao informado'}
+
+Conveniencia:
+${registro?.conveniencia || 'Nao informada'}
+
+Cidade:
+${registro?.cidade || 'Nao informada'}
+
+WhatsApp:
+${contato || 'Nao identificado'}
+
+Resposta:
+${texto || 'Sem texto'}`
+        );
+
+        return await client.sendText(
+            numero,
+            'Perfeito, recebi seu retorno. Vou chamar uma pessoa da TopTec para continuar seu atendimento por aqui.'
         );
 
     }
@@ -1137,6 +1216,20 @@ ${erro.message}`
 
         }
 
+
+    }
+
+    if (etapa === 'gestor360_info') {
+
+        const resposta = String(texto || '').trim().toLowerCase();
+
+        if (resposta === 'sair' || resposta === '8') {
+
+            return await sairGestor360();
+
+        }
+
+        return await registrarInteresseCampanhaGestor360();
 
     }
 

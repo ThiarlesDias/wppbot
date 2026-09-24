@@ -69,6 +69,9 @@ const {
     marcarSaidaMarketing
 } = require('./services/marketingCampanha');
 const {
+    marcarSaidaGestor360
+} = require('./services/gestor360Campanha');
+const {
     marcarLead,
     registrarLead
 } = require('./services/leadsCsv');
@@ -875,9 +878,16 @@ wppconnect.create({
             cancelarFollowUpVencimento(`${limparNumero(numeroWhatsapp)}@c.us`);
             const respostaMarketing = String(texto || '').trim().toLowerCase();
 
-            if (respostaMarketing === 'sair' && marcarSaidaMarketing(numeroWhatsapp || numero)) {
+            const saiuCampanha = respostaMarketing === 'sair' && (
+                marcarSaidaMarketing(numeroWhatsapp || numero) ||
+                marcarSaidaGestor360(numeroWhatsapp || numero)
+            );
 
-                console.log('SAIDA MARKETING', numeroWhatsapp || numero);
+            if (saiuCampanha) {
+
+                console.log('SAIDA CAMPANHA', numeroWhatsapp || numero);
+                sessoes[numero] = 'menu';
+                delete sessoes[`${numero}_marketing_detalhes`];
 
                 return await client.sendText(
                     numero,
@@ -1221,6 +1231,7 @@ wppconnect.create({
                 case 'pagamento_validacao_pendente':
                 case 'aguardando_comprovante_pagamento':
                 case 'marketing_info':
+                case 'gestor360_info':
                 case 'cancelamento_feedback':
                 case 'cancelamento_repescagem':
 

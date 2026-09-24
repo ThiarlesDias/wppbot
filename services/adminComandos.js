@@ -30,6 +30,11 @@ const {
     statusMarketing
 } = require('./marketingCampanha');
 const {
+    enviarCampanhaGestor360,
+    previewGestor360,
+    statusGestor360
+} = require('./gestor360Campanha');
+const {
     liberarAtendimento,
     limparPausasAtendimento
 } = require('./pausaAtendimento');
@@ -147,6 +152,9 @@ function menuAdmin() {
         '#chamado enviar OS359 - enviar informacoes do chamado ao cliente',
         '#marketing status - status da campanha',
         '#marketing enviar - disparar campanha com limite/intervalo',
+        '#gestor360 status - status da campanha com PDF',
+        '#gestor360 previa - ver mensagem e primeiros contatos',
+        '#gestor360 enviar - disparar PDF com limite/intervalo',
         '#status imagens - ver imagens do status diario',
         '#status postar - postar uma imagem aleatoria agora',
         '#testes - resumo da planilha de testes',
@@ -847,6 +855,61 @@ function textoMarketingStatus() {
         `Proximo ciclo: ${formatarData(status.proximoCiclo)}`,
         `Intervalo: ${Math.round(status.intervaloMs / 1000)} segundos`,
         `Campanha rodando: ${status.rodando ? 'Sim' : 'Nao'}`
+    ].join('\n');
+
+}
+
+function textoGestor360Status() {
+
+    const status = statusGestor360();
+
+    return [
+        '*Gestor360 campanha PDF*',
+        '',
+        `CSV: ${status.csvExiste ? 'OK' : 'Nao encontrado'}`,
+        `PDF: ${status.pdfExiste ? 'OK' : 'Nao encontrado'}`,
+        `Contatos validos: ${status.totalContatos}`,
+        `Pendentes: ${status.pendentes}`,
+        `Enviados: ${status.enviados}`,
+        `Interessados: ${status.interessados}`,
+        `Erros: ${status.erros}`,
+        `Sairam: ${status.sairam}`,
+        `Enviados hoje: ${status.enviadosHoje}/${status.limiteDiario || 'sem limite'}`,
+        `Intervalo: ${Math.round(status.intervaloMs / 1000)} segundos`,
+        `Campanha rodando: ${status.rodando ? 'Sim' : 'Nao'}`,
+        '',
+        `Arquivo CSV: ${status.csv}`,
+        `Arquivo PDF: ${status.pdf}`
+    ].join('\n');
+
+}
+
+function textoGestor360Previa() {
+
+    const previa = previewGestor360();
+    const linhasContatos = previa.contatos.map((contato, indice) => [
+        `${indice + 1}. ${contato.nome || contato.conveniencia}`,
+        `Conveniencia: ${contato.conveniencia}`,
+        `Cidade: ${contato.cidade || 'nao informada'}`,
+        `WhatsApp: ${contato.telefone}`
+    ].join('\n'));
+
+    return [
+        '*Previa Gestor360*',
+        '',
+        `Contatos validos: ${previa.status.totalContatos}`,
+        `Pendentes: ${previa.status.pendentes}`,
+        `PDF: ${previa.status.pdfExiste ? 'OK' : 'Nao encontrado'}`,
+        '',
+        '*Primeiros contatos*',
+        '',
+        linhasContatos.length ? linhasContatos.join('\n\n') : 'Nenhum contato valido encontrado.',
+        '',
+        '*Mensagem do primeiro envio*',
+        '',
+        previa.mensagem || 'Sem mensagem porque nao ha contatos validos.',
+        '',
+        'Para enviar de verdade, use #gestor360 enviar.'
     ].join('\n');
 
 }
@@ -1699,6 +1762,49 @@ async function tratarComandoAdmin({
                     'Pausado porque atingiu o limite diario. Rode novamente amanha para continuar.' :
                     'Campanha concluida para este ciclo.'
             ].join('\n')
+        );
+
+    }
+
+    if (texto === '#gestor360 status') {
+
+        return await client.sendText(numero, textoGestor360Status());
+
+    }
+
+    if (texto === '#gestor360 previa') {
+
+        return await client.sendText(numero, textoGestor360Previa());
+
+    }
+
+    if (texto === '#gestor360 enviar') {
+
+        await client.sendText(
+            numero,
+            'Iniciando campanha Gestor360. Vou enviar o PDF com limite diario e intervalo entre contatos.'
+        );
+
+        const resultado = await enviarCampanhaGestor360(client);
+
+        return await client.sendText(
+            numero,
+            [
+                '*Campanha Gestor360 finalizada*',
+                '',
+                resultado.erro ? `Erro: ${resultado.erro}` : '',
+                `Total de contatos validos: ${resultado.total}`,
+                `Enviados: ${resultado.enviados}`,
+                `Ignorados: ${resultado.ignorados}`,
+                `Erros: ${resultado.erros}`,
+                `Enviados hoje: ${resultado.enviadosHoje}/${resultado.limiteDiario || 'sem limite'}`,
+                '',
+                resultado.rodando ?
+                    'Ja existe um envio em andamento.' :
+                    resultado.pausadoPorLimite ?
+                        'Pausado porque atingiu o limite diario. Rode novamente amanha para continuar.' :
+                        'Envio concluido para os contatos liberados.'
+            ].filter(Boolean).join('\n')
         );
 
     }
