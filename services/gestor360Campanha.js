@@ -6,6 +6,9 @@ const {
     limparTelefone,
     montarWidTelefone
 } = require('./whatsappNumero');
+const {
+    enviarTextoSeguro
+} = require('./envioWhatsapp');
 
 const ROOT_DIR = path.join(__dirname, '..');
 const DATA_DIR = path.join(ROOT_DIR, 'data');
@@ -423,15 +426,21 @@ async function enviarCampanhaGestor360(client) {
 
             try {
 
-                await client.sendText(
-                    contato.wid,
+                const envioTexto = await enviarTextoSeguro(
+                    client,
+                    [
+                        contato.wid,
+                        contato.telefoneOriginal,
+                        contato.telefone
+                    ],
                     montarMensagemGestor360(contato)
                 );
+                const destinoEnvio = envioTexto.destino || contato.wid;
 
                 await esperar(INTERVALO_TEXTO_PDF_MS);
 
                 await client.sendFile(
-                    contato.wid,
+                    destinoEnvio,
                     PDF_PATH,
                     'TopTec-Gestor360.pdf',
                     montarLegendaPdfGestor360(contato)
@@ -445,12 +454,13 @@ async function enviarCampanhaGestor360(client) {
                         conveniencia: contato.conveniencia,
                         cidade: contato.cidade,
                         wid: contato.wid,
+                        destino: destinoEnvio,
                         enviadoEm: new Date().toISOString(),
                         erro: ''
                     }
                 );
 
-                sessoes[contato.wid] = 'gestor360_info';
+                sessoes[destinoEnvio] = 'gestor360_info';
                 resultado.enviados += 1;
                 resultado.enviadosHoje += 1;
 
