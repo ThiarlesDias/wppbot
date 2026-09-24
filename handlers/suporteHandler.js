@@ -66,9 +66,6 @@ const {
     marcarSaidaGestor360,
     registrarInteresseGestor360
 } = require('../services/gestor360Campanha');
-const {
-    pausarAtendimento
-} = require('../services/pausaAtendimento');
 
 module.exports = async function suporteHandler(
     client,
@@ -383,24 +380,7 @@ De *1* a *5*, qual nota voce da para este atendimento?
         );
         const contato = String(numeroWhatsapp || numero || '').replace(/\D/g, '');
 
-        sessoes[numero] = 'humano';
-        pausarAtendimento(
-            numero,
-            'lead interessado Gestor360'
-        );
-
-        if (numeroWhatsapp) {
-
-            pausarAtendimento(
-                numeroWhatsapp,
-                'lead interessado Gestor360'
-            );
-            pausarAtendimento(
-                `${String(numeroWhatsapp).replace(/\D/g, '')}@c.us`,
-                'lead interessado Gestor360'
-            );
-
-        }
+        sessoes[numero] = 'menu';
 
         await notificar(
             client,
@@ -426,7 +406,14 @@ ${texto || 'Sem texto'}`
 
         return await client.sendText(
             numero,
-            'Perfeito, recebi seu retorno. Vou chamar uma pessoa da TopTec para continuar seu atendimento por aqui.'
+            [
+                'Obrigado pelo retorno.',
+                '',
+                'Para testar gratuitamente o TopTec Gestor360, acesse:',
+                'https://toptecdigital.com/toptec-gestor-360/',
+                '',
+                'O cadastro e simples e rapido. Se precisar de ajuda, pode mandar sua duvida por aqui.'
+            ].join('\n')
         );
 
     }

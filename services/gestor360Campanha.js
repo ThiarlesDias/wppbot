@@ -16,7 +16,9 @@ const CSV_PATH = caminhoConfigurado(process.env.GESTOR360_CSV_PATH, CSV_PADRAO);
 const PDF_PATH = caminhoConfigurado(process.env.GESTOR360_PDF_PATH, PDF_PADRAO);
 const STORE_PATH = path.join(DATA_DIR, 'gestor360-campanha.json');
 const INTERVALO_ENVIO_MS = Number(process.env.GESTOR360_ENVIO_INTERVALO_MS || 60 * 1000);
+const INTERVALO_TEXTO_PDF_MS = Number(process.env.GESTOR360_INTERVALO_TEXTO_PDF_MS || 1500);
 const LIMITE_DIARIO = Number(process.env.GESTOR360_LIMITE_DIARIO || 10);
+const SITE_GESTOR360 = 'https://toptecdigital.com/toptec-gestor-360/';
 
 let campanhaRodando = false;
 
@@ -245,13 +247,24 @@ function montarMensagemGestor360(contato) {
         `Ola, ${contato.primeiroNome}. Tudo bem?`,
         '',
         'Sou da TopTec Digital.',
-        `Estou enviando uma apresentacao do *TopTec Gestor360*, pensado para mercadinhos e conveniencias como a *${contato.conveniencia}*${cidade}.`,
+        `Separei uma apresentacao do *TopTec Gestor360* para mercadinhos e conveniencias como a *${contato.conveniencia}*${cidade}.`,
         '',
-        'No PDF tem uma visao rapida dos modulos para vendas, estoque, financeiro e atendimento.',
+        'Voce pode testar gratuitamente. Basta acessar o site e fazer um cadastro simples e rapido:',
+        SITE_GESTOR360,
         '',
-        'Se fizer sentido para voce, responda *1* que eu te explico os proximos passos.',
+        'Vou enviar tambem o PDF com uma visao dos modulos para vendas, estoque, financeiro e atendimento.',
         '',
         'Se nao quiser receber esse tipo de contato, responda *SAIR*.'
+    ].join('\n');
+
+}
+
+function montarLegendaPdfGestor360(contato) {
+
+    return [
+        `Apresentacao do *TopTec Gestor360* para a *${contato.conveniencia}*.`,
+        '',
+        `Teste gratis: ${SITE_GESTOR360}`
     ].join('\n');
 
 }
@@ -326,7 +339,8 @@ function previewGestor360(quantidade = 5) {
     return {
         status: resumoStatus(),
         contatos: contatos.slice(0, quantidade),
-        mensagem: primeiro ? montarMensagemGestor360(primeiro) : ''
+        mensagem: primeiro ? montarMensagemGestor360(primeiro) : '',
+        legendaPdf: primeiro ? montarLegendaPdfGestor360(primeiro) : ''
     };
 
 }
@@ -409,11 +423,18 @@ async function enviarCampanhaGestor360(client) {
 
             try {
 
+                await client.sendText(
+                    contato.wid,
+                    montarMensagemGestor360(contato)
+                );
+
+                await esperar(INTERVALO_TEXTO_PDF_MS);
+
                 await client.sendFile(
                     contato.wid,
                     PDF_PATH,
                     'TopTec-Gestor360.pdf',
-                    montarMensagemGestor360(contato)
+                    montarLegendaPdfGestor360(contato)
                 );
 
                 registrarStatus(
@@ -547,6 +568,7 @@ module.exports = {
     lerContatosGestor360,
     marcarSaidaGestor360,
     montarMensagemGestor360,
+    montarLegendaPdfGestor360,
     previewGestor360,
     registrarInteresseGestor360,
     statusGestor360: resumoStatus

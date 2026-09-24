@@ -905,9 +905,13 @@ function textoGestor360Previa() {
         '',
         linhasContatos.length ? linhasContatos.join('\n\n') : 'Nenhum contato valido encontrado.',
         '',
-        '*Mensagem do primeiro envio*',
+        '*Texto antes do PDF*',
         '',
         previa.mensagem || 'Sem mensagem porque nao ha contatos validos.',
+        '',
+        '*Legenda do PDF*',
+        '',
+        previa.legendaPdf || 'Sem legenda porque nao ha contatos validos.',
         '',
         'Para enviar de verdade, use #gestor360 enviar.'
     ].join('\n');
